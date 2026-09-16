@@ -1,4 +1,20 @@
 .brandAvatar{overflow:hidden;position:relative;background:var(--surface2);color:var(--text);border:1px solid var(--line)}
 .brandAvatar img{width:100%;height:100%;object-fit:cover;display:block}
-.brandAvatar #patrickFallback{width:100%;height:100%;display:grid;place-items:center;font-weight:950;font-size:21px}
 .installAction{font-size:18px}
+
+.patrickHero{position:relative;margin:0 0 14px;border-radius:20px;overflow:hidden;aspect-ratio:16/9;max-height:280px;background:#2da8f5;box-shadow:var(--shadow);border:1px solid color-mix(in srgb,var(--line) 55%,transparent)}
+.patrickHero img{width:100%;height:100%;display:block;object-fit:cover;object-position:center}
+.patrickHero::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(8,65,120,.54) 0%,rgba(8,65,120,.18) 38%,rgba(8,65,120,0) 62%);pointer-events:none}
+.patrickHeroCopy{position:absolute;z-index:2;left:18px;top:50%;transform:translateY(-50%);display:grid;gap:3px;color:#fff;max-width:46%;text-shadow:0 2px 10px rgba(0,45,90,.28)}
+.patrickHeroCopy span{font-size:10px;font-weight:950;letter-spacing:.12em}
+.patrickHeroCopy strong{font-size:clamp(23px,4.3vw,38px);line-height:1.02}
+.patrickHeroCopy small{font-size:13px;font-weight:700;opacity:.94}
+
+@media(max-width:600px){
+  .patrickHero{height:168px;aspect-ratio:auto;border-radius:18px}
+  .patrickHero img{object-position:58% center}
+  .patrickHero::after{background:linear-gradient(90deg,rgba(8,65,120,.58) 0%,rgba(8,65,120,.18) 48%,rgba(8,65,120,0) 72%)}
+  .patrickHeroCopy{left:14px;max-width:50%}
+  .patrickHeroCopy strong{font-size:23px}
+  .patrickHeroCopy small{font-size:11px}
+}
