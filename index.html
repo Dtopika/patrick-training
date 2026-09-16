@@ -11,7 +11,7 @@
   <meta name="apple-mobile-web-app-title" content="Patrick">
   <title>Patrick Training</title>
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="icon" href="icons/icon-192.png" sizes="192x192" type="image/png">
+  <link rel="icon" href="icons/icon-192.webp" sizes="192x192" type="image/webp">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -19,8 +19,7 @@
   <header class="appHeader">
     <button class="brand" data-go="today" aria-label="Ir a Hoy">
       <span class="brandAvatar">
-        <img id="patrickAvatar" alt="Patrick" hidden>
-        <span id="patrickFallback">P</span>
+        <img id="patrickAvatar" src="icons/icon-192.webp" alt="Patrick">
       </span>
       <span class="brandCopy"><strong>Patrick</strong><small id="headerLevel">Nivel 0 · Fundamentos</small></span>
     </button>
@@ -36,6 +35,15 @@
         <div><p class="kicker">ENTRENAMIENTO DE HOY</p><h1 id="todayHeading">Hoy con Patrick</h1><p id="todaySummary" class="muted"></p></div>
         <label class="daySelect">Día<select id="dayType"><option>Todo el día</option><option>Solo noche</option></select></label>
       </div>
+
+      <figure class="patrickHero">
+        <img src="assets/patrick-banner.webp" alt="Ilustración de un cachorro pastor alemán para Patrick Training">
+        <figcaption class="patrickHeroCopy">
+          <span>🐾 PATRICK TRAINING</span>
+          <strong>Un paso a la vez.</strong>
+          <small>Obediencia, vínculo y progreso.</small>
+        </figcaption>
+      </figure>
 
       <article class="sessionHero">
         <div class="sessionHeroTop"><span id="levelBadge" class="badge">Nivel 0</span><span id="readinessBadge" class="statusPill">En curso</span></div>
