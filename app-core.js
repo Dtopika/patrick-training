@@ -9,7 +9,7 @@ let session=null, toastTimer=null, commandAudio=null;
 function stateOf(cmd){return progress[cmd]||'No iniciado'}
 function commandBy(name){return COMMANDS.find(c=>c.cmd===name)}
 function levelBy(n){return LEVELS.find(l=>l.n===n)}
-function escapeHtml(s=''){return s.replace(/[&<>\"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[m]))}
+function escapeHtml(s=''){return s.replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]))}
 function toast(msg){const el=$('#toast');el.textContent=msg;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),1800)}
 function localGermanSpeech(text){return new Promise((resolve,reject)=>{if(!('speechSynthesis'in window)){reject(new Error('speechSynthesis unavailable'));return}try{const synth=window.speechSynthesis;synth.cancel();synth.resume();const voices=synth.getVoices();const de=voices.find(v=>v.lang?.toLowerCase().startsWith('de'));const u=new SpeechSynthesisUtterance(text);u.lang=de?.lang||'de-DE';u.rate=.72;u.pitch=1;if(de)u.voice=de;u.onend=()=>resolve();u.onerror=e=>reject(e);synth.speak(u)}catch(e){reject(e)}})}
 async function remoteGermanSpeech(text){if(commandAudio){commandAudio.pause();commandAudio.src=''}const url=`https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=de&q=${encodeURIComponent(text)}`;commandAudio=new Audio(url);commandAudio.preload='auto';commandAudio.volume=1;await commandAudio.play()}
