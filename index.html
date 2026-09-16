@@ -4,25 +4,43 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#111827">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Patrick">
+  <meta name="description" content="Plan interactivo de entrenamiento de Patrick: comandos, niveles y progreso.">
   <title>Patrick Training</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon-192.svg">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 <header class="top">
-  <div>
-    <div class="eyebrow">🐺 Patrick Training</div>
-    <h1>De cachorro a obediencia avanzada</h1>
-    <p>Comandos en alemán, plan diario, progreso y control seguro.</p>
+  <div class="brandRow">
+    <div class="brandMark">P</div>
+    <div>
+      <div class="eyebrow">PATRICK TRAINING</div>
+      <h1>Entrena. Mide. Progresa.</h1>
+    </div>
   </div>
-  <button id="themeBtn" class="iconBtn" aria-label="Cambiar tema">◐</button>
+  <div class="headerActions">
+    <button id="installBtn" class="installBtn">Instalar app</button>
+    <button id="themeBtn" class="iconBtn" aria-label="Cambiar tema">◐</button>
+  </div>
 </header>
 
-<nav class="tabs">
-  <button data-view="today" class="active">Hoy</button>
-  <button data-view="levels">Niveles</button>
-  <button data-view="commands">Comandos</button>
-  <button data-view="progress">Progreso</button>
-  <button data-view="safety">Defensa segura</button>
+<div class="installStrip">
+  <span>🐺</span>
+  <div><strong>Patrick en tu celular</strong><small id="installHint">Puedes usarla desde Chrome o Samsung Internet.</small></div>
+</div>
+
+<nav class="tabs" aria-label="Navegación principal">
+  <button data-view="today" class="active"><span class="navIcon">⌂</span><span>Hoy</span></button>
+  <button data-view="levels"><span class="navIcon">◫</span><span>Niveles</span></button>
+  <button data-view="commands"><span class="navIcon">⌕</span><span>Comandos</span></button>
+  <button data-view="progress"><span class="navIcon">✓</span><span>Progreso</span></button>
+  <button data-view="safety"><span class="navIcon">◇</span><span>Control</span></button>
 </nav>
 
 <main>
@@ -46,19 +64,17 @@
     </div>
   </div>
   <div id="todayPlan" class="cards"></div>
-  <div class="note">
-    <strong>Regla 8/10:</strong> sube una sola dificultad cuando Patrick responda bien al menos 8 de 10 veces sin ver el premio.
-  </div>
+  <div class="note"><strong>Regla 8/10:</strong> sube una sola dificultad cuando Patrick responda bien al menos 8 de 10 veces sin ver el premio.</div>
 </section>
 
 <section id="levels" class="view">
-  <div class="sectionHead"><h2>Niveles 0 → 10</h2><p>No subas por edad; sube por fiabilidad.</p></div>
+  <div class="sectionHead"><div><h2>Niveles 0 → 10</h2><p>No subas por edad; sube por fiabilidad.</p></div></div>
   <div id="levelCards" class="cards"></div>
 </section>
 
 <section id="commands" class="view">
-  <div class="sectionHead">
-    <h2>Diccionario de comandos</h2>
+  <div class="sectionHead commandHead">
+    <div><h2>Comandos</h2><p>Toca cada comando para ver cómo enseñarlo.</p></div>
     <input id="search" type="search" placeholder="Buscar: Hier, soltar, paseo…">
   </div>
   <div class="filters">
@@ -73,7 +89,7 @@
 </section>
 
 <section id="progress" class="view">
-  <div class="sectionHead"><h2>Progreso</h2><p>Se guarda en este dispositivo.</p></div>
+  <div class="sectionHead"><div><h2>Progreso</h2><p>Se guarda en este dispositivo.</p></div></div>
   <div class="progressCard">
     <div class="big" id="progressPct">0%</div>
     <div class="bar"><div id="progressBar"></div></div>
@@ -83,33 +99,21 @@
 </section>
 
 <section id="safety" class="view">
-  <div class="sectionHead"><h2>Control defensivo seguro</h2><p>La prioridad es control, retirada y obediencia; no agresión.</p></div>
-
+  <div class="sectionHead"><div><h2>Control defensivo seguro</h2><p>Prioridad: control, retirada y obediencia.</p></div></div>
   <div class="warning">
     <strong>Protección deportiva ≠ enseñar a atacar personas.</strong>
-    <p>Esta app sí incluye alerta, posición segura, ladrido bajo orden, parada, llamada y suelta. El trabajo de mordida/protección de IGP debe hacerse únicamente con un club, figurante y entrenador cualificados. Aquí no se dan instrucciones de ataque ni de mordida.</p>
+    <p>La app incluye alerta, posición segura, ladrido bajo orden, parada, llamada y suelta. El trabajo de mordida/protección de IGP debe hacerse con club, figurante y entrenador cualificados.</p>
   </div>
-
   <div class="cards">
-    <article class="card">
-      <span class="pill">Nivel 9</span><h3>Pass auf</h3>
-      <p><strong>Objetivo:</strong> orientar atención hacia algo que tú señalas y volver inmediatamente al control.</p>
-      <p>Cadena: <b>Pass auf → observa → Schau → Ja → premio</b>.</p>
-    </article>
-    <article class="card">
-      <span class="pill">Nivel 9</span><h3>Hinter</h3>
-      <p><strong>Objetivo:</strong> colocarse detrás de ti cuando quieres crear distancia con un estímulo.</p>
-      <p>Útil para puertas, desconocidos, bicicletas y situaciones tensas.</p>
-    </article>
-    <article class="card">
-      <span class="pill">Base obligatoria</span><h3>Stopp · Hier · Aus · Fuß</h3>
-      <p>Antes de cualquier disciplina de protección deportiva, estas señales deberían funcionar con distracciones altas.</p>
-    </article>
+    <article class="card"><span class="pill">Nivel 9</span><h3>Pass auf</h3><p><strong>Objetivo:</strong> orientar atención hacia algo que tú señalas y volver inmediatamente al control.</p><p><b>Pass auf → observa → Schau → Ja → premio</b>.</p></article>
+    <article class="card"><span class="pill">Nivel 9</span><h3>Hinter</h3><p><strong>Objetivo:</strong> colocarse detrás de ti cuando quieres crear distancia con un estímulo.</p><p>Útil para puertas, desconocidos, bicicletas y situaciones tensas.</p></article>
+    <article class="card"><span class="pill">Base obligatoria</span><h3>Stopp · Hier · Aus · Fuß</h3><p>Antes de cualquier disciplina de protección deportiva, estas señales deberían funcionar con distracciones altas.</p></article>
   </div>
 </section>
 </main>
 
-<footer>Patrick Training · datos guardados localmente · hecho para entrenar al perro y al humano 😏</footer>
+<footer>Patrick Training · progreso guardado localmente 🐺</footer>
 <script src="app.js"></script>
+<script src="pwa.js"></script>
 </body>
 </html>
