@@ -1,15 +1,18 @@
-const APP_VERSION='5.4';
+const APP_VERSION='5.5';
 const CACHE=`patrick-training-v${APP_VERSION}`;
 const CORE=["./","./index.html","./styles.css","./styles-base.css","./styles-ui.css","./styles-avatar.css","./styles-media.css","./styles-splash.css","./styles-session.css","./styles-profile.css","./styles-polish.css","./styles-notifications.css","./commands-1.js","./commands-2.js","./commands-3.js","./commands-4.js","./levels.js","./videos.js","./db.js","./app-core.js","./profile.js","./progress.js","./app-media.js","./app-session.js","./pwa.js","./manifest.webmanifest","./icons/icon-192.webp","./icons/icon-512.webp","./icons/icon-192.png","./assets/patrick-banner.webp"];
 const REMINDER_TAG='patrick-daily-reminder';
 const DB_NAME='patrick-training-db',DB_VERSION=1,STORE='kv';
 
-self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)));self.skipWaiting()});
+self.addEventListener('install',e=>{e.waitUntil((async()=>{
+  const cache=await caches.open(CACHE);
+  await Promise.all(CORE.map(async url=>{const response=await fetch(url,{cache:'no-store'});if(response.ok)await cache.put(url,response.clone())}));
+  await self.skipWaiting();
+})())});
 self.addEventListener('activate',e=>{e.waitUntil((async()=>{
-  const keys=await caches.keys();await Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)));
+  const keys=await caches.keys();
+  await Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)));
   await self.clients.claim();
-  const clients=await self.clients.matchAll({type:'window',includeUncontrolled:true});
-  await Promise.all(clients.map(async client=>{try{const u=new URL(client.url);if(u.origin!==self.location.origin)return;u.searchParams.set('ptv',APP_VERSION);await client.navigate(u.href)}catch(err){console.warn('Client refresh failed',err)}}));
 })())});
 self.addEventListener('fetch',e=>{
   if(e.request.method!=='GET')return;
