@@ -7,28 +7,42 @@ function demoSteps(c){return[
   ['4','Dónde premiar',c.reward]
 ]}
 
+function videoUrls(meta){
+  if(meta?.youtubeId)return{
+    embed:`https://www.youtube-nocookie.com/embed/${meta.youtubeId}?playsinline=1&rel=0&modestbranding=1`,
+    external:`https://www.youtube.com/watch?v=${meta.youtubeId}`
+  };
+  if(meta?.vimeoId)return{
+    embed:`https://player.vimeo.com/video/${meta.vimeoId}?autopause=0&badge=0&title=0&byline=0`,
+    external:`https://vimeo.com/${meta.vimeoId}`
+  };
+  return null;
+}
+
 function openDemo(c){
   if(!c)return;
   const meta=VIDEO_LIBRARY[c.cmd];
+  const urls=videoUrls(meta);
   $('#demoCommand').textContent=c.cmd;
   $('#demoPron').textContent=c.pron;
   $('#demoMeaning').textContent=c.meaning;
   $('#demoSteps').innerHTML=demoSteps(c).map(([n,t,x])=>`<article class="demoStep"><span>${n}</span><div><strong>${escapeHtml(t)}</strong><p>${escapeHtml(x)}</p></div></article>`).join('');
   const frame=$('#demoFrame'), empty=$('#demoEmpty'), external=$('#demoExternal');
-  if(meta?.youtubeId){
+  external.textContent='Abrir tutorial completo ↗';
+  if(meta&&urls){
     frame.hidden=false;
     empty.hidden=true;
-    frame.src=`https://www.youtube-nocookie.com/embed/${meta.youtubeId}?playsinline=1&rel=0&modestbranding=1`;
+    frame.src=urls.embed;
     $('#demoVideoTitle').textContent=meta.title;
     $('#demoVideoSource').textContent=meta.source;
     external.hidden=false;
-    external.href=`https://www.youtube.com/watch?v=${meta.youtubeId}`;
+    external.href=urls.external;
   }else{
     frame.hidden=true;
     frame.removeAttribute('src');
     empty.hidden=false;
     $('#demoVideoTitle').textContent='Guía visual';
-    $('#demoVideoSource').textContent='El video de este comando todavía está en preparación.';
+    $('#demoVideoSource').textContent='Todavía no hay un tutorial curado para este comando.';
     external.hidden=false;
     external.href=`https://www.youtube.com/results?search_query=${encodeURIComponent('dog training '+c.meaning+' positive reinforcement')}`;
     external.textContent='Buscar tutorial en YouTube ↗';
@@ -58,6 +72,11 @@ function decorateDemoButtons(){
   });
 }
 
+function validateVideoCoverage(){
+  const missing=COMMANDS.filter(c=>!VIDEO_LIBRARY[c.cmd]||!videoUrls(VIDEO_LIBRARY[c.cmd]));
+  if(missing.length)console.warn('Patrick Training: comandos sin video curado',missing.map(c=>c.cmd));
+}
+
 document.addEventListener('click',e=>{
   const btn=e.target.closest('[data-demo]');
   if(btn)openDemo(commandBy(btn.dataset.demo));
@@ -72,3 +91,4 @@ if(commandList){
   new MutationObserver(decorateDemoButtons).observe(commandList,{childList:true,subtree:true});
   queueMicrotask(decorateDemoButtons);
 }
+validateVideoCoverage();
