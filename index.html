@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#111827">
-  <meta name="description" content="Plan móvil de entrenamiento de Patrick con comandos en alemán, sesiones guiadas y progreso.">
+  <meta name="description" content="Plan móvil de entrenamiento canino con comandos en alemán, sesiones guiadas y progreso.">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -40,9 +40,9 @@
   <header class="appHeader">
     <button class="brand" data-go="today" aria-label="Ir a Hoy">
       <span class="brandAvatar">
-        <img id="patrickAvatar" src="icons/icon-192.webp" alt="Patrick">
+        <img id="patrickAvatar" src="icons/icon-192.webp" alt="">
       </span>
-      <span class="brandCopy"><strong>Patrick</strong><small id="headerLevel">Nivel 0 · Fundamentos</small></span>
+      <span class="brandCopy"><strong id="dogNameHeader">Patrick</strong><small id="headerLevel">Nivel 0 · Fundamentos</small></span>
     </button>
     <div class="headerActions">
       <button id="installBtn" class="headerIcon installAction" hidden aria-label="Instalar Patrick Training" title="Instalar app">↓</button>
@@ -86,7 +86,7 @@
       </section>
 
       <article id="advanceCard" class="advanceCard" hidden>
-        <div><strong>Patrick está listo para avanzar</strong><p class="muted">Los comandos del nivel actual ya están consistentes.</p></div>
+        <div><strong id="advanceTitle">Patrick está listo para avanzar</strong><p class="muted">Los comandos del nivel actual ya están consistentes.</p></div>
         <button id="advanceBtn" class="secondaryBtn">Siguiente nivel</button>
       </article>
     </section>
@@ -105,6 +105,11 @@
 
     <section id="progress" class="view" aria-labelledby="progressHeading">
       <div class="pageHead"><p class="kicker">SEGUIMIENTO</p><h1 id="progressHeading">Progreso</h1><p class="muted">La app calcula recomendaciones; tú conservas el control final del estado.</p></div>
+      <article class="dogProfileCard">
+        <img src="icons/icon-192.webp" alt="">
+        <div class="dogProfileCopy"><small>PERFIL ACTIVO</small><strong id="dogProfileName">Patrick</strong><span>Pastor alemán</span><small id="storageModeLabel" class="storageBadge">IndexedDB</small></div>
+        <button id="editDogBtn" class="profileEditBtn" type="button">Editar</button>
+      </article>
       <article class="progressHero">
         <div class="progressRing" id="progressRing"><span id="progressPct">0%</span></div>
         <div><strong id="progressHeadline">Empezando</strong><p id="progressText" class="muted"></p></div>
@@ -168,6 +173,17 @@
     </section>
   </dialog>
 
+  <dialog id="profileDialog" class="profileDialog" aria-labelledby="profileDialogTitle">
+    <section class="profileCard">
+      <img class="profileIcon" src="icons/icon-192.webp" alt="">
+      <p class="kicker">PERFIL DEL PERRO</p>
+      <h2 id="profileDialogTitle">¿Cómo se llama tu pastor alemán?</h2>
+      <p id="profileDialogText" class="muted">Patrick Training seguirá siendo el nombre de la app. Este nombre personaliza las sesiones, el comando de atención y el progreso.</p>
+      <label class="profileField"><span>Nombre</span><input id="dogNameInput" type="text" maxlength="24" autocomplete="off" autocapitalize="words" placeholder="Patrick"></label>
+      <div class="profileActions"><button id="profileCancelBtn" class="secondaryBtn" type="button" hidden>Cancelar</button><button id="saveProfileBtn" class="primaryBtn" type="button">Guardar y empezar</button></div>
+    </section>
+  </dialog>
+
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <script src="commands-1.js"></script>
   <script src="commands-2.js"></script>
@@ -175,6 +191,7 @@
   <script src="commands-4.js"></script>
   <script src="levels.js"></script>
   <script src="videos.js"></script>
+  <script src="db.js"></script>
   <script src="app-core.js"></script>
   <script src="app-media.js"></script>
   <script src="app-session.js"></script>
