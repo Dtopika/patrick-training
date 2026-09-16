@@ -1,18 +1,30 @@
-const APP_VERSION='5.6';
-window.PATRICK_APP_VERSION=APP_VERSION;
-
+let deferredPrompt=null;
+const installBtn=document.getElementById('installBtn');
 const displayModeStandalone=()=>['standalone','fullscreen','minimal-ui'].some(mode=>window.matchMedia(`(display-mode: ${mode})`).matches);
 const launchedFromAndroidApp=()=>document.referrer?.startsWith('android-app://');
 const standalone=()=>displayModeStandalone()||window.navigator.standalone===true||launchedFromAndroidApp();
 const isIos=()=>/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 
-function removeInstallAction(){document.getElementById('installBtn')?.remove()}
-function syncVisibleVersion(){const version=document.querySelector('.settingsDrawerFoot span');if(version)version.textContent=`v${APP_VERSION}`}
-removeInstallAction();syncVisibleVersion();
-new MutationObserver(()=>{removeInstallAction();syncVisibleVersion()}).observe(document.body,{childList:true,subtree:true});
-
-window.addEventListener('beforeinstallprompt',e=>e.preventDefault());
-window.addEventListener('appinstalled',()=>document.getElementById('iosInstallHint')?.remove());
+function syncInstallUI(){
+  const canInstall=!!deferredPrompt&&!standalone();
+  if(!installBtn)return;
+  installBtn.hidden=!canInstall;
+  installBtn.style.display=canInstall?'grid':'none';
+}
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();
+  if(standalone()){deferredPrompt=null;syncInstallUI();return}
+  deferredPrompt=e;syncInstallUI();
+});
+async function install(){
+  if(!deferredPrompt||standalone()){syncInstallUI();return}
+  deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;syncInstallUI();
+}
+installBtn?.addEventListener('click',install);
+window.addEventListener('appinstalled',()=>{deferredPrompt=null;syncInstallUI();document.getElementById('iosInstallHint')?.remove()});
+['standalone','fullscreen','minimal-ui'].forEach(mode=>window.matchMedia(`(display-mode: ${mode})`).addEventListener?.('change',syncInstallUI));
+window.addEventListener('pageshow',syncInstallUI);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)syncInstallUI()});
 
 function maybeShowIosInstallHint(){
   if(!isIos()||standalone()||sessionStorage.getItem('patrickIosInstallHintDismissed'))return;
@@ -21,16 +33,6 @@ function maybeShowIosInstallHint(){
   document.getElementById('iosInstallDismiss').onclick=()=>{sessionStorage.setItem('patrickIosInstallHintDismissed','1');document.getElementById('iosInstallHint')?.remove()};
 }
 
-async function registerFreshServiceWorker(){
-  if(!('serviceWorker'in navigator))return;
-  try{
-    const reg=await navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'});
-    await reg.update();
-  }catch(e){console.warn('Service worker update failed',e)}
-}
-
-if('serviceWorker'in navigator){
-  window.addEventListener('load',registerFreshServiceWorker);
-  window.addEventListener('pageshow',registerFreshServiceWorker);
-}
-window.addEventListener('load',()=>{removeInstallAction();syncVisibleVersion();maybeShowIosInstallHint()});
+if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').then(syncInstallUI).catch(console.warn));
+window.addEventListener('load',maybeShowIosInstallHint);
+syncInstallUI();
