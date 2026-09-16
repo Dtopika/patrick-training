@@ -18,19 +18,17 @@
 <body>
   <header class="appHeader">
     <button class="brand" data-go="today" aria-label="Ir a Hoy">
-      <span class="brandAvatar">P</span>
+      <span class="brandAvatar">
+        <img id="patrickAvatar" alt="Patrick" hidden>
+        <span id="patrickFallback">P</span>
+      </span>
       <span class="brandCopy"><strong>Patrick</strong><small id="headerLevel">Nivel 0 · Fundamentos</small></span>
     </button>
     <div class="headerActions">
-      <button id="installBtn" class="headerIcon installAction" hidden aria-label="Instalar Patrick Training">↓</button>
+      <button id="installBtn" class="headerIcon installAction" hidden aria-label="Instalar Patrick Training" title="Instalar app">↓</button>
       <button id="themeBtn" class="headerIcon" aria-label="Cambiar tema">◐</button>
     </div>
   </header>
-
-  <div id="installBanner" class="installBanner" hidden>
-    <div><strong>Instala Patrick Training</strong><span>Ábrela como una app y úsala incluso sin conexión.</span></div>
-    <button id="installBannerBtn">Instalar</button>
-  </div>
 
   <main class="appMain">
     <section id="today" class="view active" aria-labelledby="todayHeading">
