@@ -23,11 +23,11 @@ function openDemo(c){
   if(!c)return;
   const meta=VIDEO_LIBRARY[c.cmd];
   const urls=videoUrls(meta);
-  $('#demoCommand').textContent=c.cmd;
-  $('#demoPron').textContent=c.pron;
+  $('#demoCommand').textContent=displayCommand(c);
+  $('#demoPron').textContent=displayPron(c);
   $('#demoMeaning').textContent=c.meaning;
   $('#demoSteps').innerHTML=demoSteps(c).map(([n,t,x])=>`<article class="demoStep"><span>${n}</span><div><strong>${escapeHtml(t)}</strong><p>${escapeHtml(x)}</p></div></article>`).join('');
-  const frame=$('#demoFrame'), empty=$('#demoEmpty'), external=$('#demoExternal');
+  const frame=$('#demoFrame'),empty=$('#demoEmpty'),external=$('#demoExternal');
   external.textContent='Abrir tutorial completo ↗';
   if(meta&&urls){
     frame.hidden=false;
@@ -61,10 +61,11 @@ function decorateDemoButtons(){
   $$('.commandCard').forEach(card=>{
     const actions=card.querySelector('.commandActions');
     if(!actions||actions.querySelector('.demoBtn'))return;
+    const c=commandBy(card.dataset.command);
     const btn=document.createElement('button');
     btn.className='demoBtn';
     btn.dataset.demo=card.dataset.command;
-    btn.setAttribute('aria-label',`Ver demostración de ${card.dataset.command}`);
+    btn.setAttribute('aria-label',`Ver demostración de ${displayCommand(c||card.dataset.command)}`);
     btn.title='Ver demostración';
     btn.textContent='🎥';
     const practice=actions.querySelector('.practiceBtn');
