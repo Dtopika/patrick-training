@@ -1,4 +1,4 @@
-const CACHE='patrick-training-v3.7';
+const CACHE='patrick-training-v3.8';
 const CORE=["./","./index.html","./styles.css","./styles-base.css","./styles-ui.css","./styles-avatar.css","./styles-media.css","./styles-splash.css","./commands-1.js","./commands-2.js","./commands-3.js","./commands-4.js","./levels.js","./videos.js","./app-core.js","./app-media.js","./app-session.js","./pwa.js","./manifest.webmanifest","./icons/icon-192.webp","./icons/icon-512.webp","./icons/icon-192.png","./assets/patrick-banner.webp"];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)));self.skipWaiting();});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))));self.clients.claim();});
