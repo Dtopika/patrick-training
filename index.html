@@ -13,17 +13,29 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon-192.webp" sizes="192x192" type="image/webp">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <style>
+    .appSplash{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;overflow:hidden;background:#2da8f5;color:#fff;pointer-events:auto}
+    .appSplashIcon{display:block;width:112px;height:112px;max-width:112px;max-height:112px;object-fit:cover;border-radius:30px}
+  </style>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <div class="appSplash" aria-hidden="true">
     <div class="appSplashInner">
-      <img class="appSplashIcon" src="icons/icon-192.webp" alt="">
+      <img class="appSplashIcon" src="icons/icon-192.webp" alt="" width="112" height="112">
       <strong class="appSplashName">Patrick</strong>
       <span class="appSplashTag">Training</span>
       <span class="appSplashPaw">🐾</span>
     </div>
   </div>
+  <script>
+    (()=>{
+      const splash=document.querySelector('.appSplash');
+      if(!splash)return;
+      setTimeout(()=>splash.classList.add('is-done'),1380);
+      setTimeout(()=>splash.remove(),1800);
+    })();
+  </script>
 
   <header class="appHeader">
     <button class="brand" data-go="today" aria-label="Ir a Hoy">
