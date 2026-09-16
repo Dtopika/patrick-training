@@ -51,6 +51,10 @@
     return withStore('readwrite',store=>store.delete(key));
   }
 
+  async function clearAll(){
+    return withStore('readwrite',store=>store.clear());
+  }
+
   async function migrateLocalStorage(keys){
     const marker='__localStorageMigrationV1';
     if(await get(marker))return false;
@@ -64,5 +68,5 @@
     return true;
   }
 
-  window.PatrickDB={open,get,set,del,migrateLocalStorage,dbName:DB_NAME};
+  window.PatrickDB={open,get,set,del,clearAll,migrateLocalStorage,dbName:DB_NAME};
 })();
