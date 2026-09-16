@@ -23,7 +23,7 @@ function startExecutionTimer(){stopExecutionTimer();executionElapsedMs=0;executi
 function outcomeMark(outcome){if(outcome==='achieved')return icon('check');if(outcome==='assisted')return icon('help');return icon('x')}
 function updateExecutionDots(){
   const c=session.commands[session.index],results=session.results[c.cmd]||[];
-  $('#executionDots').innerHTML=Array.from({length:EXECUTIONS_PER_COMMAND},(_,i)=>{const outcome=results[i];return `<span class="${outcome||i===session.trial?'current':''} ${outcome||''}">${outcome?outcomeMark(outcome):i+1}</span>`}).join('');
+  $('#executionDots').innerHTML=Array.from({length:EXECUTIONS_PER_COMMAND},(_,i)=>{const outcome=results[i],current=!outcome&&i===session.trial;return `<span class="${current?'current':''} ${outcome||''}">${outcome?outcomeMark(outcome):i+1}</span>`}).join('');
 }
 function setOutcomeButtonsDisabled(disabled){['#missedBtn','#assistedBtn','#correctBtn'].forEach(id=>{const b=$(id);if(b)b.disabled=disabled})}
 function updateExecutionUI(){
