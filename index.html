@@ -20,91 +20,38 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div class="appSplash" aria-hidden="true">
-    <div class="appSplashInner">
-      <img class="appSplashIcon" src="icons/icon-192.webp" alt="" width="112" height="112">
-      <strong class="appSplashName">Patrick</strong>
-      <span class="appSplashTag">Training</span>
-      <span class="appSplashPaw">🐾</span>
-    </div>
-  </div>
-  <script>
-    (()=>{const splash=document.querySelector('.appSplash');if(!splash)return;setTimeout(()=>splash.classList.add('is-done'),1380);setTimeout(()=>splash.remove(),1800)})();
-  </script>
+  <div class="appSplash" aria-hidden="true"><div class="appSplashInner"><img class="appSplashIcon" src="icons/icon-192.webp" alt="" width="112" height="112"><strong class="appSplashName">Patrick</strong><span class="appSplashTag">Training</span><span class="appSplashPaw">🐾</span></div></div>
+  <script>(()=>{const splash=document.querySelector('.appSplash');if(!splash)return;setTimeout(()=>splash.classList.add('is-done'),1380);setTimeout(()=>splash.remove(),1800)})();</script>
 
   <header class="appHeader">
     <div class="brandGroup">
-      <button id="settingsAvatarBtn" class="avatarButton" type="button" aria-label="Abrir configuración del perro">
-        <span class="brandAvatar"><img id="patrickAvatar" src="icons/icon-192.webp" alt=""></span>
-      </button>
-      <button class="brand brandText" data-go="today" aria-label="Ir a Hoy">
-        <span class="brandCopy"><strong id="dogNameHeader">Patrick</strong><small id="headerLevel">Nivel 0 · Fundamentos</small></span>
-      </button>
+      <button id="settingsAvatarBtn" class="avatarButton" type="button" aria-label="Abrir configuración del perro"><span class="brandAvatar"><img id="patrickAvatar" src="icons/icon-192.webp" alt=""><span class="avatarSettingsMark" aria-hidden="true"><svg class="uiIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h6M14 7h6M4 17h10M18 17h2"/><circle cx="12" cy="7" r="2"/><circle cx="16" cy="17" r="2"/></svg></span></span></button>
+      <button class="brand brandText" data-go="today" aria-label="Ir a Hoy"><span class="brandCopy"><strong id="dogNameHeader">Patrick</strong><small id="headerLevel">Nivel 0 · Fundamentos</small></span></button>
     </div>
-    <div class="headerActions">
-      <button id="installBtn" class="headerIcon installAction" hidden aria-label="Instalar Patrick Training" title="Instalar app"><svg class="uiIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></svg></button>
-    </div>
+    <div class="headerActions"><button id="installBtn" class="headerIcon installAction" hidden aria-label="Instalar Patrick Training" title="Instalar app"><svg class="uiIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></svg></button></div>
   </header>
 
   <main class="appMain">
     <section id="today" class="view active" aria-labelledby="todayHeading">
-      <div class="welcomeRow">
-        <div><p class="kicker">ENTRENAMIENTO DE HOY</p><h1 id="todayHeading">Hoy con Patrick</h1><p id="todaySummary" class="muted"></p></div>
-        <label class="daySelect">Disponibilidad<select id="dayType" aria-describedby="dayTypeHelp"><option value="Todo el día">Durante el día</option><option value="Solo noche">Solo noche</option></select><small id="dayTypeHelp" class="daySelectHelp">Cambia cuántas micro-sesiones propone la app.</small></label>
-      </div>
+      <div class="welcomeRow"><div><p class="kicker">ENTRENAMIENTO DE HOY</p><h1 id="todayHeading">Hoy con Patrick</h1><p id="todaySummary" class="muted"></p></div><label class="daySelect">Disponibilidad<select id="dayType" aria-describedby="dayTypeHelp"><option value="Todo el día">Durante el día</option><option value="Solo noche">Solo noche</option></select><small id="dayTypeHelp" class="daySelectHelp">Cambia cuántas micro-sesiones propone la app.</small></label></div>
 
-      <figure class="patrickHero">
-        <img src="assets/patrick-banner.webp" alt="Ilustración de un cachorro pastor alemán para Patrick Training">
-        <figcaption class="patrickHeroCopy"><span>🐾 PATRICK TRAINING</span><strong>Un paso a la vez.</strong><small>Obediencia, vínculo y progreso.</small></figcaption>
-      </figure>
+      <figure class="patrickHero"><img src="assets/patrick-banner.webp" alt="Ilustración de un cachorro pastor alemán para Patrick Training"><figcaption class="patrickHeroCopy"><span>🐾 PATRICK TRAINING</span><strong>Un paso a la vez.</strong><small>Obediencia, vínculo y progreso.</small></figcaption></figure>
 
-      <article id="firstSessionCoach" class="firstSessionCoach" hidden>
-        <div class="firstSessionIcon" aria-hidden="true"><svg class="uiIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 2.7 5.5 6 .9-4.3 4.2 1 6-5.4-2.9-5.4 2.9 1-6-4.3-4.2 6-.9z"/></svg></div>
-        <div><strong>Tu primera sesión está lista</strong><p>No necesitas hacerlo perfecto. Haz cinco ejecuciones cortas y registra cómo salió cada una.</p></div>
-        <button id="firstSessionBtn" class="primaryBtn" type="button">Empezar primera sesión</button>
-      </article>
+      <article id="firstSessionCoach" class="firstSessionCoach" hidden><div class="firstSessionIcon" aria-hidden="true"><svg class="uiIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 2.7 5.5 6 .9-4.3 4.2 1 6-5.4-2.9-5.4 2.9 1-6-4.3-4.2 6-.9z"/></svg></div><div><strong>Tu primera sesión está lista</strong><p>No necesitas hacerlo perfecto. Haz cinco ejecuciones cortas y registra cómo salió cada una.</p></div><button id="firstSessionBtn" class="primaryBtn" type="button">Empezar primera sesión</button></article>
 
-      <article class="sessionHero">
-        <div class="sessionHeroTop"><span id="levelBadge" class="badge">Nivel 0</span><span id="readinessBadge" class="statusPill">En curso</span></div>
-        <h2 id="sessionTitle">Fundamentos</h2><p id="sessionGoal" class="muted"></p><div id="focusCommands" class="focusCommands"></div>
-        <button id="startSessionBtn" class="primaryBtn">▶ Empezar sesión guiada</button>
-      </article>
+      <article class="sessionHero"><div class="sessionHeroTop"><span id="levelBadge" class="badge">Nivel 0</span><span id="readinessBadge" class="statusPill">En curso</span></div><h2 id="sessionTitle">Fundamentos</h2><p id="sessionGoal" class="muted"></p><div id="focusCommands" class="focusCommands"></div><button id="startSessionBtn" class="primaryBtn primaryWithIcon"><svg class="uiIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="m8 5 11 7-11 7z"/></svg><span>Empezar sesión guiada</span></button></article>
 
-      <div class="metricGrid">
-        <article class="metric"><strong id="metricProgress">0%</strong><span>progreso total</span></article>
-        <article class="metric"><strong id="metricSolid">0</strong><span>consistentes+</span></article>
-        <article class="metric"><strong id="metricSessions">0</strong><span>sesiones</span></article>
-      </div>
-
+      <div class="metricGrid"><article class="metric"><strong id="metricProgress">0%</strong><span>progreso total</span></article><article class="metric"><strong id="metricSolid">0</strong><span>consistentes+</span></article><article class="metric"><strong id="metricSessions">0</strong><span>sesiones</span></article></div>
       <section id="habitCard" class="habitCard" aria-label="Racha y actividad semanal"></section>
-
-      <section class="contentBlock">
-        <div class="sectionTitle"><div><p class="kicker">PLAN FLEXIBLE</p><h2>Micro-sesiones</h2></div><span class="muted">3–5 min</span></div>
-        <div id="todayPlan" class="planList"></div>
-      </section>
-
-      <article id="advanceCard" class="advanceCard" hidden>
-        <div><strong id="advanceTitle">Patrick está listo para avanzar</strong><p class="muted">Los comandos del nivel actual ya están consistentes.</p></div>
-        <button id="advanceBtn" class="secondaryBtn">Siguiente nivel</button>
-      </article>
+      <section class="contentBlock"><div class="sectionTitle"><div><p class="kicker">PLAN FLEXIBLE</p><h2>Micro-sesiones</h2></div><span class="muted">3–5 min</span></div><div id="todayPlan" class="planList"></div></section>
+      <article id="advanceCard" class="advanceCard" hidden><div><strong id="advanceTitle">Patrick está listo para avanzar</strong><p class="muted">Los comandos del nivel actual ya están consistentes.</p></div><button id="advanceBtn" class="secondaryBtn">Siguiente nivel</button></article>
     </section>
 
-    <section id="levels" class="view" aria-labelledby="levelsHeading">
-      <div class="pageHead"><p class="kicker">RUTA DE APRENDIZAJE</p><h1 id="levelsHeading">Niveles</h1><p class="muted">Trabaja un nivel a la vez. Puedes cambiarlo manualmente sin perder el progreso.</p></div>
-      <div id="levelList" class="levelList"></div>
-    </section>
+    <section id="levels" class="view" aria-labelledby="levelsHeading"><div class="pageHead"><p class="kicker">RUTA DE APRENDIZAJE</p><h1 id="levelsHeading">Niveles</h1><p class="muted">Trabaja un nivel a la vez. Puedes cambiarlo manualmente sin perder el progreso.</p></div><div id="levelList" class="levelList"></div></section>
 
-    <section id="commands" class="view" aria-labelledby="commandsHeading">
-      <div class="pageHead commandPageHead"><div><p class="kicker">DICCIONARIO</p><h1 id="commandsHeading">Comandos</h1><p class="muted">Pronunciación, gesto, ejecución, premio y demostraciones en video.</p></div></div>
-      <label class="searchBox"><svg class="uiIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg><input id="search" type="search" autocomplete="off" placeholder="Buscar comando o significado" aria-label="Buscar comando o significado"></label>
-      <div id="filters" class="filterRow"></div><div id="commandList" class="commandList"></div>
-    </section>
+    <section id="commands" class="view" aria-labelledby="commandsHeading"><div class="pageHead commandPageHead"><div><p class="kicker">DICCIONARIO</p><h1 id="commandsHeading">Comandos</h1><p class="muted">Pronunciación, gesto, ejecución, premio y demostraciones en video.</p></div></div><label class="searchBox"><svg class="uiIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg><input id="search" type="search" autocomplete="off" placeholder="Buscar comando o significado" aria-label="Buscar comando o significado"></label><div id="filters" class="filterRow"></div><div id="commandList" class="commandList"></div></section>
 
-    <section id="progress" class="view" aria-labelledby="progressHeading">
-      <div class="pageHead"><p class="kicker">SEGUIMIENTO</p><h1 id="progressHeading">Progreso</h1><p class="muted">La app calcula recomendaciones; tú conservas el control final del estado.</p></div>
-      <article class="progressHero"><div class="progressRing" id="progressRing"><span id="progressPct">0%</span></div><div><strong id="progressHeadline">Tu ruta empieza aquí</strong><p id="progressText" class="muted"></p></div></article>
-      <div id="progressList" class="progressList"></div>
-    </section>
+    <section id="progress" class="view" aria-labelledby="progressHeading"><div class="pageHead"><p class="kicker">SEGUIMIENTO</p><h1 id="progressHeading">Progreso</h1><p class="muted">La app calcula recomendaciones; tú conservas el control final del estado.</p></div><article class="progressHero"><div class="progressRing" id="progressRing"><span id="progressPct">0%</span></div><div><strong id="progressHeadline">Tu ruta empieza aquí</strong><p id="progressText" class="muted"></p></div></article><div id="progressList" class="progressList"></div></section>
   </main>
 
   <nav class="bottomNav" aria-label="Navegación principal">
@@ -114,56 +61,23 @@
     <button data-view="progress" aria-label="Progreso"><span><svg class="uiIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></span><small>Progreso</small></button>
   </nav>
 
-  <dialog id="sessionDialog" class="sessionDialog">
-    <div class="sessionShell">
-      <header class="sessionHeader">
-        <button id="closeSessionBtn" class="roundBtn" aria-label="Cerrar sesión"><svg class="uiIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
-        <div><small id="sessionCounter">Comando 1 de 2</small><strong id="sessionCommandTitle">Sitz</strong></div>
-        <div class="sessionTools">
-          <button id="sessionDemoBtn" class="roundBtn" aria-label="Ver demostración"><svg class="uiIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="m16 10 5-3v10l-5-3z"/></svg></button>
-          <button id="sessionAudioBtn" class="roundBtn" aria-label="Escuchar pronunciación"><svg class="uiIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 10v4h4l5 4V6l-5 4z"/><path d="M17 9a5 5 0 0 1 0 6"/><path d="M19 6a9 9 0 0 1 0 12"/></svg></button>
-        </div>
-      </header>
-      <div class="sessionProgress"><div id="sessionProgressBar"></div></div>
-      <div class="sessionBody">
-        <span id="sessionCategory" class="badge"></span>
-        <div class="pronounceRow"><span id="sessionPron" class="pronunciation"></span></div>
-        <h2 id="sessionMeaning"></h2>
-        <div class="coachCard"><span class="coachIcon"><svg class="uiIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 21V4"/><path d="M6 5h11l-2 4 2 4H6"/></svg></span><div><strong>Señal / gesto</strong><p id="sessionSignal"></p></div></div>
-        <div class="coachCard"><span class="coachIcon"><svg class="uiIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></span><div><strong>Qué buscas</strong><p id="sessionAction"></p></div></div>
-        <div class="coachCard"><span class="coachIcon"><svg class="uiIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M6 7h13M6 12h13M6 17h13"/><circle cx="3" cy="7" r=".8" fill="currentColor" stroke="none"/><circle cx="3" cy="12" r=".8" fill="currentColor" stroke="none"/><circle cx="3" cy="17" r=".8" fill="currentColor" stroke="none"/></svg></span><div><strong>Cómo enseñarlo</strong><p id="sessionHow"></p></div></div>
-        <div class="coachCard"><span class="coachIcon"><svg class="uiIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 2.7 5.5 6 .9-4.3 4.2 1 6-5.4-2.9-5.4 2.9 1-6-4.3-4.2 6-.9z"/></svg></span><div><strong>Premio</strong><p id="sessionReward"></p></div></div>
-      </div>
-      <footer class="sessionActions" aria-label="Resultado de la ejecución">
-        <button id="missedBtn" class="missedBtn">No logrado</button><button id="assistedBtn" class="assistedBtn">Con ayuda</button><button id="correctBtn" class="correctBtn">Logrado</button>
-      </footer>
+  <dialog id="sessionDialog" class="sessionDialog"><div class="sessionShell">
+    <header class="sessionHeader"><button id="closeSessionBtn" class="roundBtn" aria-label="Cerrar sesión"><svg class="uiIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button><div><small id="sessionCounter">Comando 1 de 2</small><strong id="sessionCommandTitle">Sitz</strong></div><div class="sessionTools"><button id="sessionDemoBtn" class="roundBtn" aria-label="Ver demostración"><svg class="uiIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="m16 10 5-3v10l-5-3z"/></svg></button><button id="sessionAudioBtn" class="roundBtn" aria-label="Escuchar pronunciación"><svg class="uiIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 10v4h4l5 4V6l-5 4z"/><path d="M17 9a5 5 0 0 1 0 6"/><path d="M19 6a9 9 0 0 1 0 12"/></svg></button></div></header>
+    <div class="sessionProgress"><div id="sessionProgressBar"></div></div>
+    <div class="sessionBody"><span id="sessionCategory" class="badge"></span><div class="pronounceRow"><span id="sessionPron" class="pronunciation"></span></div><h2 id="sessionMeaning"></h2>
+      <div class="coachCard"><span class="coachIcon"><svg class="uiIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 21V4"/><path d="M6 5h11l-2 4 2 4H6"/></svg></span><div><strong>Señal / gesto</strong><p id="sessionSignal"></p></div></div>
+      <div class="coachCard"><span class="coachIcon"><svg class="uiIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></span><div><strong>Qué buscas</strong><p id="sessionAction"></p></div></div>
+      <div class="coachCard"><span class="coachIcon"><svg class="uiIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M6 7h13M6 12h13M6 17h13"/><circle cx="3" cy="7" r=".8" fill="currentColor" stroke="none"/><circle cx="3" cy="12" r=".8" fill="currentColor" stroke="none"/><circle cx="3" cy="17" r=".8" fill="currentColor" stroke="none"/></svg></span><div><strong>Cómo enseñarlo</strong><p id="sessionHow"></p></div></div>
+      <div class="coachCard"><span class="coachIcon"><svg class="uiIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 2.7 5.5 6 .9-4.3 4.2 1 6-5.4-2.9-5.4 2.9 1-6-4.3-4.2 6-.9z"/></svg></span><div><strong>Premio</strong><p id="sessionReward"></p></div></div>
     </div>
-  </dialog>
+    <footer class="sessionActions" aria-label="Resultado de la ejecución"><button id="missedBtn" class="missedBtn">No logrado</button><button id="assistedBtn" class="assistedBtn">Con ayuda</button><button id="correctBtn" class="correctBtn">Logrado</button></footer>
+  </div></dialog>
 
-  <dialog id="finishDialog" class="finishDialog">
-    <div class="finishCard"><div class="finishIcon"><svg class="uiIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></div><p class="kicker">SESIÓN TERMINADA</p><h2>Buen trabajo</h2><p id="finishSummary" class="muted"></p><div id="finishResults" class="finishResults"></div><button id="finishBtn" class="primaryBtn">Volver a Hoy</button></div>
-  </dialog>
+  <dialog id="finishDialog" class="finishDialog"><div class="finishCard"><div class="finishIcon"><svg class="uiIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></div><p class="kicker">SESIÓN TERMINADA</p><h2>Buen trabajo</h2><p id="finishSummary" class="muted"></p><div id="finishResults" class="finishResults"></div><button id="finishBtn" class="primaryBtn">Volver a Hoy</button></div></dialog>
 
-  <dialog id="demoDialog" class="demoDialog">
-    <section class="demoSheet" aria-labelledby="demoCommand">
-      <div class="demoHandle"></div>
-      <header class="demoHeader"><div><p class="kicker">DEMOSTRACIÓN</p><h2 id="demoCommand">Sitz</h2><p><span id="demoPron" class="pronunciation"></span> · <span id="demoMeaning" class="muted"></span></p></div><button id="closeDemoBtn" class="roundBtn" aria-label="Cerrar demostración"><svg class="uiIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></header>
-      <div class="demoMedia"><iframe id="demoFrame" title="Tutorial de entrenamiento" hidden loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe><div id="demoEmpty" class="demoEmpty" hidden><div><svg class="uiIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="m16 10 5-3v10l-5-3z"/></svg><strong>Video en preparación</strong><p>Mientras tanto tienes abajo el paso a paso completo.</p></div></div></div>
-      <div class="demoMeta"><div><strong id="demoVideoTitle">Tutorial</strong><small id="demoVideoSource"></small></div><a id="demoExternal" href="#" target="_blank" rel="noopener noreferrer">Abrir tutorial completo ↗</a></div>
-      <div id="demoSteps" class="demoSteps"></div>
-    </section>
-  </dialog>
+  <dialog id="demoDialog" class="demoDialog"><section class="demoSheet" aria-labelledby="demoCommand"><div class="demoHandle"></div><header class="demoHeader"><div><p class="kicker">DEMOSTRACIÓN</p><h2 id="demoCommand">Sitz</h2><p><span id="demoPron" class="pronunciation"></span> · <span id="demoMeaning" class="muted"></span></p></div><button id="closeDemoBtn" class="roundBtn" aria-label="Cerrar demostración"><svg class="uiIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></header><div class="demoMedia"><iframe id="demoFrame" title="Tutorial de entrenamiento" hidden loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe><div id="demoEmpty" class="demoEmpty" hidden><div><svg class="uiIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="m16 10 5-3v10l-5-3z"/></svg><strong>Video en preparación</strong><p>Mientras tanto tienes abajo el paso a paso completo.</p></div></div></div><div class="demoMeta"><div><strong id="demoVideoTitle">Tutorial</strong><small id="demoVideoSource"></small></div><a id="demoExternal" href="#" target="_blank" rel="noopener noreferrer">Abrir tutorial completo ↗</a></div><div id="demoSteps" class="demoSteps"></div></section></dialog>
 
-  <dialog id="profileDialog" class="profileDialog" aria-labelledby="profileDialogTitle">
-    <section class="profileCard">
-      <img class="profileIcon" src="icons/icon-192.webp" alt="">
-      <p class="kicker">PERFIL DEL PERRO</p><h2 id="profileDialogTitle">Cuéntame sobre tu pastor alemán</h2><p id="profileDialogText" class="muted">Configura su nombre y edad. Patrick Training seguirá siendo el nombre de la app.</p>
-      <label class="profileField"><span>Nombre</span><input id="dogNameInput" type="text" maxlength="24" autocomplete="off" autocapitalize="words" placeholder="Patrick"></label>
-      <div class="profileAgeGrid"><label class="profileField"><span>Edad</span><input id="dogAgeInput" type="number" min="1" max="360" step="1" inputmode="decimal" placeholder="3"></label><label class="profileField"><span>Unidad</span><select id="dogAgeUnit"><option value="months">Meses</option><option value="years">Años</option></select></label></div>
-      <div id="dogAgePreview" class="profileAgePreview">Indica la edad de tu perro.</div>
-      <div class="profileActions"><button id="profileCancelBtn" class="secondaryBtn" type="button" hidden>Cancelar</button><button id="saveProfileBtn" class="primaryBtn" type="button">Guardar y empezar</button></div>
-    </section>
-  </dialog>
+  <dialog id="profileDialog" class="profileDialog" aria-labelledby="profileDialogTitle"><section class="profileCard"><img class="profileIcon" src="icons/icon-192.webp" alt=""><p class="kicker">PERFIL DEL PERRO</p><h2 id="profileDialogTitle">Cuéntame sobre tu pastor alemán</h2><p id="profileDialogText" class="muted">Configura su nombre y edad. Patrick Training seguirá siendo el nombre de la app.</p><label class="profileField"><span>Nombre</span><input id="dogNameInput" type="text" maxlength="24" autocomplete="off" autocapitalize="words" placeholder="Patrick"></label><div class="profileAgeGrid"><label class="profileField"><span>Edad</span><input id="dogAgeInput" type="number" min="1" max="360" step="1" inputmode="decimal" placeholder="3"></label><label class="profileField"><span>Unidad</span><select id="dogAgeUnit"><option value="months">Meses</option><option value="years">Años</option></select></label></div><div id="dogAgePreview" class="profileAgePreview">Indica la edad de tu perro.</div><div class="profileActions"><button id="profileCancelBtn" class="secondaryBtn" type="button" hidden>Cancelar</button><button id="saveProfileBtn" class="primaryBtn" type="button">Guardar y empezar</button></div></section></dialog>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <script src="commands-1.js"></script><script src="commands-2.js"></script><script src="commands-3.js"></script><script src="commands-4.js"></script><script src="levels.js"></script><script src="videos.js"></script><script src="db.js"></script><script src="app-core.js"></script><script src="profile.js"></script><script src="progress.js"></script><script src="app-media.js"></script><script src="app-session.js"></script><script src="pwa.js"></script>
