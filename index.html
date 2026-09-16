@@ -76,7 +76,7 @@
     </section>
 
     <section id="commands" class="view" aria-labelledby="commandsHeading">
-      <div class="pageHead commandPageHead"><div><p class="kicker">DICCIONARIO</p><h1 id="commandsHeading">Comandos</h1><p class="muted">Pronunciación, gesto, ejecución y premio.</p></div></div>
+      <div class="pageHead commandPageHead"><div><p class="kicker">DICCIONARIO</p><h1 id="commandsHeading">Comandos</h1><p class="muted">Pronunciación, gesto, ejecución, premio y demostraciones en video.</p></div></div>
       <label class="searchBox"><span>⌕</span><input id="search" type="search" autocomplete="off" placeholder="Buscar comando o significado"></label>
       <div id="filters" class="filterRow"></div>
       <div id="commandList" class="commandList"></div>
@@ -102,7 +102,14 @@
 
   <dialog id="sessionDialog" class="sessionDialog">
     <div class="sessionShell">
-      <header class="sessionHeader"><button id="closeSessionBtn" class="roundBtn" aria-label="Cerrar sesión">×</button><div><small id="sessionCounter">1 de 2</small><strong id="sessionCommandTitle">Sitz</strong></div><button id="sessionAudioBtn" class="roundBtn" aria-label="Escuchar pronunciación">🔊</button></header>
+      <header class="sessionHeader">
+        <button id="closeSessionBtn" class="roundBtn" aria-label="Cerrar sesión">×</button>
+        <div><small id="sessionCounter">1 de 2</small><strong id="sessionCommandTitle">Sitz</strong></div>
+        <div class="sessionTools">
+          <button id="sessionDemoBtn" class="roundBtn" aria-label="Ver demostración">🎥</button>
+          <button id="sessionAudioBtn" class="roundBtn" aria-label="Escuchar pronunciación">🔊</button>
+        </div>
+      </header>
       <div class="sessionProgress"><div id="sessionProgressBar"></div></div>
       <div class="sessionBody">
         <span id="sessionCategory" class="badge"></span>
@@ -121,13 +128,34 @@
     <div class="finishCard"><div class="finishIcon">✓</div><p class="kicker">SESIÓN TERMINADA</p><h2>Buen trabajo</h2><p id="finishSummary" class="muted"></p><div id="finishResults" class="finishResults"></div><button id="finishBtn" class="primaryBtn">Volver a Hoy</button></div>
   </dialog>
 
+  <dialog id="demoDialog" class="demoDialog">
+    <section class="demoSheet" aria-labelledby="demoCommand">
+      <div class="demoHandle"></div>
+      <header class="demoHeader">
+        <div><p class="kicker">DEMOSTRACIÓN</p><h2 id="demoCommand">Sitz</h2><p><span id="demoPron" class="pronunciation"></span> · <span id="demoMeaning" class="muted"></span></p></div>
+        <button id="closeDemoBtn" class="roundBtn" aria-label="Cerrar demostración">×</button>
+      </header>
+      <div class="demoMedia">
+        <iframe id="demoFrame" title="Tutorial de entrenamiento" hidden loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+        <div id="demoEmpty" class="demoEmpty" hidden><div><span>🎥</span><strong>Video en preparación</strong><p>Mientras tanto tienes abajo el paso a paso completo.</p></div></div>
+      </div>
+      <div class="demoMeta">
+        <div><strong id="demoVideoTitle">Tutorial</strong><small id="demoVideoSource"></small></div>
+        <a id="demoExternal" href="#" target="_blank" rel="noopener noreferrer">Abrir tutorial completo ↗</a>
+      </div>
+      <div id="demoSteps" class="demoSteps"></div>
+    </section>
+  </dialog>
+
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <script src="commands-1.js"></script>
   <script src="commands-2.js"></script>
   <script src="commands-3.js"></script>
   <script src="commands-4.js"></script>
   <script src="levels.js"></script>
+  <script src="videos.js"></script>
   <script src="app-core.js"></script>
+  <script src="app-media.js"></script>
   <script src="app-session.js"></script>
   <script src="pwa.js"></script>
 </body>
