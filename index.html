@@ -4,116 +4,125 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#111827">
+  <meta name="description" content="Plan móvil de entrenamiento de Patrick con comandos en alemán, sesiones guiadas y progreso.">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Patrick">
-  <meta name="description" content="Plan interactivo de entrenamiento de Patrick: comandos, niveles y progreso.">
   <title>Patrick Training</title>
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="icon" href="icons/icon-192.svg" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="icons/icon-192.svg">
+  <link rel="icon" href="icons/icon-192.png" sizes="192x192" type="image/png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<header class="top">
-  <div class="brandRow">
-    <div class="brandMark">P</div>
-    <div>
-      <div class="eyebrow">PATRICK TRAINING</div>
-      <h1>Entrena. Mide. Progresa.</h1>
+  <header class="appHeader">
+    <button class="brand" data-go="today" aria-label="Ir a Hoy">
+      <span class="brandAvatar">P</span>
+      <span class="brandCopy"><strong>Patrick</strong><small id="headerLevel">Nivel 0 · Fundamentos</small></span>
+    </button>
+    <div class="headerActions">
+      <button id="installBtn" class="headerIcon installAction" hidden aria-label="Instalar Patrick Training">↓</button>
+      <button id="themeBtn" class="headerIcon" aria-label="Cambiar tema">◐</button>
     </div>
+  </header>
+
+  <div id="installBanner" class="installBanner" hidden>
+    <div><strong>Instala Patrick Training</strong><span>Ábrela como una app y úsala incluso sin conexión.</span></div>
+    <button id="installBannerBtn">Instalar</button>
   </div>
-  <div class="headerActions">
-    <button id="installBtn" class="installBtn">Instalar app</button>
-    <button id="themeBtn" class="iconBtn" aria-label="Cambiar tema">◐</button>
-  </div>
-</header>
 
-<div class="installStrip">
-  <span>🐺</span>
-  <div><strong>Patrick en tu celular</strong><small id="installHint">Puedes usarla desde Chrome o Samsung Internet.</small></div>
-</div>
+  <main class="appMain">
+    <section id="today" class="view active" aria-labelledby="todayHeading">
+      <div class="welcomeRow">
+        <div><p class="kicker">ENTRENAMIENTO DE HOY</p><h1 id="todayHeading">Hoy con Patrick</h1><p id="todaySummary" class="muted"></p></div>
+        <label class="daySelect">Día<select id="dayType"><option>Todo el día</option><option>Solo noche</option></select></label>
+      </div>
 
-<nav class="tabs" aria-label="Navegación principal">
-  <button data-view="today" class="active"><span class="navIcon">⌂</span><span>Hoy</span></button>
-  <button data-view="levels"><span class="navIcon">◫</span><span>Niveles</span></button>
-  <button data-view="commands"><span class="navIcon">⌕</span><span>Comandos</span></button>
-  <button data-view="progress"><span class="navIcon">✓</span><span>Progreso</span></button>
-  <button data-view="safety"><span class="navIcon">◇</span><span>Control</span></button>
-</nav>
+      <article class="sessionHero">
+        <div class="sessionHeroTop"><span id="levelBadge" class="badge">Nivel 0</span><span id="readinessBadge" class="statusPill">En curso</span></div>
+        <h2 id="sessionTitle">Fundamentos</h2>
+        <p id="sessionGoal" class="muted"></p>
+        <div id="focusCommands" class="focusCommands"></div>
+        <button id="startSessionBtn" class="primaryBtn">▶ Empezar sesión guiada</button>
+      </article>
 
-<main>
-<section id="today" class="view active">
-  <div class="heroCard">
-    <div>
-      <span class="pill">Entrenamiento de hoy</span>
-      <h2 id="todayTitle">Nivel 0</h2>
-      <p id="todaySubtitle"></p>
+      <div class="metricGrid">
+        <article class="metric"><strong id="metricProgress">0%</strong><span>progreso total</span></article>
+        <article class="metric"><strong id="metricSolid">0</strong><span>consistentes+</span></article>
+        <article class="metric"><strong id="metricSessions">0</strong><span>sesiones</span></article>
+      </div>
+
+      <section class="contentBlock">
+        <div class="sectionTitle"><div><p class="kicker">PLAN FLEXIBLE</p><h2>Micro-sesiones</h2></div><span class="muted">3–5 min</span></div>
+        <div id="todayPlan" class="planList"></div>
+      </section>
+
+      <article id="advanceCard" class="advanceCard" hidden>
+        <div><strong>Patrick está listo para avanzar</strong><p class="muted">Los comandos del nivel actual ya están consistentes.</p></div>
+        <button id="advanceBtn" class="secondaryBtn">Siguiente nivel</button>
+      </article>
+    </section>
+
+    <section id="levels" class="view" aria-labelledby="levelsHeading">
+      <div class="pageHead"><p class="kicker">RUTA DE APRENDIZAJE</p><h1 id="levelsHeading">Niveles</h1><p class="muted">Trabaja un nivel a la vez. Puedes cambiarlo manualmente sin perder el progreso.</p></div>
+      <div id="levelList" class="levelList"></div>
+    </section>
+
+    <section id="commands" class="view" aria-labelledby="commandsHeading">
+      <div class="pageHead commandPageHead"><div><p class="kicker">DICCIONARIO</p><h1 id="commandsHeading">Comandos</h1><p class="muted">Pronunciación, gesto, ejecución y premio.</p></div></div>
+      <label class="searchBox"><span>⌕</span><input id="search" type="search" autocomplete="off" placeholder="Buscar comando o significado"></label>
+      <div id="filters" class="filterRow"></div>
+      <div id="commandList" class="commandList"></div>
+    </section>
+
+    <section id="progress" class="view" aria-labelledby="progressHeading">
+      <div class="pageHead"><p class="kicker">SEGUIMIENTO</p><h1 id="progressHeading">Progreso</h1><p class="muted">La app calcula recomendaciones; tú conservas el control final del estado.</p></div>
+      <article class="progressHero">
+        <div class="progressRing" id="progressRing"><span id="progressPct">0%</span></div>
+        <div><strong id="progressHeadline">Empezando</strong><p id="progressText" class="muted"></p></div>
+      </article>
+      <div class="progressTools"><button id="exportBtn" class="secondaryBtn">Exportar progreso</button><button id="resetBtn" class="dangerBtn">Reiniciar</button></div>
+      <div id="progressList" class="progressList"></div>
+    </section>
+  </main>
+
+  <nav class="bottomNav" aria-label="Navegación principal">
+    <button data-view="today" class="active"><span>⌂</span><small>Hoy</small></button>
+    <button data-view="levels"><span>▦</span><small>Niveles</small></button>
+    <button data-view="commands"><span>⌕</span><small>Comandos</small></button>
+    <button data-view="progress"><span>✓</span><small>Progreso</small></button>
+  </nav>
+
+  <dialog id="sessionDialog" class="sessionDialog">
+    <div class="sessionShell">
+      <header class="sessionHeader"><button id="closeSessionBtn" class="roundBtn" aria-label="Cerrar sesión">×</button><div><small id="sessionCounter">1 de 2</small><strong id="sessionCommandTitle">Sitz</strong></div><button id="sessionAudioBtn" class="roundBtn" aria-label="Escuchar pronunciación">🔊</button></header>
+      <div class="sessionProgress"><div id="sessionProgressBar"></div></div>
+      <div class="sessionBody">
+        <span id="sessionCategory" class="badge"></span>
+        <div class="pronounceRow"><span id="sessionPron" class="pronunciation"></span><span id="trialCounter" class="trialCounter">0/5</span></div>
+        <h2 id="sessionMeaning"></h2>
+        <div class="coachCard"><span>1</span><div><strong>Señal / gesto</strong><p id="sessionSignal"></p></div></div>
+        <div class="coachCard"><span>2</span><div><strong>Qué buscas</strong><p id="sessionAction"></p></div></div>
+        <div class="coachCard"><span>3</span><div><strong>Cómo enseñarlo</strong><p id="sessionHow"></p></div></div>
+        <div class="coachCard"><span>4</span><div><strong>Premio</strong><p id="sessionReward"></p></div></div>
+      </div>
+      <footer class="sessionActions"><button id="retryBtn" class="retryBtn">↺ Otra vez</button><button id="correctBtn" class="correctBtn">✓ Correcto</button></footer>
     </div>
-    <div class="controls">
-      <label>Tipo de día
-        <select id="dayType">
-          <option>Todo el día</option>
-          <option>Solo noche</option>
-        </select>
-      </label>
-      <label>Nivel actual
-        <select id="currentLevel"></select>
-      </label>
-    </div>
-  </div>
-  <div id="todayPlan" class="cards"></div>
-  <div class="note"><strong>Regla 8/10:</strong> sube una sola dificultad cuando Patrick responda bien al menos 8 de 10 veces sin ver el premio.</div>
-</section>
+  </dialog>
 
-<section id="levels" class="view">
-  <div class="sectionHead"><div><h2>Niveles 0 → 10</h2><p>No subas por edad; sube por fiabilidad.</p></div></div>
-  <div id="levelCards" class="cards"></div>
-</section>
+  <dialog id="finishDialog" class="finishDialog">
+    <div class="finishCard"><div class="finishIcon">✓</div><p class="kicker">SESIÓN TERMINADA</p><h2>Buen trabajo</h2><p id="finishSummary" class="muted"></p><div id="finishResults" class="finishResults"></div><button id="finishBtn" class="primaryBtn">Volver a Hoy</button></div>
+  </dialog>
 
-<section id="commands" class="view">
-  <div class="sectionHead commandHead">
-    <div><h2>Comandos</h2><p>Toca cada comando para ver cómo enseñarlo.</p></div>
-    <input id="search" type="search" placeholder="Buscar: Hier, soltar, paseo…">
-  </div>
-  <div class="filters">
-    <button class="chip active" data-filter="all">Todos</button>
-    <button class="chip" data-filter="Fundamentos">Fundamentos</button>
-    <button class="chip" data-filter="Control">Control</button>
-    <button class="chip" data-filter="Seguridad">Seguridad</button>
-    <button class="chip" data-filter="Objetos">Objetos</button>
-    <button class="chip" data-filter="Obediencia">Obediencia</button>
-  </div>
-  <div id="commandList" class="commandList"></div>
-</section>
-
-<section id="progress" class="view">
-  <div class="sectionHead"><div><h2>Progreso</h2><p>Se guarda en este dispositivo.</p></div></div>
-  <div class="progressCard">
-    <div class="big" id="progressPct">0%</div>
-    <div class="bar"><div id="progressBar"></div></div>
-    <p id="progressText"></p>
-  </div>
-  <div id="progressList" class="commandList"></div>
-</section>
-
-<section id="safety" class="view">
-  <div class="sectionHead"><div><h2>Control defensivo seguro</h2><p>Prioridad: control, retirada y obediencia.</p></div></div>
-  <div class="warning">
-    <strong>Protección deportiva ≠ enseñar a atacar personas.</strong>
-    <p>La app incluye alerta, posición segura, ladrido bajo orden, parada, llamada y suelta. El trabajo de mordida/protección de IGP debe hacerse con club, figurante y entrenador cualificados.</p>
-  </div>
-  <div class="cards">
-    <article class="card"><span class="pill">Nivel 9</span><h3>Pass auf</h3><p><strong>Objetivo:</strong> orientar atención hacia algo que tú señalas y volver inmediatamente al control.</p><p><b>Pass auf → observa → Schau → Ja → premio</b>.</p></article>
-    <article class="card"><span class="pill">Nivel 9</span><h3>Hinter</h3><p><strong>Objetivo:</strong> colocarse detrás de ti cuando quieres crear distancia con un estímulo.</p><p>Útil para puertas, desconocidos, bicicletas y situaciones tensas.</p></article>
-    <article class="card"><span class="pill">Base obligatoria</span><h3>Stopp · Hier · Aus · Fuß</h3><p>Antes de cualquier disciplina de protección deportiva, estas señales deberían funcionar con distracciones altas.</p></article>
-  </div>
-</section>
-</main>
-
-<footer>Patrick Training · progreso guardado localmente 🐺</footer>
-<script src="app.js"></script>
-<script src="pwa.js"></script>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="commands-1.js"></script>
+  <script src="commands-2.js"></script>
+  <script src="commands-3.js"></script>
+  <script src="commands-4.js"></script>
+  <script src="levels.js"></script>
+  <script src="app-core.js"></script>
+  <script src="app-session.js"></script>
+  <script src="pwa.js"></script>
 </body>
 </html>
