@@ -1,12 +1,49 @@
 window.PATRICK_VIDEOS={
   "Patrick":{youtubeId:"wqoYc4VZCOg",title:"Teach your puppy his name",source:"Kikopup"},
-  "Komm":{youtubeId:"rjd99MlmqqI",title:"Puppy recall: come when called",source:"Kikopup"},
-  "Hier":{youtubeId:"rjd99MlmqqI",title:"Puppy recall: come when called",source:"Kikopup"},
+  "Ja!":{youtubeId:"HKHk-6nReTk",title:"How to start clicker training your dog",source:"Kikopup"},
+  "Frei":{youtubeId:"n1wUoUrWXdg",title:"Train a release cue",source:"Kikopup"},
+
   "Sitz":{youtubeId:"pVJDbLgublM",title:"Following a lure / teaching Sit and Down",source:"4PawsUniversity"},
   "Platz":{youtubeId:"pVJDbLgublM",title:"Following a lure / teaching Sit and Down",source:"4PawsUniversity"},
+  "Nein":{youtubeId:"TBvPaqMZyo8",title:"Positive interrupter",source:"Kikopup"},
+  "Warte":{youtubeId:"kJboalA4oi4",title:"Door Manners for Dogs!",source:"Kikopup"},
+  "Rein":{youtubeId:"kJboalA4oi4",title:"Door Manners for Dogs!",source:"Kikopup"},
+  "Raus":{youtubeId:"kJboalA4oi4",title:"Door Manners for Dogs!",source:"Kikopup"},
   "Aus":{youtubeId:"gZvkyAFi7tc",title:"How to train DROP IT",source:"Kikopup"},
   "Lass es":{youtubeId:"Re66qOiso28",title:"Train your dog or puppy Leave It",source:"Kikopup"},
+  "Decke":{youtubeId:"U2c5EkytNU0",title:"The easiest way to train your puppy to go to his bed",source:"Kikopup"},
+  "Box":{youtubeId:"dUzF0g0PwY4",title:"Crate Training — Part 1",source:"Kikopup"},
+  "Komm":{youtubeId:"rjd99MlmqqI",title:"Puppy recall: come when called",source:"Kikopup"},
+
+  "Steh":{youtubeId:"ccdNhAwQZvg",title:"Position Changes: Sit, Down, Stand",source:"Kikopup"},
+  "Ruhe":{youtubeId:"yr1olzgidMw",title:"The Calm Settle — for dogs and puppies",source:"Kikopup"},
+  "Schau":{youtubeId:"w4ASIKw-urY",title:"Fast and easy eye contact training",source:"Kikopup"},
+  "Lös dich":{youtubeId:"gZ0XEr4DGfs",title:"House Training 101",source:"Kikopup"},
   "Bleib":{youtubeId:"Vk4PPcE1CqY",title:"Teach your dog to stay",source:"Kikopup"},
-  "Nein":{youtubeId:"TBvPaqMZyo8",title:"Positive interrupter",source:"Kikopup"},
-  "Box":{youtubeId:"dUzF0g0PwY4",title:"Teach your puppy to enjoy the crate",source:"Kikopup"}
+
+  "Los!":{youtubeId:"NUG_J7mIHvc",title:"Loose Leash Walking — complete tutorial",source:"Kikopup"},
+  "Weiter":{youtubeId:"NUG_J7mIHvc",title:"Loose Leash Walking — complete tutorial",source:"Kikopup"},
+  "Langsam":{youtubeId:"NUG_J7mIHvc",title:"Loose Leash Walking — complete tutorial",source:"Kikopup"},
+  "Fuß":{youtubeId:"2UG-h705PYw",title:"Struggling training your dog HEEL?",source:"Kikopup"},
+  "Zurück":{youtubeId:"nBAz0kqeJYg",title:"Train BACK UP with positive reinforcement",source:"Kikopup"},
+
+  "Links":{youtubeId:"QIaUE57qSXo",title:"Look left and right — directional cue foundations",source:"Kikopup"},
+  "Rechts":{youtubeId:"QIaUE57qSXo",title:"Look left and right — directional cue foundations",source:"Kikopup"},
+  "Nimm":{youtubeId:"7Nm4goEuBt4",title:"Teach your dog to FETCH",source:"Kikopup"},
+  "Hol":{youtubeId:"7Nm4goEuBt4",title:"Teach your dog to FETCH",source:"Kikopup"},
+  "Bring":{youtubeId:"7Nm4goEuBt4",title:"Teach your dog to FETCH",source:"Kikopup"},
+  "Gib":{youtubeId:"7Nm4goEuBt4",title:"Teach your dog to FETCH",source:"Kikopup"},
+
+  "Such":{youtubeId:"2OA2tkzu4hA",title:"How to teach Find It",source:"Cambridge Dog Services"},
+  "Voraus":{youtubeId:"876vxILLLGY",title:"Distance Work — foundations",source:"Kikopup"},
+  "Mitte":{youtubeId:"oN0P684C0uM",title:"How to Teach Your Dog the Center Command",source:"Nate Schoemer"},
+  "Stopp":{vimeoId:"1179809208",title:"Teach your dog an emergency stop — The Battersea Way",source:"Battersea Dogs & Cats Home"},
+  "Hoch":{youtubeId:"HiOcMSGYbTA",title:"Platform Training Using Positive Reinforcement",source:"eileenanddogs"},
+  "Runter":{youtubeId:"n1wUoUrWXdg",title:"Train a release cue from a bed or surface",source:"Kikopup"},
+  "Hopp":{youtubeId:"6gIOlT_uJ54",title:"Pool noodle hack for jumping tricks",source:"Kikopup"},
+  "Laut":{youtubeId:"2uXBtAzeavM",title:"How to Teach Your Dog to Bark on Cue",source:"Louise Stapleton-Frappell"},
+
+  "Hier":{youtubeId:"rjd99MlmqqI",title:"Puppy recall: come when called",source:"Kikopup"},
+  "Pass auf":{youtubeId:"EdraNF2hcgA",title:"Look At That — calm observation and reorientation",source:"Donna Hill"},
+  "Hinter":{vimeoId:"929561192",title:"The benefits of teaching the Go Behind behavior",source:"Karen Pryor Academy / Emma Parsons"}
 };
