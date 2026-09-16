@@ -1,4 +1,4 @@
-const APP_VERSION=window.PATRICK_APP_VERSION||'5.4';
+const APP_VERSION=window.PATRICK_APP_VERSION||'5.5';
 window.PATRICK_APP_VERSION=APP_VERSION;
 
 const displayModeStandalone=()=>['standalone','fullscreen','minimal-ui'].some(mode=>window.matchMedia(`(display-mode: ${mode})`).matches);
@@ -8,7 +8,6 @@ const isIos=()=>/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platfo
 
 function removeInstallAction(){document.getElementById('installBtn')?.remove()}
 function syncVisibleVersion(){const version=document.querySelector('.settingsDrawerFoot span');if(version)version.textContent=`v${APP_VERSION}`}
-function versionedUrl(){const u=new URL(location.href);u.searchParams.set('ptv',APP_VERSION);return u.href}
 removeInstallAction();syncVisibleVersion();
 new MutationObserver(()=>{removeInstallAction();syncVisibleVersion()}).observe(document.body,{childList:true,subtree:true});
 
@@ -25,20 +24,13 @@ function maybeShowIosInstallHint(){
 async function registerFreshServiceWorker(){
   if(!('serviceWorker'in navigator))return;
   try{
-    const reg=await navigator.serviceWorker.register(`./sw.js?v=${encodeURIComponent(APP_VERSION)}`,{updateViaCache:'none'});
+    const reg=await navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'});
     await reg.update();
   }catch(e){console.warn('Service worker update failed',e)}
 }
 
 if('serviceWorker'in navigator){
-  let refreshing=false;
-  navigator.serviceWorker.addEventListener('controllerchange',()=>{
-    if(refreshing)return;
-    const key=`patrick-sw-reload-${APP_VERSION}`;
-    if(sessionStorage.getItem(key))return;
-    refreshing=true;sessionStorage.setItem(key,'1');location.replace(versionedUrl());
-  });
   window.addEventListener('load',registerFreshServiceWorker);
-  window.addEventListener('pageshow',()=>registerFreshServiceWorker());
+  window.addEventListener('pageshow',registerFreshServiceWorker);
 }
 window.addEventListener('load',()=>{removeInstallAction();syncVisibleVersion();maybeShowIosInstallHint()});
