@@ -83,7 +83,7 @@ document.addEventListener('click',e=>{
   if(btn)openDemo(commandBy(btn.dataset.demo));
 });
 
-$('#sessionDemoBtn')?.addEventListener('click',()=>openDemo(commandBy($('#sessionCommandTitle').textContent)));
+$('#sessionDemoBtn')?.addEventListener('click',()=>{const c=session?.commands?.[session.index];if(c)openDemo(c)});
 $('#closeDemoBtn')?.addEventListener('click',closeDemo);
 $('#demoDialog')?.addEventListener('click',e=>{if(e.target===$('#demoDialog'))closeDemo()});
 
