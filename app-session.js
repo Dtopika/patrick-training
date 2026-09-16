@@ -14,7 +14,7 @@ function renderSessionStep(){const c=session.commands[session.index];const total
 function repeatExecution(){if(!session||sessionAdvancing)return;const c=session.commands[session.index];stopExecutionTimer();session.results[c.cmd].push(false);updateRolling(c.cmd,false);$('#executionState').textContent='Reintentando';toast('No cuenta como ejecución completada');startExecutionTimer()}
 function completeExecution(){if(!session||sessionAdvancing)return;sessionAdvancing=true;$('#correctBtn').disabled=true;$('#retryBtn').disabled=true;stopExecutionTimer();const c=session.commands[session.index];session.results[c.cmd].push(true);session.timings[c.cmd].push(executionElapsedMs);updateRolling(c.cmd,true);session.trial++;$('#executionTimer').textContent=formatExecutionTime(executionElapsedMs);$('#executionState').textContent='✓ Hecho';$('#executionState').classList.add('done');$('#executionDots').innerHTML=Array.from({length:EXECUTIONS_PER_COMMAND},(_,i)=>`<span class="${i<session.trial?'done':i===session.trial?'current':''}">${i<session.trial?'✓':i+1}</span>`).join('');const done=session.index*EXECUTIONS_PER_COMMAND+session.trial;$('#sessionProgressBar').style.width=`${Math.round(done/(session.commands.length*EXECUTIONS_PER_COMMAND)*100)}%`;setTimeout(()=>{if(session.trial>=EXECUTIONS_PER_COMMAND){toast(`✓ ${displayCommand(c)} completado`);session.index++;session.trial=0;if(session.index>=session.commands.length){finishSession();return}}renderSessionStep()},420)}
 function finishSession(){stopExecutionTimer();const finishedLevel=currentLevel;const stamp={at:new Date().toISOString(),level:finishedLevel,dogName:dogName(),results:{},timings:session.timings};Object.entries(session.results).forEach(([cmd,arr])=>{const times=session.timings[cmd]||[];stamp.results[cmd]={correct:arr.filter(Boolean).length,total:arr.length,avgSeconds:times.length?Math.round(times.reduce((a,b)=>a+b,0)/times.length/100)/10:0}});history.unshift(stamp);history=history.slice(0,100);store.set('patrickHistory',history);$('#sessionDialog').close();let advanced=false;if(levelReady(finishedLevel)&&finishedLevel<10&&currentLevel===finishedLevel){currentLevel=finishedLevel+1;store.set('patrickCurrentLevel',currentLevel);advanced=true}$('#finishSummary').textContent=advanced?`Nivel ${finishedLevel} completado. Nivel ${currentLevel} desbloqueado automáticamente.`:`Guardé la sesión de ${dogName()}. Cuando todos los comandos del nivel estén consistentes, la app avanzará sola al siguiente nivel.`;$('#finishResults').innerHTML=Object.entries(stamp.results).map(([cmd,r])=>{const c=commandBy(cmd);return `<div class="finishResult"><strong>${escapeHtml(displayCommand(c||cmd))}</strong><span>${r.correct}/${r.total} · ${r.avgSeconds?r.avgSeconds+' s prom.':'—'}</span></div>`}).join('');$('#finishBtn').textContent=advanced?`Continuar · Nivel ${currentLevel}`:'Volver a Hoy';$('#finishDialog').showModal();renderAll()}
-function renderAll(){renderToday();renderLevels();renderProgress();if($('#commands').classList.contains('active'))renderCommands()}
+function renderAll(){renderToday();renderLevels();renderProgress();if($('#commands').classList.contains('active'))renderCommands();syncSettingsDrawer()}
 function exportProgress(){const payload={version:3,exportedAt:new Date().toISOString(),profile:dogProfile,storage:storageMode,progress,trials,history,currentLevel,dayType};const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`patrick-training-${dogName().toLowerCase().replace(/[^a-z0-9]+/gi,'-')||'backup'}.json`;a.click();URL.revokeObjectURL(a.href);toast('Respaldo descargado')}
 async function resetProgress(){
   if(!confirm('¿Borrar TODOS los datos de Patrick Training en este dispositivo? Se eliminarán perfil, progreso, historial y preferencias, y volverás a la configuración inicial.'))return;
@@ -31,5 +31,81 @@ async function resetProgress(){
 }
 function openDogProfileEditor(firstRun=false){const dialog=$('#profileDialog');dialog.dataset.firstRun=firstRun?'1':'0';$('#profileDialogTitle').textContent=firstRun?'¿Cómo se llama tu pastor alemán?':`Perfil de ${dogName()}`;$('#profileDialogText').textContent=firstRun?'Patrick Training seguirá siendo el nombre de la app. El nombre de tu perro personalizará las sesiones, el comando de atención y el progreso.':'Puedes cambiar el nombre sin perder niveles, sesiones ni estadísticas.';$('#dogNameInput').value=firstRun&&!dogProfile?.name?'':dogName();$('#profileCancelBtn').hidden=firstRun;$('#saveProfileBtn').textContent=firstRun?'Guardar y empezar':'Guardar cambios';if(!dialog.open)dialog.showModal();setTimeout(()=>$('#dogNameInput').focus(),80)}
 function saveDogProfile(){const input=$('#dogNameInput');const name=input.value.trim().replace(/\s+/g,' ').slice(0,24);if(!name){toast('Escribe el nombre de tu perro');input.focus();return}dogProfile={name,breed:'Pastor Alemán'};store.set('patrickDogProfile',dogProfile);$('#profileDialog').close();renderAll();renderCommands();toast(`Perfil de ${name} guardado`)}
-function init(){const savedDark=store.get('patrickDark',null);if(savedDark===true||(savedDark===null&&window.matchMedia('(prefers-color-scheme: dark)').matches))document.body.classList.add('dark');ensureExecutionUI();$('#dayType').value=dayType;$$('.bottomNav button').forEach(b=>b.onclick=()=>setView(b.dataset.view));$$('[data-go]').forEach(b=>b.onclick=()=>setView(b.dataset.go));$('#dayType').onchange=e=>{dayType=e.target.value;store.set('patrickDayType',dayType);renderToday()};$('#themeBtn').onclick=()=>{document.body.classList.toggle('dark');store.set('patrickDark',document.body.classList.contains('dark'))};$('#startSessionBtn').onclick=()=>startSession();$('#advanceBtn').onclick=()=>{if(currentLevel<10){currentLevel++;store.set('patrickCurrentLevel',currentLevel);renderAll();toast(`Nivel ${currentLevel} activado`)}};$('#search').oninput=renderCommands;$('#closeSessionBtn').onclick=()=>{if(confirm('¿Salir de la sesión actual?')){stopExecutionTimer();$('#sessionDialog').close()}};$('#retryBtn').onclick=repeatExecution;$('#correctBtn').onclick=completeExecution;$('#finishBtn').onclick=()=>{$('#finishDialog').close();setView('today')};$('#exportBtn').onclick=exportProgress;$('#resetBtn').onclick=resetProgress;$('#editDogBtn').onclick=()=>openDogProfileEditor(false);$('#saveProfileBtn').onclick=saveDogProfile;$('#profileCancelBtn').onclick=()=>$('#profileDialog').close();$('#dogNameInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();saveDogProfile()}});$('#profileDialog').addEventListener('cancel',e=>{if($('#profileDialog').dataset.firstRun==='1')e.preventDefault()});renderCommands();renderAll();if(!String(dogProfile?.name||'').trim())setTimeout(()=>openDogProfileEditor(true),80)}
+
+function ensureSettingsDrawer(){
+  $('#progress .dogProfileCard')?.remove();
+  $('#progress .progressTools')?.remove();
+  $('#themeBtn')?.remove();
+  if($('#settingsDrawer'))return;
+  document.body.insertAdjacentHTML('beforeend',`
+    <div id="settingsBackdrop" class="settingsBackdrop" hidden></div>
+    <aside id="settingsDrawer" class="settingsDrawer" aria-hidden="true" aria-label="Configuración de Patrick Training">
+      <header class="settingsDrawerHead">
+        <img src="icons/icon-192.webp" alt="">
+        <div class="settingsDrawerIdentity"><small>PERFIL ACTIVO</small><strong id="dogProfileName">${escapeHtml(dogName())}</strong><span>Pastor alemán</span></div>
+        <button id="settingsCloseBtn" class="settingsCloseBtn" type="button" aria-label="Cerrar configuración">×</button>
+      </header>
+      <div class="settingsDrawerBody">
+        <section class="settingsGroup">
+          <div class="settingsGroupTitle">Perro</div>
+          <button id="editDogBtn" class="settingsRow" type="button">
+            <span class="settingsRowIcon">🐕</span><span class="settingsRowCopy"><strong>Perfil del perro</strong><small>Cambia el nombre sin perder progreso.</small></span><span class="settingsChevron">›</span>
+          </button>
+        </section>
+        <section class="settingsGroup">
+          <div class="settingsGroupTitle">Entrenamiento</div>
+          <div class="settingsField"><label><span class="settingsRowIcon">☀️</span><span class="settingsRowCopy"><strong>Plan del día</strong><small>Ajusta la duración de las sesiones.</small></span></label><select id="settingsDayType"><option>Todo el día</option><option>Solo noche</option></select></div>
+        </section>
+        <section class="settingsGroup">
+          <div class="settingsGroupTitle">Apariencia</div>
+          <button id="settingsThemeBtn" class="settingsRow" type="button">
+            <span class="settingsRowIcon">◐</span><span class="settingsRowCopy"><strong>Tema</strong><small>Cambia entre claro y oscuro.</small></span><span id="settingsThemeValue" class="settingsValue">Claro</span>
+          </button>
+        </section>
+        <section class="settingsGroup">
+          <div class="settingsGroupTitle">Datos</div>
+          <div class="settingsMeta"><strong>Almacenamiento</strong><span id="storageModeLabel" class="storageBadge">IndexedDB</span></div>
+          <button id="exportBtn" class="settingsRow" type="button">
+            <span class="settingsRowIcon">⇩</span><span class="settingsRowCopy"><strong>Exportar respaldo</strong><small>Descarga perfil, progreso y sesiones.</small></span><span class="settingsChevron">›</span>
+          </button>
+          <button id="resetBtn" class="settingsRow settingsDanger" type="button">
+            <span class="settingsRowIcon">↺</span><span class="settingsRowCopy"><strong>Reiniciar aplicación</strong><small>Borra los datos de este dispositivo y vuelve al inicio.</small></span><span class="settingsChevron">›</span>
+          </button>
+        </section>
+      </div>
+      <footer class="settingsDrawerFoot"><strong>Patrick Training</strong><span>v4.5</span></footer>
+    </aside>`);
+}
+function syncSettingsDrawer(){
+  if(!$('#settingsDrawer'))return;
+  renderDogIdentity();
+  if($('#settingsDayType'))$('#settingsDayType').value=dayType;
+  if($('#settingsThemeValue'))$('#settingsThemeValue').textContent=document.body.classList.contains('dark')?'Oscuro':'Claro';
+}
+function openSettingsDrawer(){
+  ensureSettingsDrawer();syncSettingsDrawer();
+  const drawer=$('#settingsDrawer'),backdrop=$('#settingsBackdrop');
+  backdrop.hidden=false;drawer.setAttribute('aria-hidden','false');document.body.classList.add('settingsOpen');
+  requestAnimationFrame(()=>{drawer.classList.add('open');backdrop.classList.add('open')});
+  setTimeout(()=>$('#settingsCloseBtn')?.focus(),120);
+}
+function closeSettingsDrawer(){
+  const drawer=$('#settingsDrawer'),backdrop=$('#settingsBackdrop');if(!drawer)return;
+  drawer.classList.remove('open');backdrop.classList.remove('open');drawer.setAttribute('aria-hidden','true');document.body.classList.remove('settingsOpen');
+  setTimeout(()=>{if(!backdrop.classList.contains('open'))backdrop.hidden=true},280);
+}
+function toggleTheme(){document.body.classList.toggle('dark');store.set('patrickDark',document.body.classList.contains('dark'));syncSettingsDrawer()}
+function bindSettingsDrawer(){
+  const brand=$('.brand');if(brand){brand.title='Toca la foto para abrir configuración';brand.onclick=e=>{if(e.target.closest('.brandAvatar')){e.preventDefault();e.stopPropagation();openSettingsDrawer();return}setView(brand.dataset.go||'today')}}
+  $('#settingsCloseBtn').onclick=closeSettingsDrawer;
+  $('#settingsBackdrop').onclick=closeSettingsDrawer;
+  $('#editDogBtn').onclick=()=>{closeSettingsDrawer();setTimeout(()=>openDogProfileEditor(false),180)};
+  $('#settingsDayType').onchange=e=>{dayType=e.target.value;store.set('patrickDayType',dayType);$('#dayType').value=dayType;renderToday();syncSettingsDrawer()};
+  $('#settingsThemeBtn').onclick=toggleTheme;
+  $('#exportBtn').onclick=exportProgress;
+  $('#resetBtn').onclick=resetProgress;
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#settingsDrawer')?.classList.contains('open'))closeSettingsDrawer()});
+}
+
+function init(){const savedDark=store.get('patrickDark',null);if(savedDark===true||(savedDark===null&&window.matchMedia('(prefers-color-scheme: dark)').matches))document.body.classList.add('dark');ensureExecutionUI();ensureSettingsDrawer();$('#dayType').value=dayType;$$('.bottomNav button').forEach(b=>b.onclick=()=>setView(b.dataset.view));$$('[data-go]').forEach(b=>b.onclick=()=>setView(b.dataset.go));bindSettingsDrawer();$('#dayType').onchange=e=>{dayType=e.target.value;store.set('patrickDayType',dayType);renderToday();syncSettingsDrawer()};$('#startSessionBtn').onclick=()=>startSession();$('#advanceBtn').onclick=()=>{if(currentLevel<10){currentLevel++;store.set('patrickCurrentLevel',currentLevel);renderAll();toast(`Nivel ${currentLevel} activado`)}};$('#search').oninput=renderCommands;$('#closeSessionBtn').onclick=()=>{if(confirm('¿Salir de la sesión actual?')){stopExecutionTimer();$('#sessionDialog').close()}};$('#retryBtn').onclick=repeatExecution;$('#correctBtn').onclick=completeExecution;$('#finishBtn').onclick=()=>{$('#finishDialog').close();setView('today')};$('#saveProfileBtn').onclick=saveDogProfile;$('#profileCancelBtn').onclick=()=>$('#profileDialog').close();$('#dogNameInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();saveDogProfile()}});$('#profileDialog').addEventListener('cancel',e=>{if($('#profileDialog').dataset.firstRun==='1')e.preventDefault()});renderCommands();renderAll();if(!String(dogProfile?.name||'').trim())setTimeout(()=>openDogProfileEditor(true),80)}
 window.PATRICK_READY.then(init).catch(e=>{console.error('Patrick Training bootstrap failed',e);init()});
