@@ -1,4 +1,4 @@
-const APP_VERSION=window.PATRICK_APP_VERSION||'5.5';
+const APP_VERSION='5.6';
 window.PATRICK_APP_VERSION=APP_VERSION;
 
 const displayModeStandalone=()=>['standalone','fullscreen','minimal-ui'].some(mode=>window.matchMedia(`(display-mode: ${mode})`).matches);
