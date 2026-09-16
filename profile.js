@@ -1,3 +1,4 @@
+window.PATRICK_APP_VERSION=window.PATRICK_APP_VERSION||'5.4';
 const SYSTEM_THEME=window.matchMedia('(prefers-color-scheme: dark)');
 const DOG_MONTH_MS=30.4375*24*60*60*1000;
 const REMINDER_KEY='patrickNotifications';
@@ -62,7 +63,7 @@ function saveDogProfile(){
 }
 
 function exportProgress(){
-  const payload={version:5.1,exportedAt:new Date().toISOString(),profile:dogProfile,storage:storageMode,progress,trials,history,currentLevel,dayType,notifications:reminderSettings};
+  const payload={version:window.PATRICK_APP_VERSION,exportedAt:new Date().toISOString(),profile:dogProfile,storage:storageMode,progress,trials,history,currentLevel,dayType,notifications:reminderSettings};
   const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`patrick-training-${dogName().toLowerCase().replace(/[^a-z0-9]+/gi,'-')||'backup'}.json`;a.click();URL.revokeObjectURL(a.href);toast('Respaldo descargado');
 }
 
@@ -118,10 +119,17 @@ async function toggleDailyReminders(){
   reminderSettings.enabled=true;reminderSettings.lastNotifiedDate=null;await saveReminderSettings();const background=await periodicReminderRegistration(true);scheduleForegroundReminder();syncReminderUI();
   toast(background?'Recordatorios activados':'Recordatorios activados; se comprobarán al usar la app');
 }
+async function testNotification(){
+  if(!notificationSupported()){toast('Este navegador no admite notificaciones PWA.');return}
+  let permission=Notification.permission;if(permission==='default')permission=await Notification.requestPermission();
+  if(permission!=='granted'){toast('Las notificaciones están bloqueadas en Android.');syncReminderUI();return}
+  try{const reg=await navigator.serviceWorker.ready;await reg.showNotification('Patrick Training 🐾',{body:`Prueba lista. Los recordatorios para ${dogName()} pueden mostrarse en este teléfono.`,icon:'icons/icon-192.png',badge:'icons/icon-192.png',tag:'patrick-test-notification',data:{url:'./'},vibrate:[120,70,120]});toast('Notificación de prueba enviada')}catch(e){console.warn(e);toast('No pude enviar la notificación de prueba')}
+}
 function syncReminderUI(){
-  const button=$('#notificationToggle'),value=$('#notificationStatus'),time=$('#notificationTime'),note=$('#notificationSupportText');if(!button)return;
+  const button=$('#notificationToggle'),value=$('#notificationStatus'),time=$('#notificationTime'),note=$('#notificationSupportText'),test=$('#notificationTestBtn');if(!button)return;
   const supported=notificationSupported(),permission=supported?Notification.permission:'unsupported';
   button.disabled=!supported;button.setAttribute('aria-pressed',String(!!reminderSettings.enabled));
+  if(test)test.disabled=!supported;
   if(value)value.textContent=!supported?'No disponible':permission==='denied'?'Bloqueadas':reminderSettings.enabled?'Activadas':'Desactivadas';
   if(time){time.value=reminderSettings.time||'19:00';time.disabled=!reminderSettings.enabled}
   if(note)note.textContent=permission==='denied'?'Android tiene bloqueadas las notificaciones para esta app.':reminderSettings.enabled?'No se enviará nada si ya entrenaste hoy. Android puede decidir el momento exacto del chequeo en segundo plano.':'Actívalas para recibir un recordatorio diario si aún no has entrenado.';
@@ -136,30 +144,30 @@ function ensureSettingsDrawer(){
       <div class="settingsDrawerBody">
         <section class="settingsGroup"><div class="settingsGroupTitle">Perro</div><button id="editDogBtn" class="settingsRow" type="button"><span class="settingsRowIcon">${icon('dog')}</span><span class="settingsRowCopy"><strong>Perfil del perro</strong><small>Nombre y edad sin perder progreso.</small></span><span class="settingsChevron">${icon('chevron')}</span></button></section>
         <section class="settingsGroup"><div class="settingsGroupTitle">Entrenamiento</div><div class="settingsField"><label><span class="settingsRowIcon">${icon('clock')}</span><span class="settingsRowCopy"><strong>Disponibilidad</strong><small>Define cuántas micro-sesiones te proponemos.</small></span></label><select id="settingsDayType" aria-label="Disponibilidad de entrenamiento"><option value="Todo el día">Durante el día</option><option value="Solo noche">Solo noche</option></select></div></section>
-        <section class="settingsGroup"><div class="settingsGroupTitle">Recordatorios</div><button id="notificationToggle" class="settingsRow reminderToggle" type="button" aria-pressed="false"><span class="settingsRowIcon">${icon('clock')}</span><span class="settingsRowCopy"><strong>Recordatorio diario</strong><small>Solo si todavía no entrenaste ese día.</small></span><span id="notificationStatus" class="settingsValue">Desactivadas</span></button><div class="settingsField reminderTimeField"><label for="notificationTime"><span class="settingsRowCopy"><strong>Hora preferida</strong><small>Hora local del teléfono.</small></span></label><input id="notificationTime" class="settingsTimeInput" type="time" value="19:00" aria-label="Hora del recordatorio"></div><small id="notificationSupportText" class="settingsNote"></small></section>
+        <section class="settingsGroup"><div class="settingsGroupTitle">Recordatorios</div><button id="notificationToggle" class="settingsRow reminderToggle" type="button" aria-pressed="false"><span class="settingsRowIcon">${icon('clock')}</span><span class="settingsRowCopy"><strong>Recordatorio diario</strong><small>Solo si todavía no entrenaste ese día.</small></span><span id="notificationStatus" class="settingsValue">Desactivadas</span></button><div class="settingsField reminderTimeField"><label for="notificationTime"><span class="settingsRowCopy"><strong>Hora preferida</strong><small>Hora local del teléfono.</small></span></label><input id="notificationTime" class="settingsTimeInput" type="time" value="19:00" aria-label="Hora del recordatorio"></div><button id="notificationTestBtn" class="settingsRow" type="button"><span class="settingsRowIcon">${icon('check')}</span><span class="settingsRowCopy"><strong>Probar notificación</strong><small>Envía una prueba ahora mismo.</small></span><span class="settingsChevron">${icon('chevron')}</span></button><small id="notificationSupportText" class="settingsNote"></small></section>
         <section class="settingsGroup"><div class="settingsGroupTitle">Apariencia</div><div class="settingsMeta"><strong>Tema</strong><span id="systemThemeValue" class="settingsValue">Sistema</span></div></section>
         <section class="settingsGroup"><div class="settingsGroupTitle">Datos</div><div class="settingsMeta"><strong>Almacenamiento</strong><span id="storageModeLabel" class="storageBadge">IndexedDB</span></div><button id="exportBtn" class="settingsRow" type="button"><span class="settingsRowIcon">${icon('download')}</span><span class="settingsRowCopy"><strong>Exportar respaldo</strong><small>Descarga perfil, progreso y sesiones.</small></span><span class="settingsChevron">${icon('chevron')}</span></button></section>
       </div>
-      <footer class="settingsDrawerFoot"><strong>Patrick Training</strong><span>v5.1</span></footer>
+      <footer class="settingsDrawerFoot"><strong>Patrick Training</strong><span>v${window.PATRICK_APP_VERSION}</span></footer>
     </aside>`);
 }
 function syncSettingsDrawer(){
   if(!$('#settingsDrawer'))return;renderDogIdentity();$('#settingsDayType').value=dayType;
-  const stage=dogStageLabel(),age=dogAgeLabel();$('#dogProfileMeta').textContent=`Pastor alemán${stage?` · ${stage}`:''} · ${age}`;applySystemTheme();syncReminderUI();
+  const stage=dogStageLabel(),age=dogAgeLabel();$('#dogProfileMeta').textContent=`Pastor alemán${stage?` · ${stage}`:''} · ${age}`;const version=$('.settingsDrawerFoot span');if(version)version.textContent=`v${window.PATRICK_APP_VERSION}`;applySystemTheme();syncReminderUI();
 }
 function openSettingsDrawer(){ensureSettingsDrawer();syncSettingsDrawer();const drawer=$('#settingsDrawer'),backdrop=$('#settingsBackdrop');backdrop.hidden=false;drawer.setAttribute('aria-hidden','false');document.body.classList.add('settingsOpen');requestAnimationFrame(()=>{drawer.classList.add('open');backdrop.classList.add('open')});setTimeout(()=>$('#settingsCloseBtn')?.focus(),120)}
 function closeSettingsDrawer(){const drawer=$('#settingsDrawer'),backdrop=$('#settingsBackdrop');if(!drawer)return;drawer.classList.remove('open');backdrop.classList.remove('open');drawer.setAttribute('aria-hidden','true');document.body.classList.remove('settingsOpen');setTimeout(()=>{if(!backdrop.classList.contains('open'))backdrop.hidden=true},280)}
 function bindProfileUI(){
   $('#settingsAvatarBtn').onclick=openSettingsDrawer;$('#settingsCloseBtn').onclick=closeSettingsDrawer;$('#settingsBackdrop').onclick=closeSettingsDrawer;$('#editDogBtn').onclick=()=>{closeSettingsDrawer();setTimeout(()=>openDogProfileEditor(false),180)};
   $('#settingsDayType').onchange=e=>{dayType=e.target.value;store.set('patrickDayType',dayType);$('#dayType').value=dayType;renderToday();syncSettingsDrawer()};$('#exportBtn').onclick=exportProgress;
-  $('#notificationToggle').onclick=toggleDailyReminders;$('#notificationTime').onchange=async e=>{reminderSettings.time=e.target.value||'19:00';reminderSettings.lastNotifiedDate=null;await saveReminderSettings();scheduleForegroundReminder();syncReminderUI();toast(`Recordatorio: ${reminderSettings.time}`)};
+  $('#notificationToggle').onclick=toggleDailyReminders;$('#notificationTestBtn').onclick=testNotification;$('#notificationTime').onchange=async e=>{reminderSettings.time=e.target.value||'19:00';reminderSettings.lastNotifiedDate=null;await saveReminderSettings();scheduleForegroundReminder();syncReminderUI();toast(`Recordatorio: ${reminderSettings.time}`)};
   $('#saveProfileBtn').onclick=saveDogProfile;$('#profileCancelBtn').onclick=()=>$('#profileDialog').close();$('#dogNameInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();saveDogProfile()}});$('#dogAgeInput').addEventListener('input',updateDogAgePreview);
   $('#dogAgeUnit').addEventListener('change',()=>{const input=$('#dogAgeInput'),unit=$('#dogAgeUnit'),previous=unit.dataset.previous||'months',value=Number(input.value||0);if(value>0){const months=previous==='years'?value*12:value;input.value=unit.value==='years'?String(Math.round((months/12)*10)/10):String(Math.max(1,Math.round(months)))}unit.dataset.previous=unit.value;input.step=unit.value==='years'?'0.1':'1';updateDogAgePreview()});
   $('#profileDialog').addEventListener('cancel',e=>{if($('#profileDialog').dataset.firstRun==='1')e.preventDefault()});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#settingsDrawer')?.classList.contains('open'))closeSettingsDrawer()});
 }
 function initProfileUI(){
   if(profileUiInitialized)return;profileUiInitialized=true;try{store.remove('patrickDark');localStorage.removeItem('patrickDark')}catch{}
-  applySystemTheme();SYSTEM_THEME.addEventListener?.('change',applySystemTheme);ensureSettingsDrawer();bindProfileUI();syncSettingsDrawer();loadReminderSettings().then(async()=>{if(reminderSettings.enabled&&Notification.permission==='granted')await periodicReminderRegistration(true);await showDailyReminder()});
+  applySystemTheme();SYSTEM_THEME.addEventListener?.('change',applySystemTheme);ensureSettingsDrawer();bindProfileUI();syncSettingsDrawer();loadReminderSettings().then(async()=>{if(reminderSettings.enabled&&notificationSupported()&&Notification.permission==='granted')await periodicReminderRegistration(true);await showDailyReminder()});
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)showDailyReminder()});window.addEventListener('focus',()=>showDailyReminder());
   const hasName=String(dogProfile?.name||'').trim(),hasAge=currentDogAgeMonths()>0;if(!hasName)setTimeout(()=>openDogProfileEditor(true),80);else if(!hasAge)setTimeout(()=>openDogProfileEditor(false,true),300);
 }
