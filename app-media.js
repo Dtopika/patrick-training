@@ -43,10 +43,32 @@ function closeDemo(){
   $('#demoDialog').close();
 }
 
+function decorateDemoButtons(){
+  $$('.commandCard').forEach(card=>{
+    const actions=card.querySelector('.commandActions');
+    if(!actions||actions.querySelector('.demoBtn'))return;
+    const btn=document.createElement('button');
+    btn.className='demoBtn';
+    btn.dataset.demo=card.dataset.command;
+    btn.setAttribute('aria-label',`Ver demostración de ${card.dataset.command}`);
+    btn.title='Ver demostración';
+    btn.textContent='🎥';
+    const practice=actions.querySelector('.practiceBtn');
+    practice?actions.insertBefore(btn,practice):actions.appendChild(btn);
+  });
+}
+
 document.addEventListener('click',e=>{
   const btn=e.target.closest('[data-demo]');
   if(btn)openDemo(commandBy(btn.dataset.demo));
 });
 
+$('#sessionDemoBtn')?.addEventListener('click',()=>openDemo(commandBy($('#sessionCommandTitle').textContent)));
 $('#closeDemoBtn')?.addEventListener('click',closeDemo);
 $('#demoDialog')?.addEventListener('click',e=>{if(e.target===$('#demoDialog'))closeDemo()});
+
+const commandList=$('#commandList');
+if(commandList){
+  new MutationObserver(decorateDemoButtons).observe(commandList,{childList:true,subtree:true});
+  queueMicrotask(decorateDemoButtons);
+}
