@@ -5,7 +5,26 @@ const DB_NAME='patrick-training-db',DB_VERSION=1,STORE='kv';
 
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)));self.skipWaiting()});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))));self.clients.claim()});
-self.addEventListener('fetch',e=>{if(e.request.method!=='GET')return;const url=new URL(e.request.url);if(url.origin!==self.location.origin)return;e.respondWith(fetch(e.request).then(r=>{if(r.ok){const copy=r.clone();caches.open(CACHE).then(c=>c.put(e.request,copy))}return r}).catch(()=>caches.match(e.request).then(r=>r||caches.match('./index.html'))))});
+self.addEventListener('fetch',e=>{
+  if(e.request.method!=='GET')return;
+  const url=new URL(e.request.url);
+  if(url.origin!==self.location.origin)return;
+  e.respondWith(
+    fetch(e.request)
+      .then(r=>{
+        if(r.ok){
+          const copy=r.clone();
+          caches.open(CACHE).then(c=>c.put(e.request,copy));
+        }
+        return r;
+      })
+      .catch(()=>caches.match(e.request).then(r=>{
+        if(r)return r;
+        if(e.request.mode==='navigate'||e.request.destination==='document')return caches.match('./index.html');
+        return new Response('',{status:504,statusText:'Offline y recurso no cacheado'});
+      }))
+  );
+});
 
 function openReminderDb(){return new Promise((resolve,reject)=>{const request=indexedDB.open(DB_NAME,DB_VERSION);request.onupgradeneeded=()=>{const db=request.result;if(!db.objectStoreNames.contains(STORE))db.createObjectStore(STORE,{keyPath:'key'})};request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error||new Error('IndexedDB unavailable'))})}
 async function reminderDbGet(key){const db=await openReminderDb();return new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readonly'),req=tx.objectStore(STORE).get(key);req.onsuccess=()=>resolve(req.result?.value);req.onerror=()=>reject(req.error)})}
