@@ -170,14 +170,14 @@ function rebuildCommandEvidence(cmd,nextHistory){
   return{trials:rolling,state};
 }
 async function replaceHistoryAndRebuild(nextHistory,affectedCommands){
-  const cleanHistory=[...nextHistory].slice(0,200),nextTrials=Object.fromEntries(Object.entries(trials).map(([cmd,list])=>[cmd,Array.isArray(list)?[...list]:[]])),nextProgress={...progress};
+  const compacted=compactHistory(nextHistory,historyArchive),cleanHistory=compacted.history,nextArchive=compacted.archive,nextTrials=Object.fromEntries(Object.entries(trials).map(([cmd,list])=>[cmd,Array.isArray(list)?[...list]:[]])),nextProgress={...progress};
   for(const cmd of new Set(affectedCommands||[])){
     const rebuilt=rebuildCommandEvidence(cmd,cleanHistory);nextTrials[cmd]=rebuilt.trials;
     if(rebuilt.state==='No iniciado')delete nextProgress[cmd];else nextProgress[cmd]=rebuilt.state;
   }
   const frontier=maxUnlockedLevelFrom(nextProgress),nextLevel=Math.min(currentLevel,frontier);
-  await store.setMany({patrickHistory:cleanHistory,patrickTrials:nextTrials,patrickProgress:nextProgress,patrickCurrentLevel:nextLevel});
-  history=cleanHistory;trials=nextTrials;progress=nextProgress;currentLevel=nextLevel;renderAll();
+  await store.setMany({patrickHistory:cleanHistory,patrickHistoryArchive:nextArchive,patrickTrials:nextTrials,patrickProgress:nextProgress,patrickCurrentLevel:nextLevel});
+  history=cleanHistory;historyArchive=nextArchive;trials=nextTrials;progress=nextProgress;currentLevel=nextLevel;renderAll();
 }
 function requestExitSession(){
   if(!session){$('#sessionDialog').close();return}
@@ -193,13 +193,13 @@ async function finishSession(){
   for(const [cmd,outcomes] of Object.entries(activeSession.results))for(const outcome of outcomes)applyRollingToState(nextTrials,nextProgress,cmd,OUTCOME_SCORE[outcome]);
   const stamp={version:CONFIG.SESSION_SCHEMA_VERSION,at:new Date().toISOString(),level:finishedLevel,dogName:dogName(),timingMode:'cue-to-rating',results:{},timings:activeSession.timings,context:ENGINE.normalizeContext(activeSession.context)};
   Object.entries(activeSession.results).forEach(([cmd,arr])=>{const times=activeSession.timings[cmd]||[],counts={achieved:arr.filter(x=>x==='achieved').length,assisted:arr.filter(x=>x==='assisted').length,missed:arr.filter(x=>x==='missed').length};stamp.results[cmd]={...counts,total:arr.length,score:arr.reduce((a,x)=>a+OUTCOME_SCORE[x],0),avgSeconds:times.length?Math.round(times.reduce((a,b)=>a+b,0)/times.length/100)/10:0,outcomes:[...arr]}});
-  const nextHistory=[stamp,...history].slice(0,200);
+  const compacted=compactHistory([stamp,...history],historyArchive),nextHistory=compacted.history,nextArchive=compacted.archive;
   for(const cmd of Object.keys(activeSession.results))nextProgress[cmd]=ENGINE.nextProgressState(cmd,nextProgress[cmd],{trials:nextTrials,history:nextHistory,stateScore:STATE_SCORE});
   const routeFrontierBefore=maxUnlockedLevelFrom(progress);
   const advanced=finishedLevel===currentLevel&&finishedLevel===routeFrontierBefore&&levelReadyWithProgress(finishedLevel,nextProgress)&&finishedLevel<10,nextLevel=advanced?finishedLevel+1:currentLevel;
   const nextTrainingContext=stamp.context;
-  await store.setMany({patrickTrials:nextTrials,patrickProgress:nextProgress,patrickHistory:nextHistory,patrickCurrentLevel:nextLevel,patrickTrainingContext:nextTrainingContext});
-  trials=nextTrials;progress=nextProgress;history=nextHistory;currentLevel=nextLevel;trainingContext=nextTrainingContext;session=null;$('#sessionDialog').close();
+  await store.setMany({patrickTrials:nextTrials,patrickProgress:nextProgress,patrickHistory:nextHistory,patrickHistoryArchive:nextArchive,patrickCurrentLevel:nextLevel,patrickTrainingContext:nextTrainingContext});
+  trials=nextTrials;progress=nextProgress;history=nextHistory;historyArchive=nextArchive;currentLevel=nextLevel;trainingContext=nextTrainingContext;session=null;$('#sessionDialog').close();
   $('#finishSummary').textContent=advanced?`Nivel ${finishedLevel} completado. Nivel ${currentLevel} desbloqueado automáticamente.`:`Sesión guardada. Una práctica corta y clara ya cuenta para la racha de ${dogName()}.`;
   $('#finishResults').innerHTML=Object.entries(stamp.results).map(([cmd,r])=>{const c=commandBy(cmd);return `<div class="finishResult"><strong>${escapeHtml(displayCommand(c||cmd))}</strong><span>${r.achieved} logradas · ${r.assisted} con ayuda · ${r.missed} no logradas${r.avgSeconds?` · ${r.avgSeconds} s`:''}</span></div>`}).join('');
   $('#finishBtn').textContent=advanced?`Continuar · Nivel ${currentLevel}`:'Volver a Hoy';$('#finishDialog').showModal();renderAll();sessionAdvancing=false;
