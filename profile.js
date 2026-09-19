@@ -171,7 +171,7 @@ function settingsFocusables(){
   const drawer=$('#settingsDrawer');if(!drawer)return[];
   return [...drawer.querySelectorAll('button:not([disabled]),select:not([disabled]),input:not([disabled]),a[href],[tabindex]:not([tabindex="-1"])')].filter(el=>!el.hidden);
 }
-function setSettingsBackgroundInert(value){$('.appHeader,.appMain,.bottomNav').forEach(el=>{el.inert=!!value})}
+function setSettingsBackgroundInert(value){$$('.appHeader,.appMain,.bottomNav').forEach(el=>{el.inert=!!value})}
 function handleSettingsKeydown(e){
   const drawer=$('#settingsDrawer');if(!drawer?.classList.contains('open'))return;
   if(e.key==='Escape'){e.preventDefault();closeSettingsDrawer();return}
