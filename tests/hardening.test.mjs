@@ -216,6 +216,8 @@ test('v6.4 keeps route focus separate from session level and makes evidence corr
   const session=read('app-session.js'),progressSource=read('progress.js'),profile=read('profile.js'),workflow=read('.github/workflows/quality.yml'),release=read('scripts/release-version.mjs'),pkg=JSON.parse(read('package.json'));
   assert.match(session,/session=\{commands:safeCommands,level:sessionLevel/);
   assert.match(session,/finishedLevel=Number\(activeSession\.level\)/);
+  assert.match(session,/routeFrontierBefore=maxUnlockedLevelFrom\(progress\)/);
+  assert.match(session,/finishedLevel===routeFrontierBefore/);
   assert.doesNotMatch(session,/activateLevel\(request\.level/);
   assert.match(session,/function undoLastExecution/);
   assert.match(session,/setUndoExecutionVisible\(true\)/);
