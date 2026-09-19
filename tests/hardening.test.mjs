@@ -92,6 +92,7 @@ test('navigation and settings click wiring remain collection-safe',()=>{
   assert.ok(core.includes("function setView(id){$$('.view').forEach"),'setView must iterate all views');
   assert.ok(core.includes("$$('.bottomNav button').forEach"),'setView must iterate all nav buttons');
   assert.ok(session.includes("$$('.bottomNav button').forEach"),'bottom-nav handlers must bind to all buttons');
+  assert.ok(session.includes("$$('[data-start-mode]').forEach"),'start chooser controls must bind as a collection');
   assert.ok(profile.includes("$('#settingsAvatarBtn').onclick=openSettingsDrawer"),'settings avatar handler missing');
   for(const [name,source] of [['app-core.js',core],['app-session.js',session],['profile.js',profile],['progress.js',read('progress.js')],['app-media.js',read('app-media.js')]]){
     const accidental=[...source.matchAll(/(?<!\$)\$\('[^']+'\)\.forEach/g)].map(m=>m[0]);
