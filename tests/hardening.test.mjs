@@ -99,7 +99,7 @@ test('v6 configuration centralizes public and schema versions',()=>{
   assert.equal(env.ctx.PATRICK_CONFIG.APP_VERSION,'6.0.0');
   assert.equal(env.ctx.PATRICK_CONFIG.BACKUP_SCHEMA_VERSION,6);
   assert.equal(env.ctx.PATRICK_CONFIG.SESSION_SCHEMA_VERSION,6);
-  assert.equal(env.ctx.PATRICK_CONFIG.CACHE_NAME,'patrick-training-v6.0.0');
+  assert.equal(env.ctx.PATRICK_CONFIG.CACHE_NAME,'patrick-training-v6.0.0-r2');
 });
 
 test('storage reconciliation prefers newer local mirror and repairs IndexedDB',async()=>{
@@ -186,6 +186,23 @@ test('all 41 commands map one-to-one to levels and curated videos',()=>{
   assert.equal(new Set(commands).size,41);
   assert.deepEqual(new Set(levelCommands),new Set(commands));
   assert.deepEqual(new Set(videoCommands),new Set(commands));
+});
+
+test('v6 upgrade contract cache-busts every critical browser asset from v5.6.3',()=>{
+  const index=read('index.html'),styles=read('styles.css'),pwa=read('pwa.js'),sw=read('sw.js');
+  const tag='v600-r2';
+  const scriptSrc=[...index.matchAll(/<script src="([^"]+\.js\?[^"]+)"><\/script>/g)].map(m=>m[1]);
+  assert.ok(scriptSrc.length>=10,'expected versioned script URLs');
+  assert.ok(scriptSrc.every(src=>src.endsWith('?'+tag)));
+  assert.match(index,new RegExp('styles\\.css\\?'+tag));
+  assert.match(index,new RegExp('manifest\\.webmanifest\\?'+tag));
+  const imports=[...styles.matchAll(/@import url\("\.\/([^"]+)"\);/g)].map(m=>m[1]);
+  assert.ok(imports.length>=10,'expected versioned CSS imports');
+  assert.ok(imports.every(src=>src.endsWith('?'+tag)));
+  assert.match(pwa,new RegExp("serviceWorker\\.register\\('\\.\\/sw\\.js\\?"+tag+"'\\)"));
+  assert.match(sw,new RegExp("importScripts\\('\\.\\/config\\.js\\?"+tag+"'\\)"));
+  const staleCache=new Set(['app-core.js','profile.js','progress.js','styles.css','styles-ui.css','pwa.js']);
+  for(const src of [...scriptSrc,...imports,'styles.css?'+tag])assert.equal(staleCache.has(src),false,'versioned asset collided with stale cache: '+src);
 });
 
 test('v6 privacy, CSP, accessibility and PWA regressions stay closed',()=>{
