@@ -22,7 +22,7 @@
 .evolutionSignals{display:grid;grid-template-columns:1fr 1fr;gap:8px}.evolutionSignals article{padding:10px;border-radius:13px;background:var(--surface2);display:grid;gap:3px}.evolutionSignals small{font-size:8px;font-weight:900;letter-spacing:.06em;color:var(--muted)}.evolutionSignals strong{font-size:12px}.evolutionSignals span{font-size:10px;color:var(--muted)}
 .stateDistribution{display:grid;gap:7px}.stateDistribution>div{display:grid;gap:4px}.stateDistribution span{display:flex;justify-content:space-between;gap:8px;font-size:9px}.stateDistribution span b{font-weight:800}.stateDistribution span small{color:var(--muted)}.stateDistribution i{height:5px;border-radius:999px;background:var(--surface2);overflow:hidden}.stateDistribution em{display:block;height:100%;border-radius:inherit;background:var(--accent)}
 
-.insightBtn{display:grid;place-items:center;min-width:38px;min-height:38px;border:1px solid var(--line);border-radius:11px;background:var(--surface);color:var(--text)}
+.insightBtn{display:grid;place-items:center}
 
 .commandInsightDialog{width:min(620px,calc(100vw - 18px));max-height:min(88vh,780px);padding:0;border:0;border-radius:22px;background:var(--surface);color:var(--text);box-shadow:0 20px 60px rgba(0,0,0,.28)}
 .commandInsightDialog::backdrop{background:rgba(0,0,0,.46)}
