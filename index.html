@@ -115,6 +115,57 @@
     <footer class="commandInsightActions"><button id="commandInsightDemoBtn" class="secondaryBtn" type="button">Ver tutorial</button><button id="commandInsightPracticeBtn" class="primaryBtn" type="button">Practicar ahora</button></footer>
   </section></dialog>
 
+  <dialog id="setupWizardDialog" class="setupWizardDialog" aria-labelledby="setupWizardHeading">
+    <section class="setupWizardCard">
+      <header class="setupWizardHeader">
+        <div class="setupWizardBrand"><img src="icons/icon-192.webp" alt=""><div><small>PRIMERA CONFIGURACIÓN</small><strong id="setupWizardHeading">Patrick Training</strong></div></div>
+        <span id="setupWizardCounter" class="setupWizardCounter">1 / 4</span>
+      </header>
+      <div class="setupWizardProgress" aria-hidden="true"><i id="setupWizardProgressBar"></i></div>
+
+      <div class="setupWizardBody">
+        <section class="setupWizardStep" data-setup-step="0">
+          <p class="kicker">BIENVENIDO</p><h2>Primero, hazla tuya</h2>
+          <p class="setupLead">Elige cómo quieres ver Patrick Training. Puedes cambiarlo después en Configuración.</p>
+          <div class="setupThemeGrid">
+            <button class="setupThemeOption" type="button" data-setup-theme="system"><span class="setupThemePreview system"></span><div><strong>Usar sistema</strong><small>Sigue automáticamente el tema del teléfono.</small></div><i></i></button>
+            <button class="setupThemeOption" type="button" data-setup-theme="light"><span class="setupThemePreview light"></span><div><strong>Claro</strong><small>Fondo claro y alto contraste durante el día.</small></div><i></i></button>
+            <button class="setupThemeOption" type="button" data-setup-theme="dark"><span class="setupThemePreview dark"></span><div><strong>Oscuro</strong><small>Interfaz oscura para entrenar con menos brillo.</small></div><i></i></button>
+          </div>
+        </section>
+
+        <section class="setupWizardStep" data-setup-step="1" hidden>
+          <p class="kicker">TU PERRO</p><h2>¿Con quién vamos a entrenar?</h2>
+          <p class="setupLead">El nombre reemplaza “Patrick” en el comando de atención y la edad adapta seguridad, volumen y objetivos.</p>
+          <label class="profileField"><span>Nombre del perro</span><input id="setupDogName" type="text" maxlength="24" autocomplete="off" autocapitalize="words" placeholder="Patrick"></label>
+          <div class="profileAgeGrid"><label class="profileField"><span>Edad</span><input id="setupDogAge" type="number" min="1" max="360" step="1" inputmode="decimal" placeholder="3"></label><label class="profileField"><span>Unidad</span><select id="setupDogAgeUnit"><option value="months">Meses</option><option value="years">Años</option></select></label></div>
+          <div id="setupDogAgePreview" class="profileAgePreview">Indica la edad para adaptar volumen, seguridad y objetivos.</div>
+          <div class="setupNameHint"><span>🔊</span><p>Si escribes <b>Max</b>, el primer comando visible y su audio también serán “Max”. Los comandos alemanes mantienen su pronunciación alemana.</p></div>
+        </section>
+
+        <section class="setupWizardStep" data-setup-step="2" hidden>
+          <p class="kicker">CÓMO FUNCIONA</p><h2>Sesiones cortas, evidencia útil</h2>
+          <p class="setupLead">No necesitas memorizar el sistema. La app te dice qué practicar y adapta el plan con la evidencia.</p>
+          <div class="setupTeachingGrid">
+            <article><span>1</span><div><strong>Misión de hoy</strong><p>Abre la app y sigue una sesión corta elegida por el motor adaptativo.</p></div></article>
+            <article><span>2</span><div><strong>Inicia la ejecución</strong><p>Pulsa el botón justo antes de dar la señal. Así el tiempo medido sí significa algo.</p></div></article>
+            <article><span>3</span><div><strong>Califica lo que pasó</strong><p>No logrado, con ayuda o logrado. Puedes deshacer inmediatamente si te equivocas.</p></div></article>
+            <article><span>4</span><div><strong>La ruta se adapta</strong><p>Consistencia, contextos y confianza desbloquean el siguiente nivel cuando corresponde.</p></div></article>
+          </div>
+        </section>
+
+        <section class="setupWizardStep setupReadyStep" data-setup-step="3" hidden>
+          <img src="icons/icon-192.webp" alt=""><p class="kicker">TODO LISTO</p><h2><span id="setupReadyName">Tu perro</span> empieza en Nivel 0</h2>
+          <p class="setupLead">Bases de comunicación: atención, marcador correcto y liberación. Sin saltos y sin necesidad de hacerlo perfecto.</p>
+          <div class="setupReadySummary"><span><small>Perro</small><strong id="setupSummaryName">—</strong></span><span><small>Etapa</small><strong id="setupSummaryStage">—</strong></span><span><small>Edad</small><strong id="setupSummaryAge">—</strong></span><span><small>Tema</small><strong id="setupSummaryTheme">Sistema</strong></span></div>
+          <div class="setupReadyRoute"><span class="levelIndex">0</span><div><strong>Bases de comunicación</strong><small>Atención → marcador → liberación</small></div></div>
+        </section>
+      </div>
+
+      <footer class="setupWizardActions"><button id="setupBackBtn" class="secondaryBtn" type="button">Atrás</button><button id="setupNextBtn" class="primaryBtn" type="button">Continuar</button></footer>
+    </section>
+  </dialog>
+
   <dialog id="profileDialog" class="profileDialog" aria-labelledby="profileDialogTitle"><section class="profileCard"><img class="profileIcon" src="icons/icon-192.webp" alt=""><p class="kicker">PERFIL DEL PERRO</p><h2 id="profileDialogTitle">Cuéntame sobre tu pastor alemán</h2><p id="profileDialogText" class="muted">Configura su nombre y edad. Patrick Training seguirá siendo el nombre de la app.</p><label class="profileField"><span>Nombre</span><input id="dogNameInput" type="text" maxlength="24" autocomplete="off" autocapitalize="words" placeholder="Patrick"></label><div class="profileAgeGrid"><label class="profileField"><span>Edad</span><input id="dogAgeInput" type="number" min="1" max="360" step="1" inputmode="decimal" placeholder="3"></label><label class="profileField"><span>Unidad</span><select id="dogAgeUnit"><option value="months">Meses</option><option value="years">Años</option></select></label></div><div id="dogAgePreview" class="profileAgePreview">Indica la edad de tu perro.</div><div class="profileActions"><button id="profileCancelBtn" class="secondaryBtn" type="button" hidden>Cancelar</button><button id="saveProfileBtn" class="primaryBtn" type="button">Guardar y empezar</button></div></section></dialog>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
