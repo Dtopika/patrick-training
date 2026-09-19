@@ -42,3 +42,7 @@
   .smartPlanItem{grid-template-columns:28px minmax(0,1fr)}
   .smartPlanStart{grid-column:2;width:100%}
 }
+
+.progressRowActions{display:grid;gap:6px;justify-items:stretch}
+.insightRowBtn{min-height:34px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--text);font:inherit;font-size:10px;font-weight:900}
+@media(max-width:420px){.progressRow{grid-template-columns:1fr}.progressRowActions{grid-template-columns:auto minmax(0,1fr);align-items:center}.progressRow select{max-width:none;width:100%}}
