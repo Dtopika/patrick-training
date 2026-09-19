@@ -2,6 +2,7 @@ const EXECUTIONS_PER_COMMAND=5;
 const OUTCOME_SCORE={missed:0,assisted:.5,achieved:1};
 const OUTCOME_LABEL={missed:'No logrado',assisted:'Con ayuda',achieved:'Logrado'};
 let executionTimerId=null,sessionAdvanceTimeoutId=null,executionStartedAt=0,executionElapsedMs=0,sessionAdvancing=false;
+let pendingStartRequest=null,startChoiceMode='recommended';
 
 function clearSessionAdvanceTimer(){if(sessionAdvanceTimeoutId){clearTimeout(sessionAdvanceTimeoutId);sessionAdvanceTimeoutId=null}}
 function applyRollingToState(nextTrials,nextProgress,cmd,score){
@@ -55,6 +56,38 @@ function updateExecutionUI(){
   updateExecutionDots();
   $('#executionHint').textContent=`Haz la ejecución con ${dogName()} y califica cómo salió. La app avanza sola.`;
 }
+function commandsForLevelStart(levelNumber){
+  const level=levelBy(levelNumber);if(!level)return[];
+  const count=dayType==='Solo noche'?2:3;
+  return level.commands.map(commandBy).filter(Boolean).filter(c=>!trainingSafety(c)?.deferFromAdaptive).sort((a,b)=>adaptivePriority(b,levelNumber)-adaptivePriority(a,levelNumber)).slice(0,count);
+}
+function setStartChoiceMode(mode){
+  startChoiceMode=mode==='last'?'last':'recommended';
+  $('[data-start-mode]').forEach(button=>{const selected=button.dataset.startMode===startChoiceMode;button.classList.toggle('selected',selected);button.setAttribute('aria-checked',String(selected))});
+}
+function closeStartChoice(){
+  pendingStartRequest=null;startChoiceMode='recommended';
+  const dialog=$('#startChoiceDialog');if(dialog?.open)dialog.close();
+}
+function openStartChoice(cmds,{level=null,label='esta sesión'}={}){
+  const commands=(Array.isArray(cmds)?cmds:[]).filter(c=>c&&typeof c.cmd==='string');if(!commands.length)return;
+  const recommended=recommendedTrainingContext(commands[0]),last=ENGINE.normalizeContext(trainingContext);
+  pendingStartRequest={commands,level,recommended,last,label};
+  $('#startChoiceSubtitle').textContent=level===null?`Vas a practicar ${label}.`:`Nivel ${level} · ${label}`;
+  $('#recommendedStartLabel').textContent=recommended.label;
+  $('#lastStartLabel').textContent=ENGINE.contextLabel(last);
+  setStartChoiceMode('recommended');
+  const dialog=$('#startChoiceDialog');if(!dialog.open)dialog.showModal();
+}
+function confirmStartChoice(){
+  if(!pendingStartRequest)return;
+  const request=pendingStartRequest,context=startChoiceMode==='last'?request.last:request.recommended;
+  pendingStartRequest=null;
+  const dialog=$('#startChoiceDialog');if(dialog?.open)dialog.close();
+  if(request.level!==null&&request.level!==currentLevel&&!activateLevel(request.level,{silent:true}))return;
+  startSession(request.commands,{context});
+}
+
 function startSession(cmds=focusForLevel(currentLevel),options={}){
   const safeCommands=(Array.isArray(cmds)?cmds:[]).filter(c=>c&&typeof c.cmd==='string');if(!safeCommands.length)return;
   clearSessionAdvanceTimer();stopExecutionTimer();sessionAdvancing=false;
@@ -116,6 +149,9 @@ function init(){
   $('#dayType').onchange=e=>{dayType=e.target.value;store.set('patrickDayType',dayType);renderToday();syncSettingsDrawer()};
   $('#startSessionBtn').onclick=()=>startSession();$('#firstSessionBtn').onclick=()=>startSession();
   $('#advanceBtn').onclick=()=>{if(currentLevel<10)activateLevel(currentLevel+1)};
+  $$('[data-start-mode]').forEach(button=>button.onclick=()=>setStartChoiceMode(button.dataset.startMode));
+  $('#cancelStartChoiceBtn').onclick=closeStartChoice;$('#closeStartChoiceBtn').onclick=closeStartChoice;$('#confirmStartChoiceBtn').onclick=confirmStartChoice;
+  $('#startChoiceDialog').addEventListener('cancel',e=>{e.preventDefault();closeStartChoice()});$('#startChoiceDialog').addEventListener('click',e=>{if(e.target===$('#startChoiceDialog'))closeStartChoice()});
   $('#search').oninput=renderCommands;
   $('#closeSessionBtn').onclick=requestExitSession;$('#sessionDialog').addEventListener('cancel',e=>{e.preventDefault();requestExitSession()});
   $('#missedBtn').onclick=()=>rateExecution('missed');$('#assistedBtn').onclick=()=>rateExecution('assisted');$('#correctBtn').onclick=()=>rateExecution('achieved');
