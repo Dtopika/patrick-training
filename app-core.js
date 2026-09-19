@@ -169,6 +169,11 @@ function activateLevel(n,{silent=false}={}){
   if(!canActivateLevel(next)){if(!silent)toast('Completa el nivel anterior para desbloquear este nivel.');return false}
   currentLevel=next;store.set('patrickCurrentLevel',currentLevel);renderAll();if(!silent)toast(`Nivel ${currentLevel} activado`);return true;
 }
+function repairCurrentLevel({persist=true}={}){
+  const unlocked=maxUnlockedLevel();
+  if(levelBy(currentLevel)&&currentLevel<=unlocked)return false;
+  currentLevel=unlocked;if(persist)store.set('patrickCurrentLevel',currentLevel);return true;
+}
 function totalProgress(){return Math.round(COMMANDS.reduce((a,c)=>a+STATE_SCORE[stateOf(c.cmd)]/4,0)/COMMANDS.length*100)}
 function solidCount(){return COMMANDS.filter(c=>STATE_SCORE[stateOf(c.cmd)]>=2).length}
 function commandLastPracticeMs(cmd){return ENGINE.lastPracticeMs(history,cmd)}
@@ -191,7 +196,7 @@ function focusChipHtml(c){
   return `<span class="focusChip">${escapeHtml(label)}${pron?` <small>${escapeHtml(pron)}</small>`:''}</span>`;
 }
 function renderToday(){
-  const l=levelBy(currentLevel),ready=levelReady(currentLevel);renderDogIdentity();
+  repairCurrentLevel();const l=levelBy(currentLevel),ready=levelReady(currentLevel);renderDogIdentity();
   $('#headerLevel').textContent=`Nivel ${currentLevel} · ${l.title}`;
   $('#todaySummary').textContent=history.length===0?'Tu primera sesión puede durar apenas unos minutos. La constancia vale más que la duración.':dayType==='Solo noche'?'Plan adaptativo compacto: prioriza lo que más necesita refuerzo.':'Plan adaptativo: combina nivel actual, rendimiento reciente y repaso espaciado.';
   $('#dayType').value=dayType;$('#levelBadge').textContent=`Nivel ${currentLevel}`;$('#readinessBadge').textContent=ready&&currentLevel<10?'Listo para avanzar':'En curso';$('#readinessBadge').classList.toggle('ready',ready);$('#sessionTitle').textContent=l.title;$('#sessionGoal').textContent=l.goal;
@@ -223,8 +228,7 @@ function renderCommands(){const q=$('#search').value.trim().toLowerCase();$('#fi
 window.PATRICK_READY=(async()=>{
   await ensureV6Dependencies();
   await store.hydrate();progress=store.get('patrickProgress',{})||{};trials=store.get('patrickTrials',{})||{};history=store.get('patrickHistory',[])||[];currentLevel=Number(store.get('patrickCurrentLevel',0))||0;dayType=store.get('patrickDayType','Todo el día')||'Todo el día';dogProfile=store.get('patrickDogProfile',null)||{name:'',breed:'Pastor Alemán'};trainingContext=ENGINE.normalizeContext(store.get('patrickTrainingContext',trainingContext));
-  const unlockedLevel=maxUnlockedLevel();
-  if(!levelBy(currentLevel)||currentLevel>unlockedLevel){currentLevel=unlockedLevel;await store.set('patrickCurrentLevel',currentLevel)}
+  if(repairCurrentLevel({persist:false}))await store.set('patrickCurrentLevel',currentLevel)
   const hasExistingData=Object.keys(progress).length>0||Object.keys(trials).length>0||history.length>0||currentLevel>0;
   if(!String(dogProfile?.name||'').trim()&&hasExistingData){dogProfile={...dogProfile,name:'Patrick',breed:'Pastor Alemán'};store.set('patrickDogProfile',dogProfile)}
 })();
