@@ -49,7 +49,9 @@
         if(!known.has(cmd)||!plainObject(r))fail('Comando de sesión inválido');
         const achieved=Number(r.achieved),assisted=Number(r.assisted),missed=Number(r.missed),total=Number(r.total),score=Number(r.score),avgSeconds=Number(r.avgSeconds||0);
         if([achieved,assisted,missed,total].some(n=>!Number.isInteger(n)||n<0||n>5)||achieved+assisted+missed!==total||total>5||!Number.isFinite(score)||score<0||score>5||!Number.isFinite(avgSeconds)||avgSeconds<0||avgSeconds>3600)fail('Resultado de sesión inválido');
-        results[cmd]={achieved,assisted,missed,total,score,avgSeconds};
+        const outcomes=r.outcomes===undefined?undefined:Array.isArray(r.outcomes)?r.outcomes.map(String):null;
+        if(outcomes===null||outcomes?.length!==total||outcomes?.some(x=>!['achieved','assisted','missed'].includes(x)))fail('Detalle de resultados inválido');
+        results[cmd]={achieved,assisted,missed,total,score,avgSeconds,...(outcomes?{outcomes}:{})};
       }
       if(item.timings!==undefined){
         if(!plainObject(item.timings))fail('Tiempos de sesión inválidos');
@@ -67,7 +69,10 @@
     const time=String(value.time||'19:00');if(!/^([01]\d|2[0-3]):[0-5]\d$/.test(time))fail('Hora de recordatorio inválida');
     return{enabled:!!value.enabled,time,lastNotifiedDate:null};
   }
-  function normalize(data,{commands=[],states=[],currentProfile=null,currentTrainingContext={environment:'Casa',distraction:'Baja'},maxSchemaVersion=7}={}){
+  function normalizeTheme(value,current='system'){
+    const theme=String(value??current??'system');return['system','light','dark'].includes(theme)?theme:'system';
+  }
+  function normalize(data,{commands=[],states=[],currentProfile=null,currentTrainingContext={environment:'Casa',distraction:'Baja'},currentTheme='system',maxSchemaVersion=8}={}){
     if(!plainObject(data))fail('Formato de respaldo inválido');
     const schema=Number(data.schemaVersion??data.version??5);
     if(!Number.isFinite(schema)||schema<5||schema>maxSchemaVersion)fail('Versión de respaldo no compatible');
@@ -80,6 +85,7 @@
       currentLevel,dayType,
       profile:normalizeProfile(data.profile,currentProfile),
       trainingContext:normalizeTrainingContext(data.trainingContext,currentTrainingContext),
+      theme:normalizeTheme(data.theme,currentTheme),
       notifications:normalizeNotifications(data.notifications)
     };
   }
