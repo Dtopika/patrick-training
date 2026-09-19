@@ -1,9 +1,9 @@
-const CACHE='patrick-training-v5.6.2';
-const CORE=["./","./index.html","./styles.css","./styles-base.css","./styles-ui.css","./styles-avatar.css","./styles-media.css","./styles-splash.css","./styles-session.css","./styles-profile.css","./styles-polish.css","./styles-notifications.css","./styles-v56.css","./commands-1.js","./commands-2.js","./commands-3.js","./commands-4.js","./levels.js","./videos.js","./db.js","./app-core.js","./profile.js","./progress.js","./app-media.js","./app-session.js","./pwa.js","./manifest.webmanifest","./icons/icon-192.webp","./icons/icon-512.webp","./icons/icon-512-maskable.svg","./icons/icon-192.png","./assets/patrick-banner.webp"];
+const CACHE='patrick-training-v5.6.3-recovery';
+const CORE=["./","./index.html","./styles.css?r563-1","./styles-base.css?r563-1","./styles-ui.css?r563-1","./styles-avatar.css?r563-1","./styles-media.css?r563-1","./styles-splash.css?r563-1","./styles-session.css?r563-1","./styles-profile.css?r563-1","./styles-polish.css?r563-1","./styles-notifications.css?r563-1","./styles-v56.css?r563-1","./commands-1.js?r563-1","./commands-2.js?r563-1","./commands-3.js?r563-1","./commands-4.js?r563-1","./levels.js?r563-1","./videos.js?r563-1","./db.js?r563-1","./app-core.js?r563-1","./profile.js?r563-1","./progress.js?r563-1","./app-media.js?r563-1","./app-session.js?r563-1","./pwa.js?r563-1","./manifest.webmanifest?r563-1","./icons/icon-192.webp","./icons/icon-512.webp","./icons/icon-512-maskable.svg","./icons/icon-192.png","./assets/patrick-banner.webp"];
 const REMINDER_TAG='patrick-daily-reminder';
 const DB_NAME='patrick-training-db',DB_VERSION=1,STORE='kv';
 
-self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)));self.skipWaiting()});
+self.addEventListener('install',e=>{e.waitUntil(Promise.all([caches.open(CACHE).then(c=>c.addAll(CORE)),self.skipWaiting()]))});
 self.addEventListener('activate',e=>{e.waitUntil(Promise.all([caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('patrick-training-')&&k!==CACHE).map(k=>caches.delete(k)))),self.clients.claim()]))});
 self.addEventListener('fetch',e=>{
   if(e.request.method!=='GET')return;

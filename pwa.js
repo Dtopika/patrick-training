@@ -33,6 +33,6 @@ function maybeShowIosInstallHint(){
   document.getElementById('iosInstallDismiss').onclick=()=>{sessionStorage.setItem('patrickIosInstallHintDismissed','1');document.getElementById('iosInstallHint')?.remove()};
 }
 
-if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').then(syncInstallUI).catch(console.warn));
+if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?r563-1').then(syncInstallUI).catch(console.warn));
 window.addEventListener('load',maybeShowIosInstallHint);
 syncInstallUI();

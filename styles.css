@@ -1,11 +1,11 @@
-@import url("./styles-base.css");
-@import url("./styles-ui.css");
-@import url("./styles-avatar.css");
-@import url("./styles-media.css");
-@import url("./styles-splash.css");
-@import url("./styles-session.css");
-@import url("./styles-profile.css");
-@import url("./styles-polish.css");
-@import url("./styles-notifications.css");
+@import url("./styles-base.css?r563-1");
+@import url("./styles-ui.css?r563-1");
+@import url("./styles-avatar.css?r563-1");
+@import url("./styles-media.css?r563-1");
+@import url("./styles-splash.css?r563-1");
+@import url("./styles-session.css?r563-1");
+@import url("./styles-profile.css?r563-1");
+@import url("./styles-polish.css?r563-1");
+@import url("./styles-notifications.css?r563-1");
 
-@import url("./styles-v56.css");
+@import url("./styles-v56.css?r563-1");
