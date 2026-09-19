@@ -1,4 +1,4 @@
-const CACHE='patrick-training-v5.6';
+const CACHE='patrick-training-v5.6.1';
 const CORE=["./","./index.html","./styles.css","./styles-base.css","./styles-ui.css","./styles-avatar.css","./styles-media.css","./styles-splash.css","./styles-session.css","./styles-profile.css","./styles-polish.css","./styles-notifications.css","./styles-v56.css","./commands-1.js","./commands-2.js","./commands-3.js","./commands-4.js","./levels.js","./videos.js","./db.js","./app-core.js","./profile.js","./progress.js","./app-media.js","./app-session.js","./pwa.js","./manifest.webmanifest","./icons/icon-192.webp","./icons/icon-512.webp","./icons/icon-512-maskable.svg","./icons/icon-192.png","./assets/patrick-banner.webp"];
 const REMINDER_TAG='patrick-daily-reminder';
 const DB_NAME='patrick-training-db',DB_VERSION=1,STORE='kv';

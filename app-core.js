@@ -104,7 +104,7 @@ function focusForLevel(n){
   const eligible=COMMANDS.filter(c=>c.level<=n).map(c=>({c,score:adaptivePriority(c,n)})).sort((a,b)=>b.score-a.score||b.c.level-a.c.level);
   const current=eligible.filter(x=>x.c.level===n),review=eligible.filter(x=>x.c.level<n);
   if(!current.length)return eligible.slice(0,count).map(x=>x.c);
-  const chosen=[current[0]];
+  const chosen=[current[0].c];
   const rest=[...current.slice(1),...review].sort((a,b)=>b.score-a.score);
   for(const item of rest){if(chosen.length>=count)break;if(!chosen.some(c=>c.cmd===item.c.cmd))chosen.push(item.c)}
   return chosen;
