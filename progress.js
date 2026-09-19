@@ -1,10 +1,48 @@
+function commandTrialStats(cmd){
+  const arr=Array.isArray(trials[cmd])?trials[cmd].map(Number).filter(Number.isFinite):[];
+  const avg=arr.length?arr.reduce((a,b)=>a+b,0)/arr.length:null;
+  const lastMs=typeof commandLastPracticeMs==='function'?commandLastPracticeMs(cmd):0;
+  return{arr,avg,lastMs};
+}
+function relativePracticeLabel(ms){
+  if(!ms)return'Nunca';
+  const days=Math.floor(Math.max(0,Date.now()-ms)/86400000);
+  if(days===0)return'Hoy';if(days===1)return'Ayer';if(days<7)return`Hace ${days} días`;
+  const weeks=Math.floor(days/7);return`Hace ${weeks} ${weeks===1?'semana':'semanas'}`;
+}
+function trialTrendHtml(arr){
+  if(!arr.length)return'<span class="trendEmpty">Sin ejecuciones aún</span>';
+  return`<span class="trialTrend" aria-label="Últimas ejecuciones">${arr.slice(-10).map(v=>`<i class="${v>=1?'hit':v>=.5?'assist':'miss'}" title="${v>=1?'Logrado':v>=.5?'Con ayuda':'No logrado'}"></i>`).join('')}</span>`;
+}
+function adaptiveSummaryHtml(){
+  const eligible=COMMANDS.filter(c=>c.level<=currentLevel).map(c=>({c,score:typeof adaptivePriority==='function'?adaptivePriority(c,currentLevel):0,stats:commandTrialStats(c.cmd)})).sort((a,b)=>b.score-a.score).slice(0,3);
+  if(!eligible.length)return'';
+  return`<div class="adaptiveSummaryHead"><div><p class="kicker">SESIÓN ADAPTATIVA</p><h2>Prioridades de hoy</h2></div><span class="adaptiveBadge">Automático</span></div><div class="adaptiveCards">${eligible.map(({c,stats})=>`<article><strong>${escapeHtml(displayCommand(c))}</strong><span>${stats.avg===null?'Nuevo':Math.round(stats.avg*100)+'% reciente'}</span><small>${relativePracticeLabel(stats.lastMs)}</small></article>`).join('')}</div><p class="adaptiveExplain">La app prioriza comandos del nivel actual, resultados bajos y prácticas que llevan más tiempo sin repetirse.</p>`;
+}
+function sessionAccuracy(item){
+  const values=Object.values(item?.results||{});let score=0,total=0;
+  for(const r of values){score+=Number(r?.score)||0;total+=Number(r?.total)||0}
+  return total?Math.round(score/total*100):0;
+}
+function renderSessionHistory(){
+  const list=$('#sessionHistoryList'),count=$('#historyCount');if(!list)return;
+  if(count)count.textContent=`${history.length} total`;
+  if(!history.length){list.innerHTML='<article class="historyEmpty"><strong>Aún no hay sesiones</strong><p>Cuando termines una sesión aparecerá aquí con sus resultados.</p></article>';return}
+  const fmt=new Intl.DateTimeFormat('es-CO',{day:'numeric',month:'short',hour:'numeric',minute:'2-digit'});
+  list.innerHTML=history.slice(0,24).map(item=>{
+    const date=new Date(item.at),accuracy=sessionAccuracy(item),entries=Object.entries(item.results||{});
+    return`<article class="historyCard"><div class="historyTop"><div><strong>${Number.isNaN(date.getTime())?'Sesión':fmt.format(date)}</strong><small>Nivel ${Number(item.level)||0} · ${accuracy}% de logro</small></div><span class="historyScore">${accuracy}%</span></div><div class="historyCommands">${entries.map(([cmd,r])=>`<span><b>${escapeHtml(displayCommand(commandBy(cmd)||cmd))}</b><small>${Number(r?.achieved)||0}✓ · ${Number(r?.assisted)||0}~ · ${Number(r?.missed)||0}×</small></span>`).join('')}</div></article>`;
+  }).join('');
+}
 function renderProgress(){
   const pct=totalProgress();renderDogIdentity();
   $('#progressPct').textContent=pct+'%';$('#progressRing').style.setProperty('--p',pct);
   $('#progressHeadline').textContent=pct===0?'Tu ruta empieza aquí':pct<35?'Construyendo bases':pct<70?'Buen progreso':'Obediencia avanzada';
   $('#progressText').textContent=pct===0?'Completa una sesión guiada para empezar a construir el historial.':`${solidCount()} de ${COMMANDS.length} comandos están consistentes o mejor.`;
-  $('#progressList').innerHTML=COMMANDS.map(c=>`<article class="progressRow"><div><strong>${escapeHtml(displayCommand(c))} · <span class="pronunciation">${escapeHtml(displayPron(c))}</span></strong><small>Nivel ${c.level} · ${escapeHtml(c.meaning)}</small></div><select data-state="${escapeHtml(c.cmd)}" aria-label="Estado de ${escapeHtml(displayCommand(c))}">${STATES.map(s=>`<option ${stateOf(c.cmd)===s?'selected':''}>${s}</option>`).join('')}</select></article>`).join('');
+  const adaptive=$('#adaptiveSummary');if(adaptive)adaptive.innerHTML=adaptiveSummaryHtml();
+  $('#progressList').innerHTML=COMMANDS.map(c=>{const stats=commandTrialStats(c.cmd),recent=stats.avg===null?'Sin datos':`${Math.round(stats.avg*100)}% reciente`;return`<article class="progressRow progressRowV56"><div class="progressMain"><strong>${escapeHtml(displayCommand(c))} · <span class="pronunciation">${escapeHtml(displayPron(c))}</span></strong><small>Nivel ${c.level} · ${escapeHtml(c.meaning)}</small><div class="progressEvidence">${trialTrendHtml(stats.arr)}<span>${recent} · ${relativePracticeLabel(stats.lastMs)}</span></div></div><select data-state="${escapeHtml(c.cmd)}" aria-label="Estado de ${escapeHtml(displayCommand(c))}">${STATES.map(s=>`<option ${stateOf(c.cmd)===s?'selected':''}>${s}</option>`).join('')}</select></article>`}).join('');
   $$('[data-state]').forEach(s=>s.onchange=()=>{progress[s.dataset.state]=s.value;store.set('patrickProgress',progress);renderAll()});
+  renderSessionHistory();
 }
 function localDateKey(date){const y=date.getFullYear(),m=String(date.getMonth()+1).padStart(2,'0'),d=String(date.getDate()).padStart(2,'0');return`${y}-${m}-${d}`}
 function historyDaySet(){return new Set(history.map(x=>{const d=new Date(x.at);return Number.isNaN(d.getTime())?null:localDateKey(d)}).filter(Boolean))}

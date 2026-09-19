@@ -81,14 +81,41 @@ function levelProgress(n){const cmds=levelBy(n).commands;if(!cmds.length)return 
 function levelReady(n){return levelBy(n).commands.every(x=>STATE_SCORE[stateOf(x)]>=2)}
 function totalProgress(){return Math.round(COMMANDS.reduce((a,c)=>a+STATE_SCORE[stateOf(c.cmd)]/4,0)/COMMANDS.length*100)}
 function solidCount(){return COMMANDS.filter(c=>STATE_SCORE[stateOf(c.cmd)]>=2).length}
-function focusForLevel(n){const names=levelBy(n).commands;const pending=names.map(commandBy).filter(c=>STATE_SCORE[stateOf(c.cmd)]<2);return (pending.length?pending:names.map(commandBy)).slice(0,dayType==='Solo noche'?2:3)}
+function commandLastPracticeMs(cmd){
+  let latest=0;
+  for(const item of history){if(!item?.results?.[cmd])continue;const t=Date.parse(item.at||'');if(Number.isFinite(t)&&t>latest)latest=t}
+  return latest;
+}
+function commandRecentAverage(cmd){
+  const arr=Array.isArray(trials[cmd])?trials[cmd].map(Number).filter(Number.isFinite):[];
+  return arr.length?arr.reduce((a,b)=>a+b,0)/arr.length:null;
+}
+function adaptivePriority(c,n){
+  const avg=commandRecentAverage(c.cmd),last=commandLastPracticeMs(c.cmd),days=last?Math.max(0,(Date.now()-last)/86400000):30,state=STATE_SCORE[stateOf(c.cmd)]||0;
+  let score=c.level===n?110:38;
+  score+=avg===null?34:(1-avg)*72;
+  score+=Math.min(days,30)*1.7;
+  if(state<2)score+=26;
+  if(state>=2&&avg!==null&&avg>=.9&&days<5)score-=34;
+  return score;
+}
+function focusForLevel(n){
+  const count=dayType==='Solo noche'?2:3;
+  const eligible=COMMANDS.filter(c=>c.level<=n).map(c=>({c,score:adaptivePriority(c,n)})).sort((a,b)=>b.score-a.score||b.c.level-a.c.level);
+  const current=eligible.filter(x=>x.c.level===n),review=eligible.filter(x=>x.c.level<n);
+  if(!current.length)return eligible.slice(0,count).map(x=>x.c);
+  const chosen=[current[0]];
+  const rest=[...current.slice(1),...review].sort((a,b)=>b.score-a.score);
+  for(const item of rest){if(chosen.length>=count)break;if(!chosen.some(c=>c.cmd===item.c.cmd))chosen.push(item.c)}
+  return chosen;
+}
 function microPlan(){const f=focusForLevel(currentLevel);const known=COMMANDS.filter(c=>c.level<currentLevel&&STATE_SCORE[stateOf(c.cmd)]>=2).slice(-2);if(dayType==='Solo noche')return[['Al llegar','4–5 min','Nuevo + fácil',[f[0],known.at(-1)].filter(Boolean)],['Más tarde','4–5 min','Segundo foco + repaso',[f[1]||f[0],known.at(-2)].filter(Boolean)],['Antes de dormir','1–2 min','Una victoria fácil',[known.at(-1)||f[0]].filter(Boolean)]];return[['Mañana','3–5 min','Foco principal',[f[0],known.at(-1)].filter(Boolean)],['Mediodía','3–5 min','Control / calma',[f.find(c=>['Control','Autocontrol','Casa'].includes(c.category))||f[1]||f[0]].filter(Boolean)],['Tarde','3–5 min','Segundo foco',[f[1]||f[0]].filter(Boolean)],['Noche','2–4 min','Repaso fácil + juego',[known.at(-1)||f.at(-1)].filter(Boolean)]]}
 function setView(id){$$('.view').forEach(v=>v.classList.toggle('active',v.id===id));$$('.bottomNav button').forEach(b=>b.classList.toggle('active',b.dataset.view===id));scrollTo({top:0,behavior:'smooth'});if(id==='progress')renderProgress();if(id==='commands')renderCommands();if(id==='levels')renderLevels()}
 function renderDogIdentity(){const name=dogName();if($('#dogNameHeader'))$('#dogNameHeader').textContent=name;if($('#todayHeading'))$('#todayHeading').textContent=`Hoy con ${name}`;if($('#advanceTitle'))$('#advanceTitle').textContent=`${name} está listo para avanzar`;if($('#dogProfileName'))$('#dogProfileName').textContent=name;if($('#storageModeLabel'))$('#storageModeLabel').textContent=storageMode==='indexeddb'?'IndexedDB':'almacenamiento local'}
 function renderToday(){
   const l=levelBy(currentLevel),ready=levelReady(currentLevel);renderDogIdentity();
   $('#headerLevel').textContent=`Nivel ${currentLevel} · ${l.title}`;
-  $('#todaySummary').textContent=history.length===0?'Tu primera sesión puede durar apenas unos minutos. La constancia vale más que la duración.':dayType==='Solo noche'?'Plan compacto para entrenar al final del día.':'Micro-sesiones repartidas según tu disponibilidad.';
+  $('#todaySummary').textContent=history.length===0?'Tu primera sesión puede durar apenas unos minutos. La constancia vale más que la duración.':dayType==='Solo noche'?'Plan adaptativo compacto: prioriza lo que más necesita refuerzo.':'Plan adaptativo: combina nivel actual, rendimiento reciente y repaso espaciado.';
   $('#dayType').value=dayType;$('#levelBadge').textContent=`Nivel ${currentLevel}`;$('#readinessBadge').textContent=ready&&currentLevel<10?'Listo para avanzar':'En curso';$('#readinessBadge').classList.toggle('ready',ready);$('#sessionTitle').textContent=l.title;$('#sessionGoal').textContent=l.goal;
   const focus=focusForLevel(currentLevel);$('#focusCommands').innerHTML=focus.map(c=>`<span class="focusChip">${escapeHtml(displayCommand(c))} <small>${escapeHtml(displayPron(c))}</small></span>`).join('');
   $('#metricProgress').textContent=totalProgress()+'%';$('#metricSolid').textContent=solidCount();$('#metricSessions').textContent=history.length;
