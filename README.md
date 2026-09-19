@@ -3,7 +3,7 @@
 PWA móvil, local-first, para entrenar a Patrick con comandos en alemán, sesiones guiadas y progresión adaptativa.
 
 ## Estado
-- Release estable publicada: v6.3.0.
+- Release estable publicada: v6.3.1.
 - Línea actual: entrenador adaptativo con progreso limpio, ruta visual y configuración unificada.
 - Sin backend ni cuentas: los datos permanecen en el dispositivo salvo exportación manual.
 
@@ -19,6 +19,8 @@ PWA móvil, local-first, para entrenar a Patrick con comandos en alemán, sesion
 - Progresión automática: consistencia → generalización → dominio basada en evidencia.
 - Contexto de sesión por entorno y nivel de distracción.
 - Ruta de niveles bloqueada: no se puede activar un nivel futuro sin completar los anteriores.
+- Niveles compactos y flujo guiado para iniciar sesiones desde Niveles o Comandos.
+- Navegación principal con estados activos más claros.
 - Historial, racha y evidencia reciente por comando.
 - Perfil del perro con edad y recomendaciones de seguridad.
 - Videos curados y pronunciación mediante la voz alemana del dispositivo.
