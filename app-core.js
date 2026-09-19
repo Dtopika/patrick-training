@@ -43,6 +43,7 @@ function icon(name,cls='uiIcon'){
     x:'<path d="m6 6 12 12M18 6 6 18"/>',
     signal:'<path d="M6 21V4"/><path d="M6 5h11l-2 4 2 4H6"/>',
     target:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>',
+    chart:'<path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M22 20H2"/>',
     steps:'<path d="M6 7h13M6 12h13M6 17h13"/><circle cx="3" cy="7" r=".8" fill="currentColor" stroke="none"/><circle cx="3" cy="12" r=".8" fill="currentColor" stroke="none"/><circle cx="3" cy="17" r=".8" fill="currentColor" stroke="none"/>',
     reward:'<path d="m12 3 2.7 5.5 6 .9-4.3 4.2 1 6-5.4-2.9-5.4 2.9 1-6-4.3-4.2 6-.9z"/>',
     download:'<path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 20h16"/>',
@@ -52,7 +53,8 @@ function icon(name,cls='uiIcon'){
     chevron:'<path d="m9 6 6 6-6 6"/>',
     flame:'<path d="M12 22c4 0 7-3 7-7 0-5-4-7-3-12-4 2-7 6-7 10-1-1-2-3-2-4-2 2-3 4-3 7 0 3 3 6 8 6z"/><path d="M12 20c2 0 3.5-1.5 3.5-3.5 0-2-1.5-3-2-5-2 1-3.5 3-3.5 5 0 2 1 3.5 2 3.5z"/>',
     help:'<path d="M9.5 9a2.8 2.8 0 1 1 4.5 2.2c-1.2.8-2 1.4-2 2.8"/><path d="M12 18h.01"/>',
-    install:'<path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/>'
+    install:'<path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/>',
+    lock:'<rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>'
   };
   return `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${paths[name]||paths.check}</svg>`;
 }
@@ -154,7 +156,18 @@ function toast(msg){const el=$('#toast');if(!el)return;el.textContent=msg;el.cla
 function localGermanSpeech(text){return new Promise((resolve,reject)=>{if(!('speechSynthesis'in window)){reject(new Error('speechSynthesis unavailable'));return}try{const synth=window.speechSynthesis;synth.cancel();synth.resume();const voices=synth.getVoices();const de=voices.find(v=>v.lang?.toLowerCase().startsWith('de'));const u=new SpeechSynthesisUtterance(text);u.lang=de?.lang||'de-DE';u.rate=.72;u.pitch=1;if(de)u.voice=de;u.onend=()=>resolve();u.onerror=e=>reject(e);synth.speak(u)}catch(e){reject(e)}})}
 async function speak(c){const text=displayCommand(c).replace(/!/g,'').trim();if(!text)return;try{await localGermanSpeech(text)}catch(e){console.warn('Local German TTS failed',e);toast('No pude reproducir el audio. Instala o activa una voz alemana en el teléfono.')}}
 function levelProgress(n){const cmds=levelBy(n).commands;if(!cmds.length)return 0;return Math.round(cmds.reduce((a,x)=>a+STATE_SCORE[stateOf(x)]/4,0)/cmds.length*100)}
-function levelReady(n){return levelBy(n).commands.every(x=>STATE_SCORE[stateOf(x)]>=2)}
+function levelReady(n){const level=levelBy(n);return !!level&&level.commands.every(x=>STATE_SCORE[stateOf(x)]>=2)}
+function maxUnlockedLevel(){
+  let unlocked=0;
+  for(let n=0;n<LEVELS.length-1;n++){if(!levelReady(n))break;unlocked=n+1}
+  return Math.min(unlocked,LEVELS.at(-1)?.n||0);
+}
+function canActivateLevel(n){return Number.isInteger(Number(n))&&Number(n)>=0&&Number(n)<=maxUnlockedLevel()&&!!levelBy(Number(n))}
+function activateLevel(n,{silent=false}={}){
+  const next=Number(n);
+  if(!canActivateLevel(next)){if(!silent)toast('Completa el nivel anterior para desbloquear este nivel.');return false}
+  currentLevel=next;store.set('patrickCurrentLevel',currentLevel);renderAll();if(!silent)toast(`Nivel ${currentLevel} activado`);return true;
+}
 function totalProgress(){return Math.round(COMMANDS.reduce((a,c)=>a+STATE_SCORE[stateOf(c.cmd)]/4,0)/COMMANDS.length*100)}
 function solidCount(){return COMMANDS.filter(c=>STATE_SCORE[stateOf(c.cmd)]>=2).length}
 function commandLastPracticeMs(cmd){return ENGINE.lastPracticeMs(history,cmd)}
@@ -188,7 +201,15 @@ function renderToday(){
   $('#todayPlan').innerHTML=microPlan().map(([name,dur,goal,cmds],i)=>`<article class="planItem"><span class="planNumber">${i+1}</span><div><strong>${escapeHtml(name)} · ${escapeHtml(goal)}</strong><p>${cmds.map(c=>escapeHtml(displayCommand(c))).join(' · ')||'Juego y vínculo'}</p></div><small>${escapeHtml(dur)}</small></article>`).join('');
   $('#advanceCard').hidden=!(ready&&currentLevel<10);if(typeof renderSmartDailyPlan==='function')renderSmartDailyPlan();
 }
-function renderLevels(){$('#levelList').innerHTML=LEVELS.map(l=>{const p=levelProgress(l.n);return `<article class="levelCard ${currentLevel===l.n?'activeLevel':''}"><div class="levelTop"><span class="levelIndex">${l.n}</span><div class="levelTitleWrap"><strong>${escapeHtml(l.title)}</strong><small>${escapeHtml(l.goal)}</small></div><span class="levelProgress">${p}%</span></div><div class="miniBar"><div style="width:${p}%"></div></div><div class="levelCommands">${l.commands.map(n=>{const c=commandBy(n);return `<span class="tinyChip">${escapeHtml(displayCommand(c))} · ${escapeHtml(displayPron(c))}</span>`}).join('')}</div><div class="levelActions">${currentLevel===l.n?'<span class="badge">Nivel activo</span>':`<button class="setLevelBtn" data-set-level="${l.n}">Trabajar este nivel</button>`}</div></article>`}).join('');$$('[data-set-level]').forEach(b=>b.onclick=()=>{currentLevel=+b.dataset.setLevel;store.set('patrickCurrentLevel',currentLevel);renderAll();toast(`Nivel ${currentLevel} activado`)})}
+function renderLevels(){
+  const unlocked=maxUnlockedLevel();
+  $('#levelList').innerHTML=LEVELS.map(l=>{
+    const p=levelProgress(l.n),active=currentLevel===l.n,locked=l.n>unlocked;
+    const action=active?'<span class="badge">Nivel activo</span>':locked?'<span class="levelLocked" aria-label="Nivel bloqueado">'+icon('lock')+' Bloqueado</span>':`<button class="setLevelBtn" data-set-level="${l.n}">${l.n<unlocked?'Repasar este nivel':'Trabajar este nivel'}</button>`;
+    return `<article class="levelCard ${active?'activeLevel':''} ${locked?'lockedLevel':''}"><div class="levelTop"><span class="levelIndex">${l.n}</span><div class="levelTitleWrap"><strong>${escapeHtml(l.title)}</strong><small>${escapeHtml(l.goal)}</small></div><span class="levelProgress">${p}%</span></div><div class="miniBar"><div style="width:${p}%"></div></div><div class="levelCommands">${l.commands.map(n=>{const c=commandBy(n);return `<span class="tinyChip">${escapeHtml(displayCommand(c))} · ${escapeHtml(displayPron(c))}</span>`}).join('')}</div><div class="levelActions">${action}</div></article>`;
+  }).join('');
+  $('[data-set-level]').forEach(b=>b.onclick=()=>activateLevel(+b.dataset.setLevel));
+}
 function categories(){return ['Todos',...new Set(COMMANDS.map(c=>c.category))]}
 function commandCard(c){
   const shown=displayCommand(c),pron=displayPron(c),safety=trainingSafety(c);
@@ -201,6 +222,8 @@ function renderCommands(){const q=$('#search').value.trim().toLowerCase();$('#fi
 window.PATRICK_READY=(async()=>{
   await ensureV6Dependencies();
   await store.hydrate();progress=store.get('patrickProgress',{})||{};trials=store.get('patrickTrials',{})||{};history=store.get('patrickHistory',[])||[];currentLevel=Number(store.get('patrickCurrentLevel',0))||0;dayType=store.get('patrickDayType','Todo el día')||'Todo el día';dogProfile=store.get('patrickDogProfile',null)||{name:'',breed:'Pastor Alemán'};trainingContext=ENGINE.normalizeContext(store.get('patrickTrainingContext',trainingContext));
+  const unlockedLevel=maxUnlockedLevel();
+  if(!levelBy(currentLevel)||currentLevel>unlockedLevel){currentLevel=unlockedLevel;await store.set('patrickCurrentLevel',currentLevel)}
   const hasExistingData=Object.keys(progress).length>0||Object.keys(trials).length>0||history.length>0||currentLevel>0;
   if(!String(dogProfile?.name||'').trim()&&hasExistingData){dogProfile={...dogProfile,name:'Patrick',breed:'Pastor Alemán'};store.set('patrickDogProfile',dogProfile)}
 })();
