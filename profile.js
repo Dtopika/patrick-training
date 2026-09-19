@@ -181,6 +181,7 @@ function ensureSettingsDrawer(){
         <section class="settingsGroup"><div class="settingsGroupTitle">Entrenamiento</div><div class="settingsField"><label><span class="settingsRowIcon">${icon('clock')}</span><span class="settingsRowCopy"><strong>Disponibilidad</strong><small>Define cuántas micro-sesiones te proponemos.</small></span></label><select id="settingsDayType" aria-label="Disponibilidad de entrenamiento"><option value="Todo el día">Durante el día</option><option value="Solo noche">Solo noche</option></select></div></section>
         <section class="settingsGroup"><div class="settingsGroupTitle">Recordatorios</div><button id="notificationToggle" class="settingsRow reminderToggle" type="button" aria-pressed="false"><span class="settingsRowIcon">${icon('clock')}</span><span class="settingsRowCopy"><strong>Recordatorio diario</strong><small>Solo si todavía no entrenaste ese día.</small></span><span id="notificationStatus" class="settingsValue">Desactivadas</span></button><div class="settingsField reminderTimeField"><label for="notificationTime"><span class="settingsRowCopy"><strong>Hora preferida</strong><small>Hora local del teléfono.</small></span></label><input id="notificationTime" class="settingsTimeInput" type="time" value="19:00" aria-label="Hora del recordatorio"></div><small id="notificationSupportText" class="settingsNote"></small></section>
         <section class="settingsGroup"><div class="settingsGroupTitle">Aplicación</div>
+          <button id="openTeachingGuideBtn" class="settingsRow" type="button"><span class="settingsRowIcon">${icon('help')}</span><span class="settingsRowCopy"><strong>Cómo funciona</strong><small>Estados, confianza, repeticiones y medición.</small></span><span class="settingsChevron">${icon('chevron')}</span></button>
           <button id="openAppSettingsBtn" class="settingsRow" type="button"><span class="settingsRowIcon">${icon('settings')}</span><span class="settingsRowCopy"><strong>Configuración</strong><small>Tema, almacenamiento y respaldos.</small></span><span class="settingsChevron">${icon('chevron')}</span></button>
           <button id="openAboutBtn" class="settingsRow" type="button"><span class="settingsRowIcon">${icon('info')}</span><span class="settingsRowCopy"><strong>Acerca de</strong><small>Creador, versión y contacto del proyecto.</small></span><span class="settingsChevron">${icon('chevron')}</span></button>
         </section>
@@ -201,6 +202,17 @@ function ensureManagementDialogs(){
       <div class="aboutHero"><img src="icons/icon-192.webp" alt=""><div><strong>Patrick Training</strong><span>Versión ${escapeHtml(CONFIG.APP_VERSION)}</span></div></div>
       <section class="aboutCreator"><small>CREADO POR</small><strong>Dtopika</strong><p>Proyecto independiente diseñado para acompañar el entrenamiento diario de Patrick.</p></section>
       <div class="aboutLinks"><a href="https://github.com/Dtopika/patrick-training" target="_blank" rel="noopener noreferrer">${icon('github')}<span><strong>Proyecto en GitHub</strong><small>Dtopika/patrick-training</small></span>${icon('chevron')}</a><a href="https://github.com/Dtopika" target="_blank" rel="noopener noreferrer">${icon('info')}<span><strong>Contacto / creador</strong><small>Perfil de Dtopika en GitHub</small></span>${icon('chevron')}</a></div>
+    </section></dialog>
+    <dialog id="teachingGuideDialog" class="managementDialog teachingGuideDialog" aria-labelledby="teachingGuideTitle"><section class="managementCard teachingGuideCard">
+      <header class="managementHeader"><div><p class="kicker">CÓMO FUNCIONA</p><h2 id="teachingGuideTitle">Entrena menos, mide mejor</h2><p class="muted">Patrick Training usa evidencia reciente para decidir qué practicar y cuándo subir dificultad.</p></div><button id="closeTeachingGuideBtn" class="roundBtn" type="button" aria-label="Cerrar guía">${icon('x')}</button></header>
+      <div class="teachingSteps">
+        <article><span>1</span><div><strong>Estados de aprendizaje</strong><p><b>En práctica</b> construye la respuesta; <b>Consistente</b> ya responde con estabilidad; <b>Generalizando</b> funciona en contextos distintos; <b>Dominado</b> tiene evidencia variada y sostenida.</p></div></article>
+        <article><span>2</span><div><strong>Confianza de la evidencia</strong><p>No es una nota de Patrick. Indica cuánta información tiene la app: sesiones, ejecuciones, contextos y días de evidencia.</p></div></article>
+        <article><span>3</span><div><strong>3–5 ejecuciones, no siempre cinco</strong><p>El motor ajusta el volumen según rendimiento, estado y etapa. Más repeticiones no siempre significan mejor entrenamiento.</p></div></article>
+        <article><span>4</span><div><strong>Tiempo preciso</strong><p>Pulsa <b>Iniciar ejecución</b> justo antes de dar la señal. Luego califica cuando Patrick responda. Solo esos tiempos nuevos se usan para valorar velocidad o duración.</p></div></article>
+      </div>
+      <div class="teachingLegend"><strong>Regla simple</strong><span>Sesiones cortas, criterio claro, Ja! en el momento correcto y premio inmediato.</span></div>
+      <button id="finishTeachingGuideBtn" class="primaryBtn" type="button">Entendido</button>
     </section></dialog>`);
 }
 function syncManagementDialogs(){
@@ -211,6 +223,13 @@ function syncManagementDialogs(){
 }
 function openAppSettingsDialog(){ensureManagementDialogs();syncManagementDialogs();closeSettingsDrawer();setTimeout(()=>{const d=$('#appSettingsDialog');if(!d.open)d.showModal()},180)}
 function openAboutDialog(){ensureManagementDialogs();closeSettingsDrawer();setTimeout(()=>{const d=$('#aboutDialog');if(!d.open)d.showModal()},180)}
+function markTeachingGuideSeen(){
+  if(teachingOnboardingVersion>=TEACHING_GUIDE_VERSION)return;
+  teachingOnboardingVersion=TEACHING_GUIDE_VERSION;store.set('patrickTeachingOnboardingVersion',teachingOnboardingVersion);
+}
+function closeTeachingGuide(){markTeachingGuideSeen();const dialog=$('#teachingGuideDialog');if(dialog?.open)dialog.close()}
+function openTeachingGuide(){ensureManagementDialogs();closeSettingsDrawer();setTimeout(()=>{const d=$('#teachingGuideDialog');if(!d.open)d.showModal()},180)}
+
 function syncSettingsDrawer(){
   if(!$('#settingsDrawer'))return;renderDogIdentity();$('#settingsDayType').value=dayType;
   const stage=dogStageLabel(),age=dogAgeLabel();$('#dogProfileMeta').textContent=`Pastor alemán${stage?` · ${stage}`:''} · ${age}`;syncReminderUI();
