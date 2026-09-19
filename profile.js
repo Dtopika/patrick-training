@@ -90,7 +90,9 @@ async function importProgressFile(file){
   progress=nextProgress;trials=nextTrials;history=nextHistory;currentLevel=nextLevel;dayType=nextDay;dogProfile=nextProfile;
   if(data.notifications&&typeof data.notifications==='object'){
     reminderSettings={...reminderSettings,...data.notifications,lastNotifiedDate:null};
-    await saveReminderSettings();
+    reminderSettings.time=/^([01]\d|2[0-3]):[0-5]\d$/.test(reminderSettings.time||'')?reminderSettings.time:'19:00';
+    await saveReminderSettings();scheduleForegroundReminder();
+    if(reminderSettings.enabled&&notificationSupported()&&Notification.permission==='granted')await periodicReminderRegistration(true);
   }
   renderCommands();renderAll();syncSettingsDrawer();closeSettingsDrawer();toast('Respaldo restaurado');
 }
