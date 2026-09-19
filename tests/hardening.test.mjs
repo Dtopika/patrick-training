@@ -81,10 +81,10 @@ test('v6 bootstraps its dependencies when an older HTML shell loads newer JavaSc
   const env=baseContext();
   vm.runInContext(read('app-core.js'),env.ctx,{filename:'app-core.js'});
   await env.ctx.PATRICK_READY;
-  assert.equal(vm.runInContext("CONFIG.APP_VERSION",env.ctx),'6.4.0');
+  assert.equal(vm.runInContext("CONFIG.APP_VERSION",env.ctx),'7.0.0');
   assert.equal(vm.runInContext("typeof ENGINE.focusForLevel",env.ctx),'function');
   assert.equal(vm.runInContext("typeof BACKUP_SCHEMA.normalize",env.ctx),'function');
-  assert.deepEqual(env.scripts.map(s=>s.src),['config.js?v640-r1','training-engine.js?v640-r1','backup-schema.js?v640-r1']);
+  assert.deepEqual(env.scripts.map(s=>s.src),['config.js?v700-r1','training-engine.js?v700-r1','backup-schema.js?v700-r1']);
 });
 
 test('navigation and settings click wiring remain collection-safe',()=>{
@@ -100,13 +100,13 @@ test('navigation and settings click wiring remain collection-safe',()=>{
   }
 });
 
-test('v6.4 configuration centralizes public and schema versions',()=>{
+test('v7 configuration centralizes public and schema versions',()=>{
   const env=baseContext();loadArchitecture(env.ctx);
-  assert.equal(env.ctx.PATRICK_CONFIG.APP_VERSION,'6.4.0');
-  assert.equal(env.ctx.PATRICK_CONFIG.BACKUP_SCHEMA_VERSION,8);
-  assert.equal(env.ctx.PATRICK_CONFIG.SESSION_SCHEMA_VERSION,8);
-  assert.equal(env.ctx.PATRICK_CONFIG.CACHE_NAME,'patrick-training-v6.4.0-r1');
-  assert.equal(JSON.parse(read('package.json')).version,'6.4.0');
+  assert.equal(env.ctx.PATRICK_CONFIG.APP_VERSION,'7.0.0');
+  assert.equal(env.ctx.PATRICK_CONFIG.BACKUP_SCHEMA_VERSION,9);
+  assert.equal(env.ctx.PATRICK_CONFIG.SESSION_SCHEMA_VERSION,9);
+  assert.equal(env.ctx.PATRICK_CONFIG.CACHE_NAME,'patrick-training-v7.0.0-r1');
+  assert.equal(JSON.parse(read('package.json')).version,'7.0.0');
 });
 
 test('storage reconciliation prefers newer local mirror and repairs IndexedDB',async()=>{
@@ -137,15 +137,15 @@ test('storage reconciliation prefers IndexedDB over legacy local data without fr
 
 test('backup schema accepts 5.x backups, v6 schema, and rejects malformed nested data',()=>{
   const env=baseContext();loadArchitecture(env.ctx);
-  const schema=env.ctx.PatrickBackupSchema,opts={commands:env.ctx.PATRICK_COMMANDS,states:['No iniciado','En práctica','Consistente','Generalizando','Dominado'],currentProfile:{name:'Patrick'},maxSchemaVersion:8};
+  const schema=env.ctx.PatrickBackupSchema,opts={commands:env.ctx.PATRICK_COMMANDS,states:['No iniciado','En práctica','Consistente','Generalizando','Dominado'],currentProfile:{name:'Patrick'},maxSchemaVersion:9};
   const legacy=schema.normalize({version:5.1,currentLevel:1,dayType:'Todo el día',progress:{Sitz:'En práctica'},trials:{Sitz:[1,.5,0]},history:[],profile:{name:'Patrick',ageMonths:4},notifications:{enabled:false,time:'19:00'}},opts);
   assert.equal(legacy.profile.name,'Patrick');
   assert.deepEqual(Array.from(legacy.trials.Sitz),[1,.5,0]);
-  const current=schema.normalize({schemaVersion:8,appVersion:'6.4.0',currentLevel:0,dayType:'Solo noche',history:[]},opts);
+  const current=schema.normalize({schemaVersion:9,appVersion:'7.0.0',currentLevel:0,dayType:'Solo noche',history:[]},opts);
   assert.equal(current.dayType,'Solo noche');
   assert.throws(()=>schema.normalize({schemaVersion:7,currentLevel:0,dayType:'Todo el día',trials:{Sitz:['boom']}},opts));
   assert.throws(()=>schema.normalize({schemaVersion:7,currentLevel:0,dayType:'Todo el día',history:[null]},opts));
-  assert.throws(()=>schema.normalize({schemaVersion:9,currentLevel:0,dayType:'Todo el día'},opts));
+  assert.throws(()=>schema.normalize({schemaVersion:10,currentLevel:0,dayType:'Todo el día'},opts));
 });
 
 test('age-aware engine defers Hopp from adaptive sessions for a young puppy',()=>{
@@ -234,6 +234,25 @@ test('v6.4 keeps route focus separate from session level and makes evidence corr
   assert.equal(pkg.scripts['release:prepare'],'node scripts/release-version.mjs');
 });
 
+test('v7 adaptive engine uses precise timing, skill profiles and adaptive repetitions',()=>{
+  const engine=read('training-engine.js'),session=read('app-session.js'),insights=read('app-insights.js'),index=read('index.html');
+  assert.match(engine,/function skillFamily/);
+  assert.match(engine,/function difficultyTarget/);
+  assert.match(engine,/function commandTimingEvidence/);
+  assert.match(engine,/function evidenceConfidence/);
+  assert.match(engine,/function recommendedAttempts/);
+  assert.match(engine,/timingMode!=='cue-to-rating'/);
+  assert.match(session,/timingMode:'cue-to-rating'/);
+  assert.match(session,/function beginExecution/);
+  assert.match(session,/executionReadyForRating/);
+  assert.match(session,/targets:\{\}/);
+  assert.match(session,/ENGINE\.recommendedAttempts/);
+  assert.match(insights,/smartPlanBadge">v3/);
+  assert.match(insights,/commandInsightConfidence/);
+  assert.match(index,/id="commandInsightConfidence"/);
+  assert.doesNotMatch(session,/const EXECUTIONS_PER_COMMAND=5/);
+});
+
 test('adaptive focus always returns command objects, never score wrappers',async()=>{
   const env=await loadCore(baseContext());
   const result=vm.runInContext("focusForLevel(0)",env.ctx);
@@ -268,9 +287,9 @@ test('all 41 commands map one-to-one to levels and curated videos',()=>{
   assert.deepEqual(new Set(videoCommands),new Set(commands));
 });
 
-test('v6.4 upgrade contract cache-busts every critical browser asset',()=>{
+test('v7 upgrade contract cache-busts every critical browser asset',()=>{
   const index=read('index.html'),styles=read('styles.css'),pwa=read('pwa.js'),sw=read('sw.js');
-  const tag='v640-r1';
+  const tag='v700-r1';
   const scriptSrc=[...index.matchAll(/<script src="([^"]+\.js\?[^"]+)"><\/script>/g)].map(m=>m[1]);
   assert.ok(scriptSrc.length>=10,'expected versioned script URLs');
   assert.ok(scriptSrc.every(src=>src.endsWith('?'+tag)));
