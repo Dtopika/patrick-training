@@ -54,7 +54,12 @@ function icon(name,cls='uiIcon'){
     flame:'<path d="M12 22c4 0 7-3 7-7 0-5-4-7-3-12-4 2-7 6-7 10-1-1-2-3-2-4-2 2-3 4-3 7 0 3 3 6 8 6z"/><path d="M12 20c2 0 3.5-1.5 3.5-3.5 0-2-1.5-3-2-5-2 1-3.5 3-3.5 5 0 2 1 3.5 2 3.5z"/>',
     help:'<path d="M9.5 9a2.8 2.8 0 1 1 4.5 2.2c-1.2.8-2 1.4-2 2.8"/><path d="M12 18h.01"/>',
     install:'<path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/>',
-    lock:'<rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>'
+    lock:'<rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>',
+    settings:'<circle cx="12" cy="12" r="3"/><path d="M19 13.5a7.6 7.6 0 0 0 .05-3l2-1.5-2-3.5-2.4 1a8 8 0 0 0-2.6-1.5L13.7 2h-4l-.4 3a8 8 0 0 0-2.6 1.5l-2.4-1-2 3.5 2 1.5a7.6 7.6 0 0 0 0 3l-2 1.5 2 3.5 2.4-1a8 8 0 0 0 2.6 1.5l.4 3h4l.4-3a8 8 0 0 0 2.6-1.5l2.4 1 2-3.5z"/>',
+    info:'<circle cx="12" cy="12" r="9"/><path d="M12 10v6M12 7h.01"/>',
+    palette:'<path d="M12 3a9 9 0 0 0 0 18h1.5a2 2 0 0 0 0-4H12a1.5 1.5 0 0 1 0-3h4a5 5 0 0 0 0-10z"/><circle cx="7.5" cy="10" r=".8" fill="currentColor" stroke="none"/><circle cx="10" cy="7" r=".8" fill="currentColor" stroke="none"/><circle cx="14" cy="7" r=".8" fill="currentColor" stroke="none"/>',
+    database:'<ellipse cx="12" cy="5" rx="7" ry="3"/><path d="M5 5v6c0 1.7 3.1 3 7 3s7-1.3 7-3V5"/><path d="M5 11v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"/>',
+    github:'<path d="M9 19c-4 1.5-4-2.5-6-3"/><path d="M15 22v-3.9c0-1.1.1-1.8-.5-2.5 2.8-.3 5.7-1.4 5.7-6.2 0-1.4-.5-2.5-1.3-3.4.1-.3.6-1.6-.1-3.3 0 0-1.1-.3-3.5 1.3a12 12 0 0 0-6.4 0C6.5 2.4 5.4 2.7 5.4 2.7c-.7 1.7-.2 3-.1 3.3A4.8 4.8 0 0 0 4 9.4c0 4.8 2.9 5.9 5.7 6.2-.4.4-.7.9-.8 1.8V22"/>'
   };
   return `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${paths[name]||paths.check}</svg>`;
 }
@@ -210,9 +215,17 @@ function renderToday(){
 function renderLevels(){
   const unlocked=maxUnlockedLevel();
   $('#levelList').innerHTML=LEVELS.map(l=>{
-    const p=levelProgress(l.n),active=currentLevel===l.n,locked=l.n>unlocked;
-    const action=active?'<span class="badge">Nivel activo</span>':locked?'<span class="levelLocked" aria-label="Nivel bloqueado">'+icon('lock')+' Bloqueado</span>':`<button class="setLevelBtn" data-set-level="${l.n}">${l.n<unlocked?'Repasar este nivel':'Trabajar este nivel'}</button>`;
-    return `<article class="levelCard ${active?'activeLevel':''} ${locked?'lockedLevel':''}"><div class="levelTop"><span class="levelIndex">${l.n}</span><div class="levelTitleWrap"><strong>${escapeHtml(l.title)}</strong><small>${escapeHtml(l.goal)}</small></div><span class="levelProgress">${p}%</span></div><div class="miniBar"><div style="width:${p}%"></div></div><div class="levelCommands">${l.commands.map(n=>{const c=commandBy(n);return `<span class="tinyChip">${escapeHtml(displayCommand(c))} · ${escapeHtml(displayPron(c))}</span>`}).join('')}</div><div class="levelActions">${action}</div></article>`;
+    const p=levelProgress(l.n),active=currentLevel===l.n,locked=l.n>unlocked,ready=levelReady(l.n);
+    const status=active?'En curso':locked?'Bloqueado':ready?'Completado':'Disponible';
+    const statusIcon=locked?icon('lock'):ready?icon('check'):active?icon('play'):icon('chevron');
+    const action=active?'<span class="levelActiveHint">Sigue entrenando este nivel</span>':locked?'<span class="levelLocked" aria-label="Nivel bloqueado">'+icon('lock')+' Completa el anterior</span>':`<button class="setLevelBtn" data-set-level="${l.n}">${l.n<unlocked?'Repasar nivel':'Trabajar este nivel'}</button>`;
+    const commandPreview=l.commands.map(n=>{const c=commandBy(n),state=stateOf(n);return `<span class="levelCommandChip"><b>${escapeHtml(displayCommand(c))}</b><small>${escapeHtml(state)}</small></span>`}).join('');
+    return `<article class="levelCard levelCardV2 ${active?'activeLevel':''} ${locked?'lockedLevel':''} ${ready?'completedLevel':''} ${!locked&&!active&&!ready?'availableLevel':''}">
+      <div class="levelRouteHead"><span class="levelIndex">${l.n}</span><div class="levelTitleWrap"><small class="levelEyebrow">PASO ${l.n}</small><strong>${escapeHtml(l.title)}</strong><p>${escapeHtml(l.goal)}</p></div><span class="levelStatePill">${statusIcon}<b>${status}</b></span></div>
+      <div class="levelProgressBlock"><div><span>Progreso del nivel</span><strong>${p}%</strong></div><div class="miniBar"><div style="width:${p}%"></div></div></div>
+      <div class="levelCommandPreview">${commandPreview}</div>
+      <div class="levelActions">${action}</div>
+    </article>`;
   }).join('');
   $$('[data-set-level]').forEach(b=>b.onclick=()=>activateLevel(+b.dataset.setLevel));
 }
