@@ -1,4 +1,4 @@
-let activeInsightCommand=null;
+let activeInsightCommand=null,currentDailyMissionPlan=null;
 
 function pctText(value){return value===null||value===undefined?'—':Math.round(Number(value)*100)+'%'}
 function signedPct(value){if(value===null||value===undefined)return'Sin comparación';const n=Math.round(Number(value)*100);return(n>0?'+':'')+n+' pts'}
@@ -10,11 +10,29 @@ function stateProgressHint(state){
   return'Mantén el comando con repasos espaciados sin entrenarlo de más.';
 }
 
+function renderDailyMission(plan){
+  const root=$('#dailyMission');if(!root||!plan?.items?.length)return;
+  currentDailyMissionPlan=plan;
+  const commands=plan.items.map(item=>item.command),first=plan.items[0],confidence=plan.items.map(item=>item.confidence?.level||'Baja');
+  const confidenceLabel=confidence.every(x=>x==='Alta')?'Confianza alta':confidence.some(x=>x==='Baja')?'Confianza en construcción':'Confianza media';
+  $('#dailyMissionTitle').textContent=`${plan.totalMinutes} min · ${commands.map(displayCommand).join(' + ')}`;
+  $('#dailyMissionMeta').textContent=`Nivel ${currentLevel} · ${first.context.label} · ${plan.stage}`;
+  $('#dailyMissionConfidence').textContent=confidenceLabel;
+  $('#dailyMissionCommands').innerHTML=plan.items.map(item=>`<span><b>${escapeHtml(displayCommand(item.command))}</b><small>${item.attempts} ejecuciones · ${escapeHtml(item.difficulty.target)}</small></span>`).join('');
+  $('#dailyMissionReason').textContent=first.reason||'Una sesión corta y clara es suficiente para avanzar.';
+  const guidance=ENGINE.ageGuidance(dogProfile),box=$('#dailyMissionGuidance');box.hidden=!guidance;if(guidance)box.innerHTML=`<strong>${escapeHtml(guidance.label)}</strong><span>${escapeHtml(guidance.message)}</span>`;
+}
+function startDailyMission(){
+  if(!currentDailyMissionPlan?.items?.length)return;
+  const commands=currentDailyMissionPlan.items.map(item=>item.command).filter(Boolean);
+  openStartChoice(commands,{level:currentLevel,label:'Misión de hoy'});
+}
+
 function renderSmartDailyPlan(){
   const root=$('#smartDailyPlan');if(!root)return;
   const plan=ENGINE.dailyPlan(COMMANDS,currentLevel,{dayType,trials,history,progress,stateScore:STATE_SCORE,profile:dogProfile});
-  if(!plan.items.length){root.innerHTML='';root.hidden=true;return}
-  root.hidden=false;
+  if(!plan.items.length){root.innerHTML='';root.hidden=true;currentDailyMissionPlan=null;return}
+  root.hidden=false;renderDailyMission(plan);
   root.innerHTML=`<div class="smartPlanHead"><div><p class="kicker">ENTRENADOR ADAPTATIVO</p><h2>${escapeHtml(plan.title)}</h2><p>${plan.totalMinutes} min aprox. · ${escapeHtml(plan.stage)}</p></div><span class="smartPlanBadge">v3</span></div>
     <div class="smartPlanList">${plan.items.map((item,i)=>`<article class="smartPlanItem">
       <span class="smartPlanIndex">${i+1}</span>
@@ -101,6 +119,7 @@ $('#commandInsightDialog')?.addEventListener('cancel',e=>{e.preventDefault();clo
 $('#commandInsightDialog')?.addEventListener('click',e=>{if(e.target===$('#commandInsightDialog'))closeCommandInsight()});
 $('#commandInsightPracticeBtn')?.addEventListener('click',()=>{if(!activeInsightCommand)return;const command=activeInsightCommand;closeCommandInsight();openStartChoice([command],{label:displayCommand(command)})});
 $('#commandInsightDemoBtn')?.addEventListener('click',()=>{if(activeInsightCommand)openDemo(activeInsightCommand)});
+$('#dailyMissionStartBtn')?.addEventListener('click',startDailyMission);
 
 const insightCommandList=$('#commandList');
 if(insightCommandList)new MutationObserver(decorateInsightButtons).observe(insightCommandList,{childList:true,subtree:true});
