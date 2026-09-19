@@ -1,8 +1,9 @@
 const SYSTEM_THEME=window.matchMedia('(prefers-color-scheme: dark)');
+const THEME_KEY='patrickTheme';
 const REMINDER_KEY='patrickNotifications';
 const REMINDER_TAG='patrick-daily-reminder';
 let profileUiInitialized=false,reminderLoaded=false,reminderTimer=null,reminderStorageMode='indexeddb',settingsReturnFocus=null;
-let reminderSettings={enabled:false,time:'19:00',lastNotifiedDate:null};
+let reminderSettings={enabled:false,time:'19:00',lastNotifiedDate:null},themePreference='system';
 
 function currentDogAgeMonths(){return ENGINE.effectiveAgeMonths(dogProfile)}
 function dogAgeLabel(){
@@ -15,14 +16,19 @@ function dogAgeLabel(){
 }
 function dogStageLabel(){const stage=ENGINE.ageStage(dogProfile);return stage.key==='unknown'?'':stage.label}
 
-function applySystemTheme(){
-  const dark=SYSTEM_THEME.matches;
+function normalizeTheme(value){return['system','light','dark'].includes(value)?value:'system'}
+function themePreferenceLabel(value=themePreference){return value==='dark'?'Oscuro':value==='light'?'Claro':'Sistema'}
+function applyTheme(){
+  const mode=normalizeTheme(themePreference),dark=mode==='dark'||(mode==='system'&&SYSTEM_THEME.matches);
   document.body.classList.toggle('dark',dark);
   document.documentElement.style.colorScheme=dark?'dark':'light';
   const meta=document.querySelector('meta[name="theme-color"]');
   if(meta)meta.content=dark?'#0d111b':'#f6f7f9';
-  const value=$('#systemThemeValue');
-  if(value)value.textContent=`Sistema · ${dark?'Oscuro':'Claro'}`;
+  const select=$('#themeSelect');if(select)select.value=mode;
+  const value=$('#themeCurrentValue');if(value)value.textContent=mode==='system'?`Sistema · ${dark?'Oscuro':'Claro'}`:themePreferenceLabel(mode);
+}
+function setThemePreference(value){
+  themePreference=normalizeTheme(value);store.set(THEME_KEY,themePreference);applyTheme();syncManagementDialogs();toast(`Tema: ${themePreferenceLabel()}`);
 }
 
 function populateDogProfileEditor(){
@@ -76,7 +82,7 @@ async function importProgressFile(file){
     await saveReminderSettings();scheduleForegroundReminder();
     if(reminderSettings.enabled&&notificationSupported()&&Notification.permission==='granted')await periodicReminderRegistration(true);
   }
-  renderCommands();renderAll();syncSettingsDrawer();closeSettingsDrawer();toast('Respaldo restaurado');
+  renderCommands();renderAll();syncSettingsDrawer();syncManagementDialogs();if($('#appSettingsDialog')?.open)$('#appSettingsDialog').close();closeSettingsDrawer();toast('Respaldo restaurado');
 }
 
 function localReminderDateKey(date=new Date()){const y=date.getFullYear(),m=String(date.getMonth()+1).padStart(2,'0'),d=String(date.getDate()).padStart(2,'0');return`${y}-${m}-${d}`}
@@ -151,21 +157,46 @@ function ensureSettingsDrawer(){
   if($('#settingsDrawer'))return;
   document.body.insertAdjacentHTML('beforeend',`
     <div id="settingsBackdrop" class="settingsBackdrop" hidden></div>
-    <aside id="settingsDrawer" class="settingsDrawer" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="settingsTitle"><h2 id="settingsTitle" class="srOnly">Configuración de Patrick Training</h2>
-      <header class="settingsDrawerHead"><img src="icons/icon-192.webp" alt=""><div class="settingsDrawerIdentity"><small>PERFIL ACTIVO</small><strong id="dogProfileName">${escapeHtml(dogName())}</strong><span id="dogProfileMeta">Pastor alemán</span></div><button id="settingsCloseBtn" class="settingsCloseBtn iconButton" type="button" aria-label="Cerrar configuración">${icon('x')}</button></header>
+    <aside id="settingsDrawer" class="settingsDrawer" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="settingsTitle"><h2 id="settingsTitle" class="srOnly">Menú de Patrick Training</h2>
+      <header class="settingsDrawerHead"><img src="icons/icon-192.webp" alt=""><div class="settingsDrawerIdentity"><small>PERFIL ACTIVO</small><strong id="dogProfileName">${escapeHtml(dogName())}</strong><span id="dogProfileMeta">Pastor alemán</span></div><button id="settingsCloseBtn" class="settingsCloseBtn iconButton" type="button" aria-label="Cerrar menú">${icon('x')}</button></header>
       <div class="settingsDrawerBody">
-        <section class="settingsGroup"><div class="settingsGroupTitle">Perro</div><button id="editDogBtn" class="settingsRow" type="button"><span class="settingsRowIcon">${icon('dog')}</span><span class="settingsRowCopy"><strong>Perfil del perro</strong><small>Nombre y edad sin perder progreso.</small></span><span class="settingsChevron">${icon('chevron')}</span></button></section>
+        <section class="settingsGroup"><div class="settingsGroupTitle">Patrick</div><button id="editDogBtn" class="settingsRow" type="button"><span class="settingsRowIcon">${icon('dog')}</span><span class="settingsRowCopy"><strong>Perfil del perro</strong><small>Nombre, edad y etapa de desarrollo.</small></span><span class="settingsChevron">${icon('chevron')}</span></button></section>
         <section class="settingsGroup"><div class="settingsGroupTitle">Entrenamiento</div><div class="settingsField"><label><span class="settingsRowIcon">${icon('clock')}</span><span class="settingsRowCopy"><strong>Disponibilidad</strong><small>Define cuántas micro-sesiones te proponemos.</small></span></label><select id="settingsDayType" aria-label="Disponibilidad de entrenamiento"><option value="Todo el día">Durante el día</option><option value="Solo noche">Solo noche</option></select></div></section>
         <section class="settingsGroup"><div class="settingsGroupTitle">Recordatorios</div><button id="notificationToggle" class="settingsRow reminderToggle" type="button" aria-pressed="false"><span class="settingsRowIcon">${icon('clock')}</span><span class="settingsRowCopy"><strong>Recordatorio diario</strong><small>Solo si todavía no entrenaste ese día.</small></span><span id="notificationStatus" class="settingsValue">Desactivadas</span></button><div class="settingsField reminderTimeField"><label for="notificationTime"><span class="settingsRowCopy"><strong>Hora preferida</strong><small>Hora local del teléfono.</small></span></label><input id="notificationTime" class="settingsTimeInput" type="time" value="19:00" aria-label="Hora del recordatorio"></div><small id="notificationSupportText" class="settingsNote"></small></section>
-        <section class="settingsGroup"><div class="settingsGroupTitle">Apariencia</div><div class="settingsMeta"><strong>Tema</strong><span id="systemThemeValue" class="settingsValue">Sistema</span></div></section>
-        <section class="settingsGroup"><div class="settingsGroupTitle">Datos</div><div class="settingsMeta"><strong>Almacenamiento</strong><span id="storageModeLabel" class="storageBadge">IndexedDB</span></div><button id="exportBtn" class="settingsRow" type="button"><span class="settingsRowIcon">${icon('download')}</span><span class="settingsRowCopy"><strong>Exportar respaldo</strong><small>Descarga perfil, progreso y sesiones.</small></span><span class="settingsChevron">${icon('chevron')}</span></button><button id="importBtn" class="settingsRow" type="button"><span class="settingsRowIcon">${icon('upload')}</span><span class="settingsRowCopy"><strong>Restaurar respaldo</strong><small>Importa un JSON de Patrick Training.</small></span><span class="settingsChevron">${icon('chevron')}</span></button><input id="importFileInput" type="file" accept="application/json,.json" hidden></section>
+        <section class="settingsGroup"><div class="settingsGroupTitle">Aplicación</div>
+          <button id="openAppSettingsBtn" class="settingsRow" type="button"><span class="settingsRowIcon">${icon('settings')}</span><span class="settingsRowCopy"><strong>Configuración</strong><small>Tema, almacenamiento y respaldos.</small></span><span class="settingsChevron">${icon('chevron')}</span></button>
+          <button id="openAboutBtn" class="settingsRow" type="button"><span class="settingsRowIcon">${icon('info')}</span><span class="settingsRowCopy"><strong>Acerca de</strong><small>Creador, versión y contacto del proyecto.</small></span><span class="settingsChevron">${icon('chevron')}</span></button>
+        </section>
       </div>
       <footer class="settingsDrawerFoot"><strong>Patrick Training</strong><span>v${escapeHtml(CONFIG.APP_VERSION)}</span></footer>
     </aside>`);
 }
+function ensureManagementDialogs(){
+  if($('#appSettingsDialog'))return;
+  document.body.insertAdjacentHTML('beforeend',`
+    <dialog id="appSettingsDialog" class="managementDialog" aria-labelledby="appSettingsTitle"><section class="managementCard">
+      <header class="managementHeader"><div><p class="kicker">APLICACIÓN</p><h2 id="appSettingsTitle">Configuración</h2><p class="muted">Apariencia, almacenamiento y respaldos.</p></div><button id="closeAppSettingsBtn" class="roundBtn" type="button" aria-label="Cerrar configuración">${icon('x')}</button></header>
+      <section class="managementSection"><div class="managementSectionTitle"><span class="managementIcon">${icon('palette')}</span><div><strong>Apariencia</strong><small id="themeCurrentValue">Sistema</small></div></div><label class="managementControl"><span>Tema</span><select id="themeSelect" aria-label="Tema de la aplicación"><option value="system">Usar sistema</option><option value="light">Claro</option><option value="dark">Oscuro</option></select></label></section>
+      <section class="managementSection"><div class="managementSectionTitle"><span class="managementIcon">${icon('database')}</span><div><strong>Datos y almacenamiento</strong><small>Tu información permanece en este dispositivo.</small></div></div><div class="managementMeta"><span>Motor de almacenamiento</span><strong id="storageModeLabel" class="storageBadge">IndexedDB</strong></div><button id="exportBtn" class="managementAction" type="button"><span>${icon('download')}</span><div><strong>Exportar respaldo</strong><small>Descarga perfil, progreso y sesiones en JSON.</small></div><i>${icon('chevron')}</i></button><button id="importBtn" class="managementAction" type="button"><span>${icon('upload')}</span><div><strong>Restaurar respaldo</strong><small>Importa un respaldo validado de Patrick Training.</small></div><i>${icon('chevron')}</i></button><input id="importFileInput" type="file" accept="application/json,.json" hidden></section>
+    </section></dialog>
+    <dialog id="aboutDialog" class="managementDialog" aria-labelledby="aboutTitle"><section class="managementCard aboutCard">
+      <header class="managementHeader"><div><p class="kicker">ACERCA DE</p><h2 id="aboutTitle">Patrick Training</h2><p class="muted">Entrenamiento local-first para construir vínculo, obediencia y progreso.</p></div><button id="closeAboutBtn" class="roundBtn" type="button" aria-label="Cerrar acerca de">${icon('x')}</button></header>
+      <div class="aboutHero"><img src="icons/icon-192.webp" alt=""><div><strong>Patrick Training</strong><span>Versión ${escapeHtml(CONFIG.APP_VERSION)}</span></div></div>
+      <section class="aboutCreator"><small>CREADO POR</small><strong>Dtopika</strong><p>Proyecto independiente diseñado para acompañar el entrenamiento diario de Patrick.</p></section>
+      <div class="aboutLinks"><a href="https://github.com/Dtopika/patrick-training" target="_blank" rel="noopener noreferrer">${icon('github')}<span><strong>Proyecto en GitHub</strong><small>Dtopika/patrick-training</small></span>${icon('chevron')}</a><a href="https://github.com/Dtopika" target="_blank" rel="noopener noreferrer">${icon('info')}<span><strong>Contacto / creador</strong><small>Perfil de Dtopika en GitHub</small></span>${icon('chevron')}</a></div>
+    </section></dialog>`);
+}
+function syncManagementDialogs(){
+  if(!$('#appSettingsDialog'))return;
+  const theme=$('#themeSelect');if(theme)theme.value=normalizeTheme(themePreference);
+  const storage=$('#storageModeLabel');if(storage)storage.textContent=storageMode==='indexeddb'?'IndexedDB':'Almacenamiento local';
+  applyTheme();
+}
+function openAppSettingsDialog(){ensureManagementDialogs();syncManagementDialogs();closeSettingsDrawer();setTimeout(()=>{const d=$('#appSettingsDialog');if(!d.open)d.showModal()},180)}
+function openAboutDialog(){ensureManagementDialogs();closeSettingsDrawer();setTimeout(()=>{const d=$('#aboutDialog');if(!d.open)d.showModal()},180)}
 function syncSettingsDrawer(){
   if(!$('#settingsDrawer'))return;renderDogIdentity();$('#settingsDayType').value=dayType;
-  const stage=dogStageLabel(),age=dogAgeLabel();$('#dogProfileMeta').textContent=`Pastor alemán${stage?` · ${stage}`:''} · ${age}`;applySystemTheme();syncReminderUI();
+  const stage=dogStageLabel(),age=dogAgeLabel();$('#dogProfileMeta').textContent=`Pastor alemán${stage?` · ${stage}`:''} · ${age}`;syncReminderUI();
 }
 function settingsFocusables(){
   const drawer=$('#settingsDrawer');if(!drawer)return[];
@@ -194,7 +225,11 @@ function closeSettingsDrawer(){
 }
 function bindProfileUI(){
   $('#settingsAvatarBtn').onclick=openSettingsDrawer;$('#settingsCloseBtn').onclick=closeSettingsDrawer;$('#settingsBackdrop').onclick=closeSettingsDrawer;$('#editDogBtn').onclick=()=>{closeSettingsDrawer();setTimeout(()=>openDogProfileEditor(false),180)};
-  $('#settingsDayType').onchange=e=>{dayType=e.target.value;store.set('patrickDayType',dayType);$('#dayType').value=dayType;renderToday();syncSettingsDrawer()};$('#exportBtn').onclick=exportProgress;$('#importBtn').onclick=()=>$('#importFileInput').click();$('#importFileInput').onchange=async e=>{const file=e.target.files?.[0];e.target.value='';await importProgressFile(file)};
+  $('#openAppSettingsBtn').onclick=openAppSettingsDialog;$('#openAboutBtn').onclick=openAboutDialog;
+  $('#settingsDayType').onchange=e=>{dayType=e.target.value;store.set('patrickDayType',dayType);$('#dayType').value=dayType;renderToday();syncSettingsDrawer()};
+  $('#themeSelect').onchange=e=>setThemePreference(e.target.value);$('#closeAppSettingsBtn').onclick=()=>$('#appSettingsDialog').close();$('#closeAboutBtn').onclick=()=>$('#aboutDialog').close();
+  $('#exportBtn').onclick=exportProgress;$('#importBtn').onclick=()=>$('#importFileInput').click();$('#importFileInput').onchange=async e=>{const file=e.target.files?.[0];e.target.value='';await importProgressFile(file)};
+  $('#appSettingsDialog').addEventListener('click',e=>{if(e.target===$('#appSettingsDialog'))$('#appSettingsDialog').close()});$('#aboutDialog').addEventListener('click',e=>{if(e.target===$('#aboutDialog'))$('#aboutDialog').close()});
   $('#notificationToggle').onclick=toggleDailyReminders;$('#notificationTime').onchange=async e=>{reminderSettings.time=e.target.value||'19:00';reminderSettings.lastNotifiedDate=null;await saveReminderSettings();scheduleForegroundReminder();syncReminderUI();toast(`Recordatorio: ${reminderSettings.time}`)};
   $('#saveProfileBtn').onclick=saveDogProfile;$('#profileCancelBtn').onclick=()=>$('#profileDialog').close();$('#dogNameInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();saveDogProfile()}});$('#dogAgeInput').addEventListener('input',updateDogAgePreview);
   $('#dogAgeUnit').addEventListener('change',()=>{const input=$('#dogAgeInput'),unit=$('#dogAgeUnit'),previous=unit.dataset.previous||'months',value=Number(input.value||0);if(value>0){const months=previous==='years'?value*12:value;input.value=unit.value==='years'?String(Math.round((months/12)*10)/10):String(Math.max(1,Math.round(months)))}unit.dataset.previous=unit.value;input.step=unit.value==='years'?'0.1':'1';updateDogAgePreview()});
@@ -202,7 +237,7 @@ function bindProfileUI(){
 }
 function initProfileUI(){
   if(profileUiInitialized)return;profileUiInitialized=true;try{store.remove('patrickDark');localStorage.removeItem('patrickDark')}catch{}
-  applySystemTheme();SYSTEM_THEME.addEventListener?.('change',applySystemTheme);ensureSettingsDrawer();bindProfileUI();syncSettingsDrawer();loadReminderSettings().then(async()=>{if(reminderSettings.enabled&&Notification.permission==='granted')await periodicReminderRegistration(true);await showDailyReminder()});
+  themePreference=normalizeTheme(store.get(THEME_KEY,'system'));applyTheme();SYSTEM_THEME.addEventListener?.('change',()=>{if(themePreference==='system')applyTheme()});ensureSettingsDrawer();ensureManagementDialogs();bindProfileUI();syncSettingsDrawer();syncManagementDialogs();loadReminderSettings().then(async()=>{if(reminderSettings.enabled&&Notification.permission==='granted')await periodicReminderRegistration(true);await showDailyReminder()});
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)showDailyReminder()});window.addEventListener('focus',()=>showDailyReminder());
   const hasName=String(dogProfile?.name||'').trim(),hasAge=currentDogAgeMonths()>0;if(!hasName)setTimeout(()=>openDogProfileEditor(true),80);else if(!hasAge)setTimeout(()=>openDogProfileEditor(false,true),300);
 }
