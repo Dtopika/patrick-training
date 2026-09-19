@@ -1,0 +1,125 @@
+(()=>{'use strict';
+  const DAY_MS=86400000;
+  const MONTH_MS=30.4375*DAY_MS;
+
+  /** @param {object|null|undefined} profile */
+  function effectiveAgeMonths(profile,now=Date.now()){
+    const base=Number(profile?.ageMonths||0);
+    if(!Number.isFinite(base)||base<=0)return 0;
+    const savedAt=Date.parse(profile?.ageUpdatedAt||'');
+    if(!Number.isFinite(savedAt))return Math.max(1,Math.round(base));
+    const elapsed=Math.max(0,Math.floor((now-savedAt)/MONTH_MS));
+    return Math.max(1,Math.round(base)+elapsed);
+  }
+
+  function ageStage(profile,now=Date.now()){
+    const months=effectiveAgeMonths(profile,now);
+    if(!months)return{key:'unknown',label:'Edad sin configurar',months:0};
+    if(months<6)return{key:'young-puppy',label:'Cachorro joven',months};
+    if(months<12)return{key:'puppy',label:'Cachorro',months};
+    if(months<18)return{key:'adolescent',label:'Adolescente',months};
+    return{key:'adult',label:'Adulto',months};
+  }
+
+  const SAFETY=Object.freeze({
+    Hopp:{
+      deferBeforeMonths:12,
+      cautionBeforeMonths:18,
+      label:'Impacto físico',
+      message:'Mientras sigue creciendo, evita saltos altos o repetidos. Prioriza superficies bajas, control y técnica; aumenta impacto de forma gradual.'
+    },
+    Laut:{
+      label:'Excitación controlada',
+      message:'Practica uno o pocos ladridos y vuelve a calma. No uses confrontación para provocar la conducta.'
+    },
+    'Pass auf':{
+      label:'Control defensivo seguro',
+      message:'Debe significar observar y volver a ti, no perseguir, amenazar ni atacar. Trabaja con distancia y estímulos neutros.'
+    },
+    Hinter:{
+      label:'Posición segura',
+      message:'Úsalo como posición de refugio detrás de ti. Practica primero en ambientes tranquilos y sin confrontación.'
+    }
+  });
+
+  function safetyForCommand(command,profile,now=Date.now()){
+    const cmd=typeof command==='string'?command:command?.cmd;
+    const policy=SAFETY[cmd];if(!policy)return null;
+    const months=effectiveAgeMonths(profile,now);
+    const defer=!!policy.deferBeforeMonths&&!!months&&months<policy.deferBeforeMonths;
+    const caution=!!policy.cautionBeforeMonths&&!!months&&months<policy.cautionBeforeMonths;
+    return{...policy,cmd,months,deferFromAdaptive:defer,caution};
+  }
+
+  function lastPracticeMs(history,cmd){
+    let latest=0;
+    for(const item of Array.isArray(history)?history:[]){
+      if(!item?.results?.[cmd])continue;
+      const t=Date.parse(item.at||'');if(Number.isFinite(t)&&t>latest)latest=t;
+    }
+    return latest;
+  }
+
+  function recentAverage(trials,cmd){
+    const arr=Array.isArray(trials?.[cmd])?trials[cmd].map(Number).filter(Number.isFinite):[];
+    return arr.length?arr.reduce((a,b)=>a+b,0)/arr.length:null;
+  }
+
+  function adaptivePriority(command,currentLevel,{trials={},history=[],progress={},stateScore={},profile=null,now=Date.now()}={}){
+    const avg=recentAverage(trials,command.cmd),last=lastPracticeMs(history,command.cmd);
+    const days=last?Math.max(0,(now-last)/DAY_MS):30,state=stateScore[progress[command.cmd]||'No iniciado']||0;
+    let score=command.level===currentLevel?110:38;
+    score+=avg===null?34:(1-avg)*72;
+    score+=Math.min(days,30)*1.7;
+    if(state<2)score+=26;
+    if(state>=2&&avg!==null&&avg>=.9&&days<5)score-=34;
+    const safety=safetyForCommand(command,profile,now);
+    if(safety?.deferFromAdaptive)score-=1000;
+    return score;
+  }
+
+  function focusForLevel(commands,currentLevel,{dayType='Todo el día',trials={},history=[],progress={},stateScore={},profile=null,now=Date.now()}={}){
+    const count=dayType==='Solo noche'?2:3;
+    const ranked=commands.filter(c=>c.level<=currentLevel).map(c=>({
+      c,
+      safety:safetyForCommand(c,profile,now),
+      score:adaptivePriority(c,currentLevel,{trials,history,progress,stateScore,profile,now})
+    })).sort((a,b)=>b.score-a.score||b.c.level-a.c.level);
+    const safe=ranked.filter(x=>!x.safety?.deferFromAdaptive),pool=safe.length?safe:ranked;
+    const current=pool.filter(x=>x.c.level===currentLevel),review=pool.filter(x=>x.c.level<currentLevel);
+    const chosen=[];
+    if(current.length)chosen.push(current[0].c);
+    else if(pool.length)chosen.push(pool[0].c);
+    const rest=[...current.filter(x=>!chosen.some(c=>c.cmd===x.c.cmd)),...review].sort((a,b)=>b.score-a.score);
+    for(const item of rest){if(chosen.length>=count)break;if(!chosen.some(c=>c.cmd===item.c.cmd))chosen.push(item.c)}
+    return chosen.slice(0,count);
+  }
+
+  function microPlan(commands,currentLevel,{dayType='Todo el día',progress={},stateScore={},focus=[]}={}){
+    const known=commands.filter(c=>c.level<currentLevel&&(stateScore[progress[c.cmd]||'No iniciado']||0)>=2).slice(-2);
+    if(dayType==='Solo noche')return[
+      ['Al llegar','4–5 min','Nuevo + fácil',[focus[0],known.at(-1)].filter(Boolean)],
+      ['Más tarde','4–5 min','Segundo foco + repaso',[focus[1]||focus[0],known.at(-2)].filter(Boolean)],
+      ['Antes de dormir','1–2 min','Una victoria fácil',[known.at(-1)||focus[0]].filter(Boolean)]
+    ];
+    return[
+      ['Mañana','3–5 min','Foco principal',[focus[0],known.at(-1)].filter(Boolean)],
+      ['Mediodía','3–5 min','Control / calma',[focus.find(c=>['Control','Autocontrol','Casa'].includes(c.category))||focus[1]||focus[0]].filter(Boolean)],
+      ['Tarde','3–5 min','Segundo foco',[focus[1]||focus[0]].filter(Boolean)],
+      ['Noche','2–4 min','Repaso fácil + juego',[known.at(-1)||focus.at(-1)].filter(Boolean)]
+    ];
+  }
+
+  function ageGuidance(profile,now=Date.now()){
+    const stage=ageStage(profile,now);
+    if(stage.key==='unknown')return null;
+    if(stage.key==='young-puppy')return{stage,...stage,message:'Prioriza vínculo, nombre, llamada, manejo, autocontrol y sesiones muy cortas. Evita impacto físico innecesario.'};
+    if(stage.key==='puppy')return{stage,...stage,message:'Mantén sesiones breves y progresivas. Consolida obediencia y autocontrol antes de añadir dificultad física.'};
+    if(stage.key==='adolescent')return{stage,...stage,message:'Sube distracciones y duración poco a poco; el trabajo físico sigue siendo progresivo mientras termina de desarrollarse.'};
+    return{stage,...stage,message:'Puedes progresar dificultad según técnica, estado físico y respuesta del perro, manteniendo sesiones claras y positivas.'};
+  }
+
+  globalThis.PatrickTrainingEngine=Object.freeze({
+    effectiveAgeMonths,ageStage,safetyForCommand,lastPracticeMs,recentAverage,adaptivePriority,focusForLevel,microPlan,ageGuidance
+  });
+})();
