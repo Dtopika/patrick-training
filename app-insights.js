@@ -90,8 +90,7 @@ document.addEventListener('click',e=>{
   const detail=e.target.closest('[data-command-insight]');if(detail){openCommandInsight(detail.dataset.commandInsight);return}
   const practice=e.target.closest('[data-smart-practice]');if(practice){
     const command=commandBy(practice.dataset.smartPractice);if(!command)return;
-    const context=ENGINE.normalizeContext({environment:practice.dataset.environment,distraction:practice.dataset.distraction});
-    startSession([command],{context});return;
+    openStartChoice([command],{level:command.level,label:displayCommand(command)});return;
   }
 });
 
