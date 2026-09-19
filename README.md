@@ -3,8 +3,8 @@
 PWA móvil, local-first, para entrenar a Patrick con comandos en alemán, sesiones guiadas y progresión adaptativa.
 
 ## Estado
-- Release estable publicada: v7.1.0.
-- Línea actual: Teaching Experience con Misión de hoy, guía integrada y archivo histórico mensual.
+- Release estable publicada: v7.2.0.
+- Línea actual: Teaching Media & Long-term Insights con guía visual, voz alemana seleccionable y evolución mensual.
 - Sin backend ni cuentas: los datos permanecen en el dispositivo salvo exportación manual.
 
 ## Funciones
@@ -38,6 +38,11 @@ PWA móvil, local-first, para entrenar a Patrick con comandos en alemán, sesion
 - Guía “Cómo funciona” con estados, confianza, repeticiones adaptativas y medición precisa.
 - Archivo histórico mensual: las sesiones antiguas dejan de descartarse al superar 200.
 - Backups schema 10 incluyen archivo histórico y estado del onboarding.
+- Tutorial visual 1→2→3→4: señal, respuesta, Ja! y premio.
+- Voz alemana seleccionable entre las voces instaladas en el dispositivo, con fallback automático.
+- Evolución mensual combina sesiones recientes y archivo sin duplicar datos.
+- Cobertura multimedia contractual: 41 comandos y 41 videos curados.
+- Backups schema 11 preservan la preferencia de voz alemana.
 - Historial, racha y evidencia reciente por comando.
 - Perfil del perro con edad y recomendaciones de seguridad.
 - Videos curados y pronunciación mediante la voz alemana del dispositivo.
