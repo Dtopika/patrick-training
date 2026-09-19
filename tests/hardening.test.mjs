@@ -23,11 +23,25 @@ function baseContext({records={},local={}}={}){
     async setMany(entries){for(const e of entries){records[e.key]={...e};writes.push({...e})}return true},
     async del(key){delete records[key]}
   };
+  let ctx;
+  const scripts=[];
   const document={
+    scripts,
     querySelector(){return null},querySelectorAll(){return[]},addEventListener(){},
+    createElement(tag){
+      if(tag!=='script')return{};
+      const listeners={};
+      return{src:'',async:true,addEventListener(type,fn){listeners[type]=fn},_listeners:listeners};
+    },
+    head:{appendChild(node){
+      scripts.push(node);
+      try{vm.runInContext(read(node.src),ctx,{filename:node.src});node.onload?.();node._listeners?.load?.()}
+      catch(e){node.onerror?.(e);node._listeners?.error?.(e)}
+      return node;
+    }},
     documentElement:{style:{}},body:{classList:{toggle(){},add(){},remove(){}}}
   };
-  const ctx=vm.createContext({
+  ctx=vm.createContext({
     console,localStorage,document,PatrickDB,
     navigator:{onLine:true},
     setTimeout,clearTimeout,setInterval,clearInterval,performance,
@@ -50,7 +64,7 @@ function baseContext({records={},local={}}={}){
     {n:9,title:'Control defensivo',goal:'Seguridad',commands:['Hinter']},
     {n:10,title:'Avanzado',goal:'Avanzado',commands:['Hopp']}
   ];
-  return{ctx,localStorage,records,writes};
+  return{ctx,localStorage,records,writes,scripts};
 }
 
 function loadArchitecture(ctx){
@@ -62,6 +76,16 @@ async function loadCore(env){
   await env.ctx.PATRICK_READY;
   return env;
 }
+
+test('v6 bootstraps its dependencies when an older HTML shell loads newer JavaScript',async()=>{
+  const env=baseContext();
+  vm.runInContext(read('app-core.js'),env.ctx,{filename:'app-core.js'});
+  await env.ctx.PATRICK_READY;
+  assert.equal(vm.runInContext("CONFIG.APP_VERSION",env.ctx),'6.0.0');
+  assert.equal(vm.runInContext("typeof ENGINE.focusForLevel",env.ctx),'function');
+  assert.equal(vm.runInContext("typeof BACKUP_SCHEMA.normalize",env.ctx),'function');
+  assert.deepEqual(env.scripts.map(s=>s.src),['config.js','training-engine.js','backup-schema.js']);
+});
 
 test('v6 configuration centralizes public and schema versions',()=>{
   const env=baseContext();loadArchitecture(env.ctx);

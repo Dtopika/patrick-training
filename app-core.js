@@ -1,8 +1,31 @@
 const COMMANDS=window.PATRICK_COMMANDS;
 const LEVELS=window.PATRICK_LEVELS;
-const CONFIG=window.PATRICK_CONFIG;
-const ENGINE=window.PatrickTrainingEngine;
-const BACKUP_SCHEMA=window.PatrickBackupSchema;
+let CONFIG=window.PATRICK_CONFIG||null;
+let ENGINE=window.PatrickTrainingEngine||null;
+let BACKUP_SCHEMA=window.PatrickBackupSchema||null;
+
+function loadPatrickDependency(src,isReady){
+  if(isReady())return Promise.resolve();
+  return new Promise((resolve,reject)=>{
+    const existing=[...document.scripts].find(s=>s.src&&s.src.endsWith('/'+src));
+    if(existing){
+      existing.addEventListener('load',()=>isReady()?resolve():reject(new Error(src+' loaded without expected global')),{once:true});
+      existing.addEventListener('error',()=>reject(new Error('Could not load '+src)),{once:true});
+      return;
+    }
+    const script=document.createElement('script');script.src=src;script.async=false;
+    script.onload=()=>isReady()?resolve():reject(new Error(src+' loaded without expected global'));
+    script.onerror=()=>reject(new Error('Could not load '+src));
+    document.head.appendChild(script);
+  });
+}
+async function ensureV6Dependencies(){
+  await loadPatrickDependency('config.js',()=>!!window.PATRICK_CONFIG);
+  await loadPatrickDependency('training-engine.js',()=>!!window.PatrickTrainingEngine);
+  await loadPatrickDependency('backup-schema.js',()=>!!window.PatrickBackupSchema);
+  CONFIG=window.PATRICK_CONFIG;ENGINE=window.PatrickTrainingEngine;BACKUP_SCHEMA=window.PatrickBackupSchema;
+  if(!CONFIG||!ENGINE||!BACKUP_SCHEMA)throw new Error('Patrick v6 dependencies unavailable');
+}
 const STATES=['No iniciado','En práctica','Consistente','Generalizando','Dominado'];
 const STATE_SCORE={'No iniciado':0,'En práctica':1,'Consistente':2,'Generalizando':3,'Dominado':4};
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
@@ -170,6 +193,7 @@ function commandCard(c){
 function renderCommands(){const q=$('#search').value.trim().toLowerCase();$('#filters').innerHTML=categories().map(x=>`<button class="filterBtn ${filter===x?'active':''}" data-filter="${escapeHtml(x)}">${escapeHtml(x)}</button>`).join('');const arr=COMMANDS.filter(c=>(filter==='Todos'||c.category===filter)&&(`${displayCommand(c)} ${displayPron(c)} ${c.meaning} ${c.category}`).toLowerCase().includes(q));$('#commandList').innerHTML=arr.map(commandCard).join('')||'<p class="muted">No encontré comandos con ese filtro.</p>';$$('[data-filter]').forEach(b=>b.onclick=()=>{filter=b.dataset.filter;renderCommands()});$$('[data-audio]').forEach(b=>b.onclick=()=>speak(commandBy(b.dataset.audio)));$$('[data-practice]').forEach(b=>b.onclick=()=>startSession([commandBy(b.dataset.practice)]));$$('[data-toggle]').forEach(b=>b.onclick=()=>{const card=b.closest('.commandCard');card.classList.toggle('open');b.setAttribute('aria-expanded',String(card.classList.contains('open')))})}
 
 window.PATRICK_READY=(async()=>{
+  await ensureV6Dependencies();
   await store.hydrate();progress=store.get('patrickProgress',{})||{};trials=store.get('patrickTrials',{})||{};history=store.get('patrickHistory',[])||[];currentLevel=Number(store.get('patrickCurrentLevel',0))||0;dayType=store.get('patrickDayType','Todo el día')||'Todo el día';dogProfile=store.get('patrickDogProfile',null)||{name:'',breed:'Pastor Alemán'};
   const hasExistingData=Object.keys(progress).length>0||Object.keys(trials).length>0||history.length>0||currentLevel>0;
   if(!String(dogProfile?.name||'').trim()&&hasExistingData){dogProfile={...dogProfile,name:'Patrick',breed:'Pastor Alemán'};store.set('patrickDogProfile',dogProfile)}
