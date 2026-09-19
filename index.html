@@ -38,15 +38,24 @@
 
       <figure class="patrickHero"><img src="assets/patrick-banner.webp" alt="Ilustración de un cachorro pastor alemán para Patrick Training"><figcaption class="patrickHeroCopy"><span>🐾 PATRICK TRAINING</span><strong>Un paso a la vez.</strong><small>Obediencia, vínculo y progreso.</small></figcaption></figure>
 
-      <article id="firstSessionCoach" class="firstSessionCoach" hidden><div class="firstSessionIcon" aria-hidden="true"><svg class="uiIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 2.7 5.5 6 .9-4.3 4.2 1 6-5.4-2.9-5.4 2.9 1-6-4.3-4.2 6-.9z"/></svg></div><div><strong>Tu primera sesión está lista</strong><p>No necesitas hacerlo perfecto. Haz cinco ejecuciones cortas y registra cómo salió cada una.</p></div><button id="firstSessionBtn" class="primaryBtn" type="button">Empezar primera sesión</button></article>
+      <article id="dailyMission" class="dailyMission" aria-labelledby="dailyMissionTitle">
+        <div class="dailyMissionTop"><div><p class="kicker">MISIÓN DE HOY</p><h2 id="dailyMissionTitle">Preparando tu sesión</h2><p id="dailyMissionMeta" class="muted"></p></div><span id="dailyMissionConfidence" class="missionConfidence">Adaptativo v3</span></div>
+        <div id="dailyMissionCommands" class="missionCommands"></div>
+        <p id="dailyMissionReason" class="dailyMissionReason"></p>
+        <div id="dailyMissionGuidance" class="ageGuidance" role="note" hidden></div>
+        <button id="dailyMissionStartBtn" class="primaryBtn primaryWithIcon" type="button"><svg class="uiIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="m8 5 11 7-11 7z"/></svg><span>Empezar misión</span></button>
+      </article>
 
-      <article class="sessionHero"><div class="sessionHeroTop"><span id="levelBadge" class="badge">Nivel 0</span><span id="readinessBadge" class="statusPill">En curso</span></div><h2 id="sessionTitle">Fundamentos</h2><p id="sessionGoal" class="muted"></p><div id="focusCommands" class="focusCommands"></div><div id="ageGuidance" class="ageGuidance" role="note" hidden></div><button id="startSessionBtn" class="primaryBtn primaryWithIcon"><svg class="uiIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="m8 5 11 7-11 7z"/></svg><span>Empezar sesión guiada</span></button></article>
+      <article id="firstSessionCoach" class="firstSessionCoach legacyTodayControl" hidden aria-hidden="true"><div></div><button id="firstSessionBtn" type="button">Empezar</button></article>
+      <article class="sessionHero legacyTodayControl" aria-hidden="true"><div class="sessionHeroTop"><span id="levelBadge" class="badge">Nivel 0</span><span id="readinessBadge" class="statusPill">En curso</span></div><h2 id="sessionTitle">Fundamentos</h2><p id="sessionGoal" class="muted"></p><div id="focusCommands" class="focusCommands"></div><div id="ageGuidance" class="ageGuidance" role="note" hidden></div><button id="startSessionBtn" type="button">Empezar</button></article>
 
-      <section id="smartDailyPlan" class="smartDailyPlan" aria-label="Plan inteligente de entrenamiento"></section>
+      <details id="dailyPlanDetails" class="dailyPlanDetails"><summary><span>Ver detalle del plan</span><small>Prioridades y micro-sesiones</small></summary>
+        <section id="smartDailyPlan" class="smartDailyPlan" aria-label="Plan inteligente de entrenamiento"></section>
+        <section class="contentBlock missionPlanBlock"><div class="sectionTitle"><div><p class="kicker">PLAN FLEXIBLE</p><h2>Micro-sesiones</h2></div><span class="muted">3–5 min</span></div><div id="todayPlan" class="planList"></div></section>
+      </details>
 
       <div class="metricGrid"><article class="metric"><strong id="metricProgress">0%</strong><span>nivel actual</span></article><article class="metric"><strong id="metricSolid">0</strong><span>consistentes del nivel</span></article><article class="metric"><strong id="metricSessions">0</strong><span>sesiones</span></article></div>
       <section id="habitCard" class="habitCard" aria-label="Racha y actividad semanal"></section>
-      <section class="contentBlock"><div class="sectionTitle"><div><p class="kicker">PLAN FLEXIBLE</p><h2>Micro-sesiones</h2></div><span class="muted">3–5 min</span></div><div id="todayPlan" class="planList"></div></section>
       <article id="advanceCard" class="advanceCard" hidden><div><strong id="advanceTitle">Patrick está listo para avanzar</strong><p class="muted">Los comandos del nivel actual ya están consistentes.</p></div><button id="advanceBtn" class="secondaryBtn">Siguiente nivel</button></article>
     </section>
 
