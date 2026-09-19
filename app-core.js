@@ -227,7 +227,7 @@ function renderLevels(){
     const rest=Math.max(0,l.commands.length-3),more=rest?`<span class="levelCommandMore">+${rest}</span>`:'';
     const controls=locked
       ?'<span class="levelLocked" aria-label="Nivel bloqueado">'+icon('lock')+' Completa el anterior</span>'
-      :`<button class="levelStartBtn" data-start-level="${l.n}" type="button">${icon('play')}<span>Iniciar</span></button>${active?'':`<button class="setLevelBtn" data-set-level="${l.n}" type="button">${l.n<unlocked?'Repasar':'Usar nivel'}</button>`}`;
+      :`<button class="levelStartBtn" data-start-level="${l.n}" type="button">${icon('play')}<span>Iniciar</span></button>${active?'':`<button class="setLevelBtn" data-set-level="${l.n}" type="button">Usar como foco</button>`}`;
     return `<article class="levelCard levelCardV2 compactLevelCard ${active?'activeLevel':''} ${locked?'lockedLevel':''} ${ready?'completedLevel':''} ${!locked&&!active&&!ready?'availableLevel':''}">
       <div class="levelRouteHead"><span class="levelIndex">${l.n}</span><div class="levelTitleWrap"><small class="levelEyebrow">PASO ${l.n}</small><strong>${escapeHtml(l.title)}</strong><p>${escapeHtml(l.goal)}</p></div><span class="levelStatePill">${statusIcon}<b>${status}</b></span></div>
       <div class="levelCompactProgress"><div class="miniBar"><div style="width:${p}%"></div></div><strong>${p}%</strong></div>
