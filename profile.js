@@ -3,7 +3,8 @@ const THEME_KEY='patrickTheme';
 const REMINDER_KEY='patrickNotifications';
 const REMINDER_TAG='patrick-daily-reminder';
 const TEACHING_GUIDE_VERSION=1;
-let profileUiInitialized=false,reminderLoaded=false,reminderTimer=null,reminderStorageMode='indexeddb',settingsReturnFocus=null,teachingOnboardingVersion=0;
+const SETUP_WIZARD_VERSION=1;
+let profileUiInitialized=false,reminderLoaded=false,reminderTimer=null,reminderStorageMode='indexeddb',settingsReturnFocus=null,teachingOnboardingVersion=0,setupWizardVersion=0,setupWizardStep=0;
 let reminderSettings={enabled:false,time:'19:00',lastNotifiedDate:null},themePreference='system';
 
 function currentDogAgeMonths(){return ENGINE.effectiveAgeMonths(dogProfile)}
