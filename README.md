@@ -3,8 +3,8 @@
 PWA móvil, local-first, para entrenar a Patrick con comandos en alemán, sesiones guiadas y progresión adaptativa.
 
 ## Estado
-- Release estable publicada: v6.2.1.
-- Línea actual: entrenador adaptativo con progresión contextual, evolución y plan diario.
+- Release estable publicada: v6.3.0.
+- Línea actual: entrenador adaptativo con progreso limpio, ruta visual y configuración unificada.
 - Sin backend ni cuentas: los datos permanecen en el dispositivo salvo exportación manual.
 
 ## Funciones
@@ -14,6 +14,8 @@ PWA móvil, local-first, para entrenar a Patrick con comandos en alemán, sesion
 - Plan diario inteligente con objetivo, contexto recomendado y acceso directo a práctica.
 - Dashboard de evolución de 7/30 días con tendencias y señales de mejora/atención.
 - Ficha inteligente por comando con evidencia, tendencia, motivos y siguiente paso.
+- Progreso centrado en evolución, prioridades e historial, sin duplicar el catálogo de comandos.
+- Configuración unificada con tema, almacenamiento y respaldos, más sección Acerca de.
 - Progresión automática: consistencia → generalización → dominio basada en evidencia.
 - Contexto de sesión por entorno y nivel de distracción.
 - Ruta de niveles bloqueada: no se puede activar un nivel futuro sin completar los anteriores.
