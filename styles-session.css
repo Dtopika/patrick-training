@@ -3,3 +3,7 @@
 
 .executionUndoBtn{margin-top:8px;width:100%;min-height:38px;border:1px solid var(--line);border-radius:11px;background:var(--surface2);color:var(--text);font:inherit;font-size:11px;font-weight:900}
 .executionUndoBtn[hidden]{display:none}
+
+.executionStartBtn{margin-top:8px;width:100%;min-height:42px;border:0;border-radius:12px;background:var(--accent);color:var(--accentText);font:inherit;font-size:11px;font-weight:950}
+.executionStartBtn[hidden]{display:none}
+.sessionActions button:disabled{opacity:.46;cursor:not-allowed}
