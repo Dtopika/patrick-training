@@ -30,3 +30,40 @@
 .levelCardV2 .levelActions{margin-top:11px}.levelCardV2 .setLevelBtn{width:100%;min-height:40px;border-radius:12px}.levelActiveHint{width:100%;text-align:center;padding:9px 10px;border-radius:11px;background:var(--successSoft);color:var(--success);font-size:10px;font-weight:900}
 .levelCardV2 .levelLocked{width:100%;justify-content:center}
 @media(max-width:420px){.levelRouteHead{grid-template-columns:40px minmax(0,1fr)}.levelStatePill{grid-column:2;justify-self:start}.levelCardV2 .levelIndex{width:40px;height:40px}}
+
+/* v6.3.1 compact route + navigation polish */
+.compactLevelCard{padding:11px 12px}
+.compactLevelCard .levelRouteHead{grid-template-columns:36px minmax(0,1fr) auto;gap:8px}
+.compactLevelCard .levelIndex{width:36px;height:36px;border-radius:11px;font-size:13px}
+.compactLevelCard .levelTitleWrap strong{font-size:14px}.compactLevelCard .levelTitleWrap p{font-size:10px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.compactLevelCard .levelEyebrow{font-size:8px!important;margin-bottom:1px}
+.compactLevelCard .levelStatePill{min-height:24px;padding:0 7px;font-size:8px}
+.levelCompactProgress{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;margin-top:8px}.levelCompactProgress .miniBar{margin:0;height:5px}.levelCompactProgress>strong{font-size:10px}
+.levelCompactBottom{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;margin-top:8px}
+.compactLevelCard .levelCommandPreview{margin:0;gap:5px;overflow:hidden;min-width:0}.compactLevelCard .levelCommandChip{min-width:0;padding:5px 7px;border-radius:9px}.compactLevelCard .levelCommandChip b{font-size:9px;white-space:nowrap}.levelCommandMore{flex:0 0 auto;padding:5px 7px;border-radius:9px;background:var(--surface2);border:1px solid var(--line);font-size:9px;font-weight:900;color:var(--muted)}
+.compactLevelCard .levelActions{margin:0;gap:6px;display:flex;align-items:center}.compactLevelCard .setLevelBtn,.levelStartBtn{min-height:34px;padding:0 9px;border-radius:10px;font-size:9px;font-weight:900;white-space:nowrap}
+.levelStartBtn{border:0;background:var(--accent);color:var(--accentText);display:inline-flex;align-items:center;gap:5px}.levelStartBtn .uiIcon{width:13px;height:13px}
+.compactLevelCard .levelLocked{min-height:32px;padding:0 8px;font-size:9px;width:auto}
+@media(max-width:430px){.compactLevelCard .levelRouteHead{grid-template-columns:34px minmax(0,1fr)}.compactLevelCard .levelIndex{width:34px;height:34px}.compactLevelCard .levelStatePill{grid-column:2;justify-self:start}.levelCompactBottom{grid-template-columns:1fr}.compactLevelCard .levelActions{justify-content:stretch}.compactLevelCard .levelActions>*{flex:1;justify-content:center}.compactLevelCard .levelCommandPreview{overflow-x:auto}}
+
+.startChoiceDialog{border:0;padding:0;background:transparent;color:var(--text);width:100%;max-width:none;height:100%;max-height:none;margin:0}
+.startChoiceDialog::backdrop{background:rgba(0,0,0,.58);backdrop-filter:blur(3px)}
+.startChoiceDialog[open]{display:grid;place-items:end center;padding:12px 12px max(12px,env(safe-area-inset-bottom))}
+.startChoiceCard{width:min(100%,480px);background:var(--bg);border:1px solid var(--line);border-radius:24px;padding:16px;box-shadow:var(--shadow);display:grid;gap:13px}
+.startChoiceHeader{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:start}.startChoiceHeader h2{margin:2px 0 4px;font-size:24px}.startChoiceHeader p{margin:0}
+.startChoiceOptions{display:grid;gap:8px}.startChoiceOption{width:100%;min-height:68px;border:1px solid var(--line);background:var(--surface);color:var(--text);border-radius:16px;padding:10px 11px;display:grid;grid-template-columns:38px minmax(0,1fr) 18px;gap:10px;align-items:center;text-align:left}.startChoiceOption.selected{border-color:color-mix(in srgb,var(--success) 50%,var(--line));background:color-mix(in srgb,var(--success) 7%,var(--surface))}
+.startChoiceIcon{width:38px;height:38px;border-radius:12px;background:var(--surface2);display:grid;place-items:center}.startChoiceIcon .uiIcon{width:18px;height:18px}.startChoiceOption>span:nth-child(2){display:grid;gap:2px}.startChoiceOption strong{font-size:12px}.startChoiceOption small{font-size:10px;color:var(--muted);line-height:1.3}.startChoiceOption>i{width:16px;height:16px;border-radius:50%;border:2px solid var(--line);position:relative}.startChoiceOption.selected>i{border-color:var(--success)}.startChoiceOption.selected>i::after{content:'';position:absolute;inset:3px;border-radius:50%;background:var(--success)}
+.startChoiceActions{display:grid;grid-template-columns:1fr 1.35fr;gap:8px}.startChoiceActions .primaryBtn,.startChoiceActions .secondaryBtn{min-height:46px}
+@media(min-width:620px){.startChoiceDialog[open]{place-items:center}.startChoiceCard{border-radius:24px}}
+
+/* bottom navigation now reads as four primary destinations */
+.bottomNav{gap:4px;padding-top:6px}
+.bottomNav button{position:relative;min-height:52px;border-radius:15px;transition:background .18s ease,color .18s ease,transform .18s ease}
+.bottomNav button>span{width:30px;height:30px;border-radius:10px;display:grid;place-items:center;transition:background .18s ease,transform .18s ease}
+.bottomNav button>span .uiIcon{width:19px;height:19px}
+.bottomNav button small{font-size:9px;letter-spacing:.01em}
+.bottomNav button.active{background:transparent;color:var(--text);font-weight:900}
+.bottomNav button.active>span{background:var(--accent);color:var(--accentText);box-shadow:0 5px 14px rgba(0,0,0,.12);transform:translateY(-2px)}
+.bottomNav button.active::after{content:'';position:absolute;bottom:2px;width:18px;height:3px;border-radius:999px;background:var(--accent)}
+.bottomNav button:active{transform:scale(.97)}
+@media(prefers-reduced-motion:reduce){.bottomNav button,.bottomNav button>span{transition:none}}
