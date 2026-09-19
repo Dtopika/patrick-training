@@ -137,7 +137,7 @@ function downloadJson(filename,payload){
   const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename;a.click();URL.revokeObjectURL(a.href);
 }
 function exportProgress(){
-  const payload={schemaVersion:CONFIG.BACKUP_SCHEMA_VERSION,appVersion:CONFIG.APP_VERSION,exportedAt:new Date().toISOString(),profile:dogProfile,storage:storageMode,progress,trials,history,historyArchive,currentLevel,dayType,trainingContext,theme:themePreference,germanVoice:germanVoicePreference,teachingGuideVersion:teachingOnboardingVersion,notifications:reminderSettings};
+  const payload={schemaVersion:CONFIG.BACKUP_SCHEMA_VERSION,appVersion:CONFIG.APP_VERSION,exportedAt:new Date().toISOString(),profile:dogProfile,storage:storageMode,progress,trials,history,historyArchive,currentLevel,dayType,trainingContext,theme:themePreference,germanVoice:germanVoicePreference,teachingGuideVersion:teachingOnboardingVersion,setupWizardVersion,notifications:reminderSettings};
   downloadJson(`patrick-training-${dogName().toLowerCase().replace(/[^a-z0-9]+/gi,'-')||'backup'}.json`,payload);toast('Respaldo descargado');
 }
 function exportDiagnostic(){
@@ -145,7 +145,7 @@ function exportDiagnostic(){
   const payload={
     generatedAt:new Date().toISOString(),appVersion:CONFIG.APP_VERSION,backupSchemaVersion:CONFIG.BACKUP_SCHEMA_VERSION,
     sessionSchemaVersion:CONFIG.SESSION_SCHEMA_VERSION,cacheName:CONFIG.CACHE_NAME,storageMode,reminderStorageMode,
-    theme:themePreference,germanVoice:germanVoicePreference,focusLevel:currentLevel,unlockedLevel:maxUnlockedLevel(),recentSessionCount:history.length,archivedSessionCount:archivedSessionCount(),totalSessionCount:allSessionCount(),states,
+    theme:themePreference,germanVoice:germanVoicePreference,setupWizardVersion,focusLevel:currentLevel,unlockedLevel:maxUnlockedLevel(),recentSessionCount:history.length,archivedSessionCount:archivedSessionCount(),totalSessionCount:allSessionCount(),states,
     serviceWorker:{supported:'serviceWorker'in navigator,controlled:!!navigator.serviceWorker?.controller},
     network:{online:navigator.onLine},browser:{userAgent:navigator.userAgent}
   };
@@ -161,10 +161,10 @@ async function importProgressFile(file){
   if(!confirm('¿Restaurar este respaldo validado? Reemplazará el progreso actual de Patrick Training.'))return;
   const coreValues={
     patrickProgress:normalized.progress,patrickTrials:normalized.trials,patrickHistory:normalized.history,
-    patrickCurrentLevel:normalized.currentLevel,patrickDayType:normalized.dayType,patrickDogProfile:normalized.profile,patrickTrainingContext:normalized.trainingContext,patrickTheme:normalized.theme,patrickGermanVoice:normalized.germanVoice,patrickHistoryArchive:normalized.historyArchive,patrickTeachingOnboardingVersion:normalized.teachingGuideVersion
+    patrickCurrentLevel:normalized.currentLevel,patrickDayType:normalized.dayType,patrickDogProfile:normalized.profile,patrickTrainingContext:normalized.trainingContext,patrickTheme:normalized.theme,patrickGermanVoice:normalized.germanVoice,patrickHistoryArchive:normalized.historyArchive,patrickTeachingOnboardingVersion:normalized.teachingGuideVersion,patrickSetupWizardVersion:normalized.setupWizardVersion
   };
   await store.setMany(coreValues);
-  progress=normalized.progress;trials=normalized.trials;history=normalized.history;historyArchive=normalizeHistoryArchive(normalized.historyArchive);currentLevel=normalized.currentLevel;dayType=normalized.dayType;dogProfile=normalized.profile;trainingContext=normalized.trainingContext;themePreference=normalized.theme;germanVoicePreference=normalized.germanVoice;teachingOnboardingVersion=normalized.teachingGuideVersion;applyTheme();syncGermanVoiceUI();
+  progress=normalized.progress;trials=normalized.trials;history=normalized.history;historyArchive=normalizeHistoryArchive(normalized.historyArchive);currentLevel=normalized.currentLevel;dayType=normalized.dayType;dogProfile=normalized.profile;trainingContext=normalized.trainingContext;themePreference=normalized.theme;germanVoicePreference=normalized.germanVoice;teachingOnboardingVersion=normalized.teachingGuideVersion;setupWizardVersion=normalized.setupWizardVersion;applyTheme();syncGermanVoiceUI();
   if(normalized.notifications){
     reminderSettings={...reminderSettings,...normalized.notifications,lastNotifiedDate:null};
     await saveReminderSettings();scheduleForegroundReminder();
