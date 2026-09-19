@@ -1,7 +1,7 @@
-const EXECUTIONS_PER_COMMAND=5;
+const DEFAULT_EXECUTIONS_PER_COMMAND=5;
 const OUTCOME_SCORE={missed:0,assisted:.5,achieved:1};
 const OUTCOME_LABEL={missed:'No logrado',assisted:'Con ayuda',achieved:'Logrado'};
-let executionTimerId=null,sessionAdvanceTimeoutId=null,executionStartedAt=0,executionElapsedMs=0,sessionAdvancing=false,lastRatedExecution=null;
+let executionTimerId=null,sessionAdvanceTimeoutId=null,executionStartedAt=0,executionElapsedMs=0,executionReadyForRating=false,sessionAdvancing=false,lastRatedExecution=null;
 let pendingStartRequest=null,startChoiceMode='recommended';
 
 function clearSessionAdvanceTimer(){if(sessionAdvanceTimeoutId){clearTimeout(sessionAdvanceTimeoutId);sessionAdvanceTimeoutId=null}}
@@ -24,20 +24,34 @@ function ensureExecutionUI(){
   ensureSessionContextUI();
   if($('#executionCoach'))return;
   const target=$('#sessionMeaning'),box=document.createElement('section');box.id='executionCoach';box.className='executionCoach';
-  box.innerHTML='<div class="executionTop"><div><small id="executionLabel">EJECUCIÓN 1 DE 5</small><strong id="executionTimer">00:00.0</strong></div><span id="executionState" class="executionState">En curso</span></div><div id="executionDots" class="executionDots" aria-label="Progreso de ejecuciones"></div><p id="executionHint" class="executionHint"></p><button id="undoExecutionBtn" class="executionUndoBtn" type="button" hidden>↶ Deshacer último resultado</button>';
+  box.innerHTML='<div class="executionTop"><div><small id="executionLabel">EJECUCIÓN 1 DE 4</small><strong id="executionTimer">00:00.0</strong></div><span id="executionState" class="executionState">Listo</span></div><div id="executionDots" class="executionDots" aria-label="Progreso de ejecuciones"></div><p id="executionHint" class="executionHint"></p><button id="startExecutionBtn" class="executionStartBtn" type="button">▶ Iniciar ejecución</button><button id="undoExecutionBtn" class="executionUndoBtn" type="button" hidden>↶ Deshacer último resultado</button>';
   target.insertAdjacentElement('afterend',box);
 }
 function formatExecutionTime(ms){const total=Math.max(0,ms)/1000,min=Math.floor(total/60),sec=Math.floor(total%60),tenth=Math.floor((total%1)*10);return`${String(min).padStart(2,'0')}:${String(sec).padStart(2,'0')}.${tenth}`}
-function stopExecutionTimer(){if(executionTimerId){clearInterval(executionTimerId);executionTimerId=null}if(executionStartedAt)executionElapsedMs=performance.now()-executionStartedAt}
+function stopExecutionTimer({capture=true}={}){if(executionTimerId){clearInterval(executionTimerId);executionTimerId=null}if(capture&&executionStartedAt)executionElapsedMs=performance.now()-executionStartedAt;executionStartedAt=0}
 function updateExecutionClock(){if(!executionStartedAt)return;executionElapsedMs=performance.now()-executionStartedAt;const el=$('#executionTimer');if(el)el.textContent=formatExecutionTime(executionElapsedMs)}
-function startExecutionTimer(){stopExecutionTimer();executionElapsedMs=0;executionStartedAt=performance.now();updateExecutionClock();executionTimerId=setInterval(updateExecutionClock,100)}
+function startExecutionTimer(){stopExecutionTimer({capture:false});executionElapsedMs=0;executionStartedAt=performance.now();updateExecutionClock();executionTimerId=setInterval(updateExecutionClock,100)}
 function outcomeMark(outcome){if(outcome==='achieved')return icon('check');if(outcome==='assisted')return icon('help');return icon('x')}
+function executionTarget(command=session?.commands?.[session?.index]){return command?Number(session?.targets?.[command.cmd])||DEFAULT_EXECUTIONS_PER_COMMAND:DEFAULT_EXECUTIONS_PER_COMMAND}
+function sessionTargetTotal(){return session?session.commands.reduce((sum,c)=>sum+executionTarget(c),0):0}
+function completedBeforeCurrent(){return session?session.commands.slice(0,session.index).reduce((sum,c)=>sum+executionTarget(c),0):0}
 function updateExecutionDots(){
-  const c=session.commands[session.index],results=session.results[c.cmd]||[];
-  $('#executionDots').innerHTML=Array.from({length:EXECUTIONS_PER_COMMAND},(_,i)=>{const outcome=results[i],current=!outcome&&i===session.trial;return `<span class="${current?'current':''} ${outcome||''}">${outcome?outcomeMark(outcome):i+1}</span>`}).join('');
+  const c=session.commands[session.index],results=session.results[c.cmd]||[],target=executionTarget(c);
+  $('#executionDots').innerHTML=Array.from({length:target},(_,i)=>{const outcome=results[i],current=!outcome&&i===session.trial;return `<span class="${current?'current':''} ${outcome||''}">${outcome?outcomeMark(outcome):i+1}</span>`}).join('');
 }
 function setOutcomeButtonsDisabled(disabled){['#missedBtn','#assistedBtn','#correctBtn'].forEach(id=>{const b=$(id);if(b)b.disabled=disabled})}
 function setUndoExecutionVisible(visible){const button=$('#undoExecutionBtn');if(button)button.hidden=!visible}
+function setStartExecutionVisible(visible){const button=$('#startExecutionBtn');if(button)button.hidden=!visible}
+function prepareExecution(){
+  stopExecutionTimer({capture:false});executionElapsedMs=0;executionReadyForRating=false;sessionAdvancing=false;setOutcomeButtonsDisabled(true);setUndoExecutionVisible(false);setStartExecutionVisible(true);
+  const state=$('#executionState');if(state){state.textContent='Listo';state.className='executionState'}const timer=$('#executionTimer');if(timer)timer.textContent='00:00.0';
+}
+function beginExecution(){
+  if(!session||sessionAdvancing||executionReadyForRating)return;
+  executionReadyForRating=true;setStartExecutionVisible(false);setOutcomeButtonsDisabled(false);
+  const state=$('#executionState');if(state){state.textContent='En curso';state.className='executionState'}
+  startExecutionTimer();
+}
 function setSessionContextLocked(locked){['#sessionEnvironment','#sessionDistraction'].forEach(id=>{const el=$(id);if(el)el.disabled=!!locked})}
 function updateSessionContextFromUI(){
   if(!session||sessionAttemptCount()>0)return;
@@ -51,11 +65,11 @@ function syncSessionContextUI(command){
   setSessionContextLocked(sessionAttemptCount()>0);
 }
 function updateExecutionUI(){
-  ensureExecutionUI();const current=Math.min(session.trial+1,EXECUTIONS_PER_COMMAND);
-  $('#executionLabel').textContent=`EJECUCIÓN ${current} DE ${EXECUTIONS_PER_COMMAND}`;
-  const state=$('#executionState');state.textContent='En curso';state.className='executionState';
+  ensureExecutionUI();const command=session.commands[session.index],target=executionTarget(command),current=Math.min(session.trial+1,target);
+  $('#executionLabel').textContent=`EJECUCIÓN ${current} DE ${target}`;
   updateExecutionDots();
-  $('#executionHint').textContent=`Haz la ejecución con ${dogName()} y califica cómo salió. La app avanza sola.`;
+  const difficulty=ENGINE.difficultyTarget(command,stateOf(command.cmd),{stateScore:STATE_SCORE,context:session.context});
+  $('#executionHint').textContent=`Objetivo: ${difficulty.target}. Pulsa “Iniciar ejecución” justo antes de dar la señal a ${dogName()}.`;
 }
 function inferSessionLevel(commands,fallback=currentLevel){
   const levels=[...new Set((commands||[]).map(c=>Number(c?.level)).filter(Number.isInteger))];
@@ -97,8 +111,8 @@ function startSession(cmds=focusForLevel(currentLevel),options={}){
   const safeCommands=(Array.isArray(cmds)?cmds:[]).filter(c=>c&&typeof c.cmd==='string');if(!safeCommands.length)return;
   clearSessionAdvanceTimer();stopExecutionTimer();sessionAdvancing=false;
   const sessionLevel=Number.isInteger(Number(options.sessionLevel))?Number(options.sessionLevel):inferSessionLevel(safeCommands,currentLevel);
-  session={commands:safeCommands,level:sessionLevel,index:0,trial:0,results:{},timings:{},context:ENGINE.normalizeContext(options.context||trainingContext)};
-  safeCommands.forEach(c=>{session.results[c.cmd]=[];session.timings[c.cmd]=[]});
+  session={commands:safeCommands,level:sessionLevel,index:0,trial:0,results:{},timings:{},targets:{},context:ENGINE.normalizeContext(options.context||trainingContext)};
+  safeCommands.forEach(c=>{session.results[c.cmd]=[];session.timings[c.cmd]=[];session.targets[c.cmd]=ENGINE.recommendedAttempts(c,{trials,history,progress,stateScore:STATE_SCORE,profile:dogProfile})});
   $('#sessionDialog').showModal();renderSessionStep();
 }
 function renderSessionStep(){
@@ -106,21 +120,21 @@ function renderSessionStep(){
   const c=session.commands[session.index],total=session.commands.length;
   $('#sessionCounter').textContent=`Comando ${session.index+1} de ${total}`;$('#sessionCommandTitle').textContent=displayCommand(c);$('#sessionCategory').textContent=`Nivel ${c.level} · ${c.category}`;$('#sessionPron').textContent=displayPron(c);$('#sessionMeaning').textContent=c.meaning;$('#sessionSignal').textContent=c.signal;$('#sessionAction').textContent=c.action;$('#sessionHow').textContent=c.how;$('#sessionReward').textContent=c.reward;
   const safety=trainingSafety(c),safetyBox=$('#sessionSafety');if(safetyBox){safetyBox.hidden=!safety;safetyBox.classList.toggle('deferred',!!safety?.deferFromAdaptive);if(safety)safetyBox.innerHTML=`<strong>${escapeHtml(safety.label)}</strong><span>${escapeHtml(safety.message)}</span>`}
-  const done=session.index*EXECUTIONS_PER_COMMAND+session.trial;$('#sessionProgressBar').style.width=`${Math.round(done/(total*EXECUTIONS_PER_COMMAND)*100)}%`;
-  lastRatedExecution=null;setUndoExecutionVisible(false);syncSessionContextUI(c);$('#sessionAudioBtn').onclick=()=>speak(c);updateExecutionUI();startExecutionTimer();sessionAdvancing=false;setOutcomeButtonsDisabled(false);
+  const done=completedBeforeCurrent()+session.trial,targetTotal=sessionTargetTotal();$('#sessionProgressBar').style.width=`${Math.round(done/Math.max(1,targetTotal)*100)}%`;
+  lastRatedExecution=null;syncSessionContextUI(c);$('#sessionAudioBtn').onclick=()=>speak(c);updateExecutionUI();prepareExecution();
 }
 function rateExecution(outcome){
-  if(!session||sessionAdvancing||!(outcome in OUTCOME_SCORE))return;
-  sessionAdvancing=true;setOutcomeButtonsDisabled(true);stopExecutionTimer();
+  if(!session||sessionAdvancing||!executionReadyForRating||!(outcome in OUTCOME_SCORE))return;
+  sessionAdvancing=true;executionReadyForRating=false;setOutcomeButtonsDisabled(true);stopExecutionTimer();
   const c=session.commands[session.index],ratedMs=executionElapsedMs;
   lastRatedExecution={commandIndex:session.index,cmd:c.cmd,trialBefore:session.trial,outcome,elapsedMs:ratedMs};
   session.results[c.cmd].push(outcome);session.timings[c.cmd].push(ratedMs);session.trial++;setSessionContextLocked(true);
   $('#executionTimer').textContent=formatExecutionTime(ratedMs);const state=$('#executionState');state.textContent=OUTCOME_LABEL[outcome];state.className=`executionState ${outcome}`;updateExecutionDots();setUndoExecutionVisible(true);
-  const done=session.index*EXECUTIONS_PER_COMMAND+session.trial;$('#sessionProgressBar').style.width=`${Math.round(done/(session.commands.length*EXECUTIONS_PER_COMMAND)*100)}%`;
+  const done=completedBeforeCurrent()+session.trial;$('#sessionProgressBar').style.width=`${Math.round(done/Math.max(1,sessionTargetTotal())*100)}%`;
   clearSessionAdvanceTimer();
   sessionAdvanceTimeoutId=setTimeout(()=>{
     sessionAdvanceTimeoutId=null;lastRatedExecution=null;setUndoExecutionVisible(false);if(!session)return;
-    if(session.trial>=EXECUTIONS_PER_COMMAND){toast(`${displayCommand(c)} · 5 ejecuciones registradas`);session.index++;session.trial=0;if(session.index>=session.commands.length){finishSession();return}}
+    const target=executionTarget(c);if(session.trial>=target){toast(`${displayCommand(c)} · ${target} ejecuciones registradas`);session.index++;session.trial=0;if(session.index>=session.commands.length){finishSession();return}}
     renderSessionStep();
   },1600);
 }
@@ -131,10 +145,10 @@ function undoLastExecution(){
   if(!c||c.cmd!==last.cmd||session.index!==last.commandIndex)return;
   const results=session.results[last.cmd]||[],timings=session.timings[last.cmd]||[];
   if(results.length)results.pop();if(timings.length)timings.pop();
-  session.trial=Math.max(0,last.trialBefore);lastRatedExecution=null;sessionAdvancing=false;setOutcomeButtonsDisabled(false);setUndoExecutionVisible(false);
+  session.trial=Math.max(0,last.trialBefore);executionElapsedMs=last.elapsedMs;lastRatedExecution=null;sessionAdvancing=false;executionReadyForRating=true;setOutcomeButtonsDisabled(false);setUndoExecutionVisible(false);setStartExecutionVisible(false);
   setSessionContextLocked(sessionAttemptCount()>0);
-  const done=session.index*EXECUTIONS_PER_COMMAND+session.trial;$('#sessionProgressBar').style.width=`${Math.round(done/(session.commands.length*EXECUTIONS_PER_COMMAND)*100)}%`;
-  updateExecutionUI();startExecutionTimer();toast('Último resultado deshecho');
+  const done=completedBeforeCurrent()+session.trial;$('#sessionProgressBar').style.width=`${Math.round(done/Math.max(1,sessionTargetTotal())*100)}%`;
+  updateExecutionUI();const state=$('#executionState');state.textContent='Corrige resultado';state.className='executionState';$('#executionTimer').textContent=formatExecutionTime(executionElapsedMs);toast('Resultado deshecho; vuelve a calificarlo');
 }
 function sessionAttemptCount(){return session?Object.values(session.results).reduce((sum,list)=>sum+(Array.isArray(list)?list.length:0),0):0}
 function resultOutcomeScores(result){
@@ -169,7 +183,7 @@ function requestExitSession(){
   if(!session){$('#sessionDialog').close();return}
   const attempts=sessionAttemptCount(),message=attempts?'¿Salir de la sesión? Las ejecuciones de esta sesión no se guardarán.':'¿Salir de la sesión actual?';
   if(!confirm(message))return;
-  clearSessionAdvanceTimer();stopExecutionTimer();lastRatedExecution=null;setUndoExecutionVisible(false);session=null;sessionAdvancing=false;setOutcomeButtonsDisabled(false);$('#sessionDialog').close();
+  clearSessionAdvanceTimer();stopExecutionTimer();executionReadyForRating=false;lastRatedExecution=null;setUndoExecutionVisible(false);setStartExecutionVisible(false);session=null;sessionAdvancing=false;setOutcomeButtonsDisabled(false);$('#sessionDialog').close();
 }
 async function finishSession(){
   if(!session)return;
@@ -177,7 +191,7 @@ async function finishSession(){
   const activeSession=session,finishedLevel=Number(activeSession.level);
   const nextTrials=Object.fromEntries(Object.entries(trials).map(([cmd,list])=>[cmd,Array.isArray(list)?[...list]:[]])),nextProgress={...progress};
   for(const [cmd,outcomes] of Object.entries(activeSession.results))for(const outcome of outcomes)applyRollingToState(nextTrials,nextProgress,cmd,OUTCOME_SCORE[outcome]);
-  const stamp={version:CONFIG.SESSION_SCHEMA_VERSION,at:new Date().toISOString(),level:finishedLevel,dogName:dogName(),results:{},timings:activeSession.timings,context:ENGINE.normalizeContext(activeSession.context)};
+  const stamp={version:CONFIG.SESSION_SCHEMA_VERSION,at:new Date().toISOString(),level:finishedLevel,dogName:dogName(),timingMode:'cue-to-rating',results:{},timings:activeSession.timings,context:ENGINE.normalizeContext(activeSession.context)};
   Object.entries(activeSession.results).forEach(([cmd,arr])=>{const times=activeSession.timings[cmd]||[],counts={achieved:arr.filter(x=>x==='achieved').length,assisted:arr.filter(x=>x==='assisted').length,missed:arr.filter(x=>x==='missed').length};stamp.results[cmd]={...counts,total:arr.length,score:arr.reduce((a,x)=>a+OUTCOME_SCORE[x],0),avgSeconds:times.length?Math.round(times.reduce((a,b)=>a+b,0)/times.length/100)/10:0,outcomes:[...arr]}});
   const nextHistory=[stamp,...history].slice(0,200);
   for(const cmd of Object.keys(activeSession.results))nextProgress[cmd]=ENGINE.nextProgressState(cmd,nextProgress[cmd],{trials:nextTrials,history:nextHistory,stateScore:STATE_SCORE});
@@ -204,7 +218,7 @@ function init(){
   $('#startChoiceDialog').addEventListener('cancel',e=>{e.preventDefault();closeStartChoice()});$('#startChoiceDialog').addEventListener('click',e=>{if(e.target===$('#startChoiceDialog'))closeStartChoice()});
   $('#search').oninput=renderCommands;
   $('#closeSessionBtn').onclick=requestExitSession;$('#sessionDialog').addEventListener('cancel',e=>{e.preventDefault();requestExitSession()});
-  $('#missedBtn').onclick=()=>rateExecution('missed');$('#assistedBtn').onclick=()=>rateExecution('assisted');$('#correctBtn').onclick=()=>rateExecution('achieved');$('#undoExecutionBtn').onclick=undoLastExecution;
+  $('#startExecutionBtn').onclick=beginExecution;$('#missedBtn').onclick=()=>rateExecution('missed');$('#assistedBtn').onclick=()=>rateExecution('assisted');$('#correctBtn').onclick=()=>rateExecution('achieved');$('#undoExecutionBtn').onclick=undoLastExecution;
   $('#finishBtn').onclick=()=>{$('#finishDialog').close();setView('today')};
   renderCommands();renderAll();document.dispatchEvent(new Event('patrick:ready'));
 }
