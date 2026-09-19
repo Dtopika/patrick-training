@@ -1,7 +1,7 @@
 const SYSTEM_THEME=window.matchMedia('(prefers-color-scheme: dark)');
 const REMINDER_KEY='patrickNotifications';
 const REMINDER_TAG='patrick-daily-reminder';
-let profileUiInitialized=false,reminderLoaded=false,reminderTimer=null,reminderStorageMode='indexeddb';
+let profileUiInitialized=false,reminderLoaded=false,reminderTimer=null,reminderStorageMode='indexeddb',settingsReturnFocus=null;
 let reminderSettings={enabled:false,time:'19:00',lastNotifiedDate:null};
 
 function currentDogAgeMonths(){return ENGINE.effectiveAgeMonths(dogProfile)}
@@ -151,7 +151,7 @@ function ensureSettingsDrawer(){
   if($('#settingsDrawer'))return;
   document.body.insertAdjacentHTML('beforeend',`
     <div id="settingsBackdrop" class="settingsBackdrop" hidden></div>
-    <aside id="settingsDrawer" class="settingsDrawer" aria-hidden="true" aria-label="Configuración de Patrick Training">
+    <aside id="settingsDrawer" class="settingsDrawer" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="settingsTitle"><h2 id="settingsTitle" class="srOnly">Configuración de Patrick Training</h2>
       <header class="settingsDrawerHead"><img src="icons/icon-192.webp" alt=""><div class="settingsDrawerIdentity"><small>PERFIL ACTIVO</small><strong id="dogProfileName">${escapeHtml(dogName())}</strong><span id="dogProfileMeta">Pastor alemán</span></div><button id="settingsCloseBtn" class="settingsCloseBtn iconButton" type="button" aria-label="Cerrar configuración">${icon('x')}</button></header>
       <div class="settingsDrawerBody">
         <section class="settingsGroup"><div class="settingsGroupTitle">Perro</div><button id="editDogBtn" class="settingsRow" type="button"><span class="settingsRowIcon">${icon('dog')}</span><span class="settingsRowCopy"><strong>Perfil del perro</strong><small>Nombre y edad sin perder progreso.</small></span><span class="settingsChevron">${icon('chevron')}</span></button></section>
@@ -160,22 +160,45 @@ function ensureSettingsDrawer(){
         <section class="settingsGroup"><div class="settingsGroupTitle">Apariencia</div><div class="settingsMeta"><strong>Tema</strong><span id="systemThemeValue" class="settingsValue">Sistema</span></div></section>
         <section class="settingsGroup"><div class="settingsGroupTitle">Datos</div><div class="settingsMeta"><strong>Almacenamiento</strong><span id="storageModeLabel" class="storageBadge">IndexedDB</span></div><button id="exportBtn" class="settingsRow" type="button"><span class="settingsRowIcon">${icon('download')}</span><span class="settingsRowCopy"><strong>Exportar respaldo</strong><small>Descarga perfil, progreso y sesiones.</small></span><span class="settingsChevron">${icon('chevron')}</span></button><button id="importBtn" class="settingsRow" type="button"><span class="settingsRowIcon">${icon('upload')}</span><span class="settingsRowCopy"><strong>Restaurar respaldo</strong><small>Importa un JSON de Patrick Training.</small></span><span class="settingsChevron">${icon('chevron')}</span></button><input id="importFileInput" type="file" accept="application/json,.json" hidden></section>
       </div>
-      <footer class="settingsDrawerFoot"><strong>Patrick Training</strong><span>v5.6</span></footer>
+      <footer class="settingsDrawerFoot"><strong>Patrick Training</strong><span>v${escapeHtml(CONFIG.APP_VERSION)}</span></footer>
     </aside>`);
 }
 function syncSettingsDrawer(){
   if(!$('#settingsDrawer'))return;renderDogIdentity();$('#settingsDayType').value=dayType;
   const stage=dogStageLabel(),age=dogAgeLabel();$('#dogProfileMeta').textContent=`Pastor alemán${stage?` · ${stage}`:''} · ${age}`;applySystemTheme();syncReminderUI();
 }
-function openSettingsDrawer(){ensureSettingsDrawer();syncSettingsDrawer();const drawer=$('#settingsDrawer'),backdrop=$('#settingsBackdrop');backdrop.hidden=false;drawer.setAttribute('aria-hidden','false');document.body.classList.add('settingsOpen');requestAnimationFrame(()=>{drawer.classList.add('open');backdrop.classList.add('open')});setTimeout(()=>$('#settingsCloseBtn')?.focus(),120)}
-function closeSettingsDrawer(){const drawer=$('#settingsDrawer'),backdrop=$('#settingsBackdrop');if(!drawer)return;drawer.classList.remove('open');backdrop.classList.remove('open');drawer.setAttribute('aria-hidden','true');document.body.classList.remove('settingsOpen');setTimeout(()=>{if(!backdrop.classList.contains('open'))backdrop.hidden=true},280)}
+function settingsFocusables(){
+  const drawer=$('#settingsDrawer');if(!drawer)return[];
+  return [...drawer.querySelectorAll('button:not([disabled]),select:not([disabled]),input:not([disabled]),a[href],[tabindex]:not([tabindex="-1"])')].filter(el=>!el.hidden);
+}
+function setSettingsBackgroundInert(value){$('.appHeader,.appMain,.bottomNav').forEach(el=>{el.inert=!!value})}
+function handleSettingsKeydown(e){
+  const drawer=$('#settingsDrawer');if(!drawer?.classList.contains('open'))return;
+  if(e.key==='Escape'){e.preventDefault();closeSettingsDrawer();return}
+  if(e.key!=='Tab')return;
+  const focusable=settingsFocusables();if(!focusable.length){e.preventDefault();return}
+  const first=focusable[0],last=focusable.at(-1);
+  if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}
+  else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}
+}
+function openSettingsDrawer(){
+  ensureSettingsDrawer();syncSettingsDrawer();const drawer=$('#settingsDrawer'),backdrop=$('#settingsBackdrop');
+  settingsReturnFocus=document.activeElement;backdrop.hidden=false;drawer.setAttribute('aria-hidden','false');setSettingsBackgroundInert(true);document.body.classList.add('settingsOpen');
+  requestAnimationFrame(()=>{drawer.classList.add('open');backdrop.classList.add('open')});setTimeout(()=>$('#settingsCloseBtn')?.focus(),80);
+}
+function closeSettingsDrawer(){
+  const drawer=$('#settingsDrawer'),backdrop=$('#settingsBackdrop');if(!drawer)return;
+  drawer.classList.remove('open');backdrop.classList.remove('open');drawer.setAttribute('aria-hidden','true');setSettingsBackgroundInert(false);document.body.classList.remove('settingsOpen');
+  const delay=window.matchMedia('(prefers-reduced-motion: reduce)').matches?0:280;
+  setTimeout(()=>{if(!backdrop.classList.contains('open'))backdrop.hidden=true;const target=settingsReturnFocus;settingsReturnFocus=null;target?.focus?.()},delay);
+}
 function bindProfileUI(){
   $('#settingsAvatarBtn').onclick=openSettingsDrawer;$('#settingsCloseBtn').onclick=closeSettingsDrawer;$('#settingsBackdrop').onclick=closeSettingsDrawer;$('#editDogBtn').onclick=()=>{closeSettingsDrawer();setTimeout(()=>openDogProfileEditor(false),180)};
   $('#settingsDayType').onchange=e=>{dayType=e.target.value;store.set('patrickDayType',dayType);$('#dayType').value=dayType;renderToday();syncSettingsDrawer()};$('#exportBtn').onclick=exportProgress;$('#importBtn').onclick=()=>$('#importFileInput').click();$('#importFileInput').onchange=async e=>{const file=e.target.files?.[0];e.target.value='';await importProgressFile(file)};
   $('#notificationToggle').onclick=toggleDailyReminders;$('#notificationTime').onchange=async e=>{reminderSettings.time=e.target.value||'19:00';reminderSettings.lastNotifiedDate=null;await saveReminderSettings();scheduleForegroundReminder();syncReminderUI();toast(`Recordatorio: ${reminderSettings.time}`)};
   $('#saveProfileBtn').onclick=saveDogProfile;$('#profileCancelBtn').onclick=()=>$('#profileDialog').close();$('#dogNameInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();saveDogProfile()}});$('#dogAgeInput').addEventListener('input',updateDogAgePreview);
   $('#dogAgeUnit').addEventListener('change',()=>{const input=$('#dogAgeInput'),unit=$('#dogAgeUnit'),previous=unit.dataset.previous||'months',value=Number(input.value||0);if(value>0){const months=previous==='years'?value*12:value;input.value=unit.value==='years'?String(Math.round((months/12)*10)/10):String(Math.max(1,Math.round(months)))}unit.dataset.previous=unit.value;input.step=unit.value==='years'?'0.1':'1';updateDogAgePreview()});
-  $('#profileDialog').addEventListener('cancel',e=>{if($('#profileDialog').dataset.firstRun==='1')e.preventDefault()});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#settingsDrawer')?.classList.contains('open'))closeSettingsDrawer()});
+  $('#profileDialog').addEventListener('cancel',e=>{if($('#profileDialog').dataset.firstRun==='1')e.preventDefault()});document.addEventListener('keydown',handleSettingsKeydown);
 }
 function initProfileUI(){
   if(profileUiInitialized)return;profileUiInitialized=true;try{store.remove('patrickDark');localStorage.removeItem('patrickDark')}catch{}
