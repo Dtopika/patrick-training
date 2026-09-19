@@ -81,10 +81,10 @@ test('v6 bootstraps its dependencies when an older HTML shell loads newer JavaSc
   const env=baseContext();
   vm.runInContext(read('app-core.js'),env.ctx,{filename:'app-core.js'});
   await env.ctx.PATRICK_READY;
-  assert.equal(vm.runInContext("CONFIG.APP_VERSION",env.ctx),'7.0.0');
+  assert.equal(vm.runInContext("CONFIG.APP_VERSION",env.ctx),'7.1.0');
   assert.equal(vm.runInContext("typeof ENGINE.focusForLevel",env.ctx),'function');
   assert.equal(vm.runInContext("typeof BACKUP_SCHEMA.normalize",env.ctx),'function');
-  assert.deepEqual(env.scripts.map(s=>s.src),['config.js?v700-r1','training-engine.js?v700-r1','backup-schema.js?v700-r1']);
+  assert.deepEqual(env.scripts.map(s=>s.src),['config.js?v710-r1','training-engine.js?v710-r1','backup-schema.js?v710-r1']);
 });
 
 test('navigation and settings click wiring remain collection-safe',()=>{
@@ -100,13 +100,13 @@ test('navigation and settings click wiring remain collection-safe',()=>{
   }
 });
 
-test('v7 configuration centralizes public and schema versions',()=>{
+test('v7.1 configuration centralizes public and schema versions',()=>{
   const env=baseContext();loadArchitecture(env.ctx);
-  assert.equal(env.ctx.PATRICK_CONFIG.APP_VERSION,'7.0.0');
-  assert.equal(env.ctx.PATRICK_CONFIG.BACKUP_SCHEMA_VERSION,9);
+  assert.equal(env.ctx.PATRICK_CONFIG.APP_VERSION,'7.1.0');
+  assert.equal(env.ctx.PATRICK_CONFIG.BACKUP_SCHEMA_VERSION,10);
   assert.equal(env.ctx.PATRICK_CONFIG.SESSION_SCHEMA_VERSION,9);
-  assert.equal(env.ctx.PATRICK_CONFIG.CACHE_NAME,'patrick-training-v7.0.0-r1');
-  assert.equal(JSON.parse(read('package.json')).version,'7.0.0');
+  assert.equal(env.ctx.PATRICK_CONFIG.CACHE_NAME,'patrick-training-v7.1.0-r1');
+  assert.equal(JSON.parse(read('package.json')).version,'7.1.0');
 });
 
 test('storage reconciliation prefers newer local mirror and repairs IndexedDB',async()=>{
@@ -141,7 +141,7 @@ test('backup schema accepts 5.x backups, v6 schema, and rejects malformed nested
   const legacy=schema.normalize({version:5.1,currentLevel:1,dayType:'Todo el día',progress:{Sitz:'En práctica'},trials:{Sitz:[1,.5,0]},history:[],profile:{name:'Patrick',ageMonths:4},notifications:{enabled:false,time:'19:00'}},opts);
   assert.equal(legacy.profile.name,'Patrick');
   assert.deepEqual(Array.from(legacy.trials.Sitz),[1,.5,0]);
-  const current=schema.normalize({schemaVersion:9,appVersion:'7.0.0',currentLevel:0,dayType:'Solo noche',history:[]},opts);
+  const current=schema.normalize({schemaVersion:9,appVersion:'7.1.0',currentLevel:0,dayType:'Solo noche',history:[]},opts);
   assert.equal(current.dayType,'Solo noche');
   assert.throws(()=>schema.normalize({schemaVersion:7,currentLevel:0,dayType:'Todo el día',trials:{Sitz:['boom']}},opts));
   assert.throws(()=>schema.normalize({schemaVersion:7,currentLevel:0,dayType:'Todo el día',history:[null]},opts));
@@ -253,6 +253,28 @@ test('v7 adaptive engine uses precise timing, skill profiles and adaptive repeti
   assert.doesNotMatch(session,/const EXECUTIONS_PER_COMMAND=5/);
 });
 
+test('v7.1 archives overflow sessions and exposes a single teaching mission',async()=>{
+  const env=baseContext();await loadCore(env);
+  const sessions=Array.from({length:201},(_,i)=>({
+    version:9,at:new Date(Date.parse('2026-09-19T12:00:00Z')-i*86400000).toISOString(),level:0,dogName:'Patrick',
+    timingMode:'cue-to-rating',context:{environment:'Casa',distraction:'Baja'},
+    results:{Patrick:{achieved:4,assisted:0,missed:0,total:4,score:4,avgSeconds:1.2,outcomes:['achieved','achieved','achieved','achieved']}},
+    timings:{Patrick:[1200,1200,1200,1200]}
+  }));
+  const compacted=env.ctx.compactHistory(sessions,env.ctx.emptyHistoryArchive(),200);
+  assert.equal(compacted.history.length,200);
+  assert.equal(compacted.archive.totalSessions,1);
+  assert.equal(Object.values(compacted.archive.months)[0].sessions,1);
+  const index=read('index.html'),profile=read('profile.js'),progressSource=read('progress.js'),core=read('app-core.js');
+  assert.match(index,/id="dailyMission"/);
+  assert.match(index,/id="dailyPlanDetails"/);
+  assert.match(profile,/id="openTeachingGuideBtn"/);
+  assert.match(profile,/TEACHING_GUIDE_VERSION=1/);
+  assert.match(core,/patrickHistoryArchive/);
+  assert.match(core,/patrickTeachingOnboardingVersion/);
+  assert.match(progressSource,/function renderHistoryArchive/);
+});
+
 test('adaptive focus always returns command objects, never score wrappers',async()=>{
   const env=await loadCore(baseContext());
   const result=vm.runInContext("focusForLevel(0)",env.ctx);
@@ -287,9 +309,9 @@ test('all 41 commands map one-to-one to levels and curated videos',()=>{
   assert.deepEqual(new Set(videoCommands),new Set(commands));
 });
 
-test('v7 upgrade contract cache-busts every critical browser asset',()=>{
+test('v7.1 upgrade contract cache-busts every critical browser asset',()=>{
   const index=read('index.html'),styles=read('styles.css'),pwa=read('pwa.js'),sw=read('sw.js');
-  const tag='v700-r1';
+  const tag='v710-r1';
   const scriptSrc=[...index.matchAll(/<script src="([^"]+\.js\?[^"]+)"><\/script>/g)].map(m=>m[1]);
   assert.ok(scriptSrc.length>=10,'expected versioned script URLs');
   assert.ok(scriptSrc.every(src=>src.endsWith('?'+tag)));
