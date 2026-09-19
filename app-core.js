@@ -112,12 +112,20 @@ function focusForLevel(n){
 function microPlan(){const f=focusForLevel(currentLevel);const known=COMMANDS.filter(c=>c.level<currentLevel&&STATE_SCORE[stateOf(c.cmd)]>=2).slice(-2);if(dayType==='Solo noche')return[['Al llegar','4–5 min','Nuevo + fácil',[f[0],known.at(-1)].filter(Boolean)],['Más tarde','4–5 min','Segundo foco + repaso',[f[1]||f[0],known.at(-2)].filter(Boolean)],['Antes de dormir','1–2 min','Una victoria fácil',[known.at(-1)||f[0]].filter(Boolean)]];return[['Mañana','3–5 min','Foco principal',[f[0],known.at(-1)].filter(Boolean)],['Mediodía','3–5 min','Control / calma',[f.find(c=>['Control','Autocontrol','Casa'].includes(c.category))||f[1]||f[0]].filter(Boolean)],['Tarde','3–5 min','Segundo foco',[f[1]||f[0]].filter(Boolean)],['Noche','2–4 min','Repaso fácil + juego',[known.at(-1)||f.at(-1)].filter(Boolean)]]}
 function setView(id){$$('.view').forEach(v=>v.classList.toggle('active',v.id===id));$$('.bottomNav button').forEach(b=>b.classList.toggle('active',b.dataset.view===id));scrollTo({top:0,behavior:'smooth'});if(id==='progress')renderProgress();if(id==='commands')renderCommands();if(id==='levels')renderLevels()}
 function renderDogIdentity(){const name=dogName();if($('#dogNameHeader'))$('#dogNameHeader').textContent=name;if($('#todayHeading'))$('#todayHeading').textContent=`Hoy con ${name}`;if($('#advanceTitle'))$('#advanceTitle').textContent=`${name} está listo para avanzar`;if($('#dogProfileName'))$('#dogProfileName').textContent=name;if($('#storageModeLabel'))$('#storageModeLabel').textContent=storageMode==='indexeddb'?'IndexedDB':'almacenamiento local'}
+function focusChipHtml(c){
+  if(!c||typeof c!=='object')return'';
+  const raw=String(c.cmd||'').trim();if(!raw)return'';
+  const label=raw==='Patrick'?dogName():raw;
+  const pron=raw==='Patrick'?(String(c.pron||'Pá-trik').trim()):(String(c.pron||'').trim());
+  if(!label)return'';
+  return `<span class="focusChip">${escapeHtml(label)}${pron?` <small>${escapeHtml(pron)}</small>`:''}</span>`;
+}
 function renderToday(){
   const l=levelBy(currentLevel),ready=levelReady(currentLevel);renderDogIdentity();
   $('#headerLevel').textContent=`Nivel ${currentLevel} · ${l.title}`;
   $('#todaySummary').textContent=history.length===0?'Tu primera sesión puede durar apenas unos minutos. La constancia vale más que la duración.':dayType==='Solo noche'?'Plan adaptativo compacto: prioriza lo que más necesita refuerzo.':'Plan adaptativo: combina nivel actual, rendimiento reciente y repaso espaciado.';
   $('#dayType').value=dayType;$('#levelBadge').textContent=`Nivel ${currentLevel}`;$('#readinessBadge').textContent=ready&&currentLevel<10?'Listo para avanzar':'En curso';$('#readinessBadge').classList.toggle('ready',ready);$('#sessionTitle').textContent=l.title;$('#sessionGoal').textContent=l.goal;
-  const focus=focusForLevel(currentLevel);$('#focusCommands').innerHTML=focus.map(c=>`<span class="focusChip">${escapeHtml(displayCommand(c))} <small>${escapeHtml(displayPron(c))}</small></span>`).join('');
+  const focus=focusForLevel(currentLevel).filter(c=>c&&String(c.cmd||'').trim());$('#focusCommands').innerHTML=focus.map(focusChipHtml).filter(Boolean).join('');
   $('#metricProgress').textContent=totalProgress()+'%';$('#metricSolid').textContent=solidCount();$('#metricSessions').textContent=history.length;
   $('#todayPlan').innerHTML=microPlan().map(([name,dur,goal,cmds],i)=>`<article class="planItem"><span class="planNumber">${i+1}</span><div><strong>${name} · ${goal}</strong><p>${cmds.map(c=>displayCommand(c)).join(' · ')||'Juego y vínculo'}</p></div><small>${dur}</small></article>`).join('');
   $('#advanceCard').hidden=!(ready&&currentLevel<10);
