@@ -50,7 +50,7 @@
         const achieved=Number(r.achieved),assisted=Number(r.assisted),missed=Number(r.missed),total=Number(r.total),score=Number(r.score),avgSeconds=Number(r.avgSeconds||0);
         if([achieved,assisted,missed,total].some(n=>!Number.isInteger(n)||n<0||n>5)||achieved+assisted+missed!==total||total>5||!Number.isFinite(score)||score<0||score>5||!Number.isFinite(avgSeconds)||avgSeconds<0||avgSeconds>3600)fail('Resultado de sesión inválido');
         const outcomes=r.outcomes===undefined?undefined:Array.isArray(r.outcomes)?r.outcomes.map(String):null;
-        if(outcomes===null||outcomes?.length!==total||outcomes?.some(x=>!['achieved','assisted','missed'].includes(x)))fail('Detalle de resultados inválido');
+        if(outcomes!==undefined&&(outcomes===null||outcomes.length!==total||outcomes.some(x=>!['achieved','assisted','missed'].includes(x))))fail('Detalle de resultados inválido');
         results[cmd]={achieved,assisted,missed,total,score,avgSeconds,...(outcomes?{outcomes}:{})};
       }
       if(item.timings!==undefined){
