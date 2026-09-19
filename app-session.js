@@ -1,15 +1,17 @@
 const EXECUTIONS_PER_COMMAND=5;
 const OUTCOME_SCORE={missed:0,assisted:.5,achieved:1};
 const OUTCOME_LABEL={missed:'No logrado',assisted:'Con ayuda',achieved:'Logrado'};
-let executionTimerId=null,executionStartedAt=0,executionElapsedMs=0,sessionAdvancing=false;
+let executionTimerId=null,sessionAdvanceTimeoutId=null,executionStartedAt=0,executionElapsedMs=0,sessionAdvancing=false;
 
-function updateRolling(cmd,score){
-  const arr=trials[cmd]||[];arr.push(Number(score)||0);trials[cmd]=arr.slice(-10);store.set('patrickTrials',trials);
-  if(stateOf(cmd)==='No iniciado')progress[cmd]='En práctica';
-  const points=trials[cmd].reduce((a,b)=>a+(Number(b)||0),0);
-  if(trials[cmd].length>=10&&points>=8&&STATE_SCORE[stateOf(cmd)]<2)progress[cmd]='Consistente';
-  store.set('patrickProgress',progress);
+function clearSessionAdvanceTimer(){if(sessionAdvanceTimeoutId){clearTimeout(sessionAdvanceTimeoutId);sessionAdvanceTimeoutId=null}}
+function applyRollingToState(nextTrials,nextProgress,cmd,score){
+  const arr=Array.isArray(nextTrials[cmd])?[...nextTrials[cmd]]:[];arr.push(Number(score)||0);nextTrials[cmd]=arr.slice(-10);
+  const current=nextProgress[cmd]||'No iniciado';
+  if(current==='No iniciado')nextProgress[cmd]='En práctica';
+  const points=nextTrials[cmd].reduce((a,b)=>a+(Number(b)||0),0);
+  if(nextTrials[cmd].length>=10&&points>=8&&STATE_SCORE[nextProgress[cmd]||'No iniciado']<2)nextProgress[cmd]='Consistente';
 }
+function levelReadyWithProgress(n,nextProgress){return levelBy(n).commands.every(cmd=>STATE_SCORE[nextProgress[cmd]||'No iniciado']>=2)}
 function ensureExecutionUI(){
   if($('#executionCoach'))return;
   const target=$('#sessionMeaning'),box=document.createElement('section');box.id='executionCoach';box.className='executionCoach';
@@ -34,12 +36,14 @@ function updateExecutionUI(){
   $('#executionHint').textContent=`Haz la ejecución con ${dogName()} y califica cómo salió. La app avanza sola.`;
 }
 function startSession(cmds=focusForLevel(currentLevel)){
-  if(!cmds.length)return;stopExecutionTimer();sessionAdvancing=false;
-  session={commands:cmds,index:0,trial:0,results:{},timings:{}};
-  cmds.forEach(c=>{session.results[c.cmd]=[];session.timings[c.cmd]=[]});
+  const safeCommands=(Array.isArray(cmds)?cmds:[]).filter(c=>c&&typeof c.cmd==='string');if(!safeCommands.length)return;
+  clearSessionAdvanceTimer();stopExecutionTimer();sessionAdvancing=false;
+  session={commands:safeCommands,index:0,trial:0,results:{},timings:{}};
+  safeCommands.forEach(c=>{session.results[c.cmd]=[];session.timings[c.cmd]=[]});
   $('#sessionDialog').showModal();renderSessionStep();
 }
 function renderSessionStep(){
+  if(!session)return;
   const c=session.commands[session.index],total=session.commands.length;
   $('#sessionCounter').textContent=`Comando ${session.index+1} de ${total}`;$('#sessionCommandTitle').textContent=displayCommand(c);$('#sessionCategory').textContent=`Nivel ${c.level} · ${c.category}`;$('#sessionPron').textContent=displayPron(c);$('#sessionMeaning').textContent=c.meaning;$('#sessionSignal').textContent=c.signal;$('#sessionAction').textContent=c.action;$('#sessionHow').textContent=c.how;$('#sessionReward').textContent=c.reward;
   const done=session.index*EXECUTIONS_PER_COMMAND+session.trial;$('#sessionProgressBar').style.width=`${Math.round(done/(total*EXECUTIONS_PER_COMMAND)*100)}%`;
@@ -48,22 +52,38 @@ function renderSessionStep(){
 function rateExecution(outcome){
   if(!session||sessionAdvancing||!(outcome in OUTCOME_SCORE))return;
   sessionAdvancing=true;setOutcomeButtonsDisabled(true);stopExecutionTimer();
-  const c=session.commands[session.index];session.results[c.cmd].push(outcome);session.timings[c.cmd].push(executionElapsedMs);updateRolling(c.cmd,OUTCOME_SCORE[outcome]);session.trial++;
+  const c=session.commands[session.index];session.results[c.cmd].push(outcome);session.timings[c.cmd].push(executionElapsedMs);session.trial++;
   $('#executionTimer').textContent=formatExecutionTime(executionElapsedMs);const state=$('#executionState');state.textContent=OUTCOME_LABEL[outcome];state.className=`executionState ${outcome}`;updateExecutionDots();
   const done=session.index*EXECUTIONS_PER_COMMAND+session.trial;$('#sessionProgressBar').style.width=`${Math.round(done/(session.commands.length*EXECUTIONS_PER_COMMAND)*100)}%`;
-  setTimeout(()=>{
+  clearSessionAdvanceTimer();
+  sessionAdvanceTimeoutId=setTimeout(()=>{
+    sessionAdvanceTimeoutId=null;if(!session)return;
     if(session.trial>=EXECUTIONS_PER_COMMAND){toast(`${displayCommand(c)} · 5 ejecuciones registradas`);session.index++;session.trial=0;if(session.index>=session.commands.length){finishSession();return}}
     renderSessionStep();
   },480);
 }
-function finishSession(){
-  stopExecutionTimer();const finishedLevel=currentLevel,stamp={version:5,at:new Date().toISOString(),level:finishedLevel,dogName:dogName(),results:{},timings:session.timings};
-  Object.entries(session.results).forEach(([cmd,arr])=>{const times=session.timings[cmd]||[],counts={achieved:arr.filter(x=>x==='achieved').length,assisted:arr.filter(x=>x==='assisted').length,missed:arr.filter(x=>x==='missed').length};stamp.results[cmd]={...counts,total:arr.length,score:arr.reduce((a,x)=>a+OUTCOME_SCORE[x],0),avgSeconds:times.length?Math.round(times.reduce((a,b)=>a+b,0)/times.length/100)/10:0}});
-  history.unshift(stamp);history=history.slice(0,200);store.set('patrickHistory',history);$('#sessionDialog').close();
-  let advanced=false;if(levelReady(finishedLevel)&&finishedLevel<10&&currentLevel===finishedLevel){currentLevel=finishedLevel+1;store.set('patrickCurrentLevel',currentLevel);advanced=true}
+function sessionAttemptCount(){return session?Object.values(session.results).reduce((sum,list)=>sum+(Array.isArray(list)?list.length:0),0):0}
+function requestExitSession(){
+  if(!session){$('#sessionDialog').close();return}
+  const attempts=sessionAttemptCount(),message=attempts?'¿Salir de la sesión? Las ejecuciones de esta sesión no se guardarán.':'¿Salir de la sesión actual?';
+  if(!confirm(message))return;
+  clearSessionAdvanceTimer();stopExecutionTimer();session=null;sessionAdvancing=false;setOutcomeButtonsDisabled(false);$('#sessionDialog').close();
+}
+async function finishSession(){
+  if(!session)return;
+  clearSessionAdvanceTimer();stopExecutionTimer();sessionAdvancing=true;setOutcomeButtonsDisabled(true);
+  const activeSession=session,finishedLevel=currentLevel;
+  const nextTrials=Object.fromEntries(Object.entries(trials).map(([cmd,list])=>[cmd,Array.isArray(list)?[...list]:[]])),nextProgress={...progress};
+  for(const [cmd,outcomes] of Object.entries(activeSession.results))for(const outcome of outcomes)applyRollingToState(nextTrials,nextProgress,cmd,OUTCOME_SCORE[outcome]);
+  const stamp={version:6,at:new Date().toISOString(),level:finishedLevel,dogName:dogName(),results:{},timings:activeSession.timings};
+  Object.entries(activeSession.results).forEach(([cmd,arr])=>{const times=activeSession.timings[cmd]||[],counts={achieved:arr.filter(x=>x==='achieved').length,assisted:arr.filter(x=>x==='assisted').length,missed:arr.filter(x=>x==='missed').length};stamp.results[cmd]={...counts,total:arr.length,score:arr.reduce((a,x)=>a+OUTCOME_SCORE[x],0),avgSeconds:times.length?Math.round(times.reduce((a,b)=>a+b,0)/times.length/100)/10:0}});
+  const nextHistory=[stamp,...history].slice(0,200);
+  const advanced=levelReadyWithProgress(finishedLevel,nextProgress)&&finishedLevel<10&&currentLevel===finishedLevel,nextLevel=advanced?finishedLevel+1:currentLevel;
+  await store.setMany({patrickTrials:nextTrials,patrickProgress:nextProgress,patrickHistory:nextHistory,patrickCurrentLevel:nextLevel});
+  trials=nextTrials;progress=nextProgress;history=nextHistory;currentLevel=nextLevel;session=null;$('#sessionDialog').close();
   $('#finishSummary').textContent=advanced?`Nivel ${finishedLevel} completado. Nivel ${currentLevel} desbloqueado automáticamente.`:`Sesión guardada. Una práctica corta y clara ya cuenta para la racha de ${dogName()}.`;
   $('#finishResults').innerHTML=Object.entries(stamp.results).map(([cmd,r])=>{const c=commandBy(cmd);return `<div class="finishResult"><strong>${escapeHtml(displayCommand(c||cmd))}</strong><span>${r.achieved} logradas · ${r.assisted} con ayuda · ${r.missed} no logradas${r.avgSeconds?` · ${r.avgSeconds} s`:''}</span></div>`}).join('');
-  $('#finishBtn').textContent=advanced?`Continuar · Nivel ${currentLevel}`:'Volver a Hoy';$('#finishDialog').showModal();renderAll();
+  $('#finishBtn').textContent=advanced?`Continuar · Nivel ${currentLevel}`:'Volver a Hoy';$('#finishDialog').showModal();renderAll();sessionAdvancing=false;
 }
 function renderAll(){renderToday();renderLevels();renderProgress();renderHabit();if($('#commands').classList.contains('active'))renderCommands();syncSettingsDrawer()}
 
@@ -74,7 +94,7 @@ function init(){
   $('#startSessionBtn').onclick=()=>startSession();$('#firstSessionBtn').onclick=()=>startSession();
   $('#advanceBtn').onclick=()=>{if(currentLevel<10){currentLevel++;store.set('patrickCurrentLevel',currentLevel);renderAll();toast(`Nivel ${currentLevel} activado`)}};
   $('#search').oninput=renderCommands;
-  $('#closeSessionBtn').onclick=()=>{if(confirm('¿Salir de la sesión actual?')){stopExecutionTimer();$('#sessionDialog').close()}};
+  $('#closeSessionBtn').onclick=requestExitSession;$('#sessionDialog').addEventListener('cancel',e=>{e.preventDefault();requestExitSession()});
   $('#missedBtn').onclick=()=>rateExecution('missed');$('#assistedBtn').onclick=()=>rateExecution('assisted');$('#correctBtn').onclick=()=>rateExecution('achieved');
   $('#finishBtn').onclick=()=>{$('#finishDialog').close();setView('today')};
   renderCommands();renderAll();document.dispatchEvent(new Event('patrick:ready'));
