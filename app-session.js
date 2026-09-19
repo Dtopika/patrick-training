@@ -1,7 +1,7 @@
 const EXECUTIONS_PER_COMMAND=5;
 const OUTCOME_SCORE={missed:0,assisted:.5,achieved:1};
 const OUTCOME_LABEL={missed:'No logrado',assisted:'Con ayuda',achieved:'Logrado'};
-let executionTimerId=null,sessionAdvanceTimeoutId=null,executionStartedAt=0,executionElapsedMs=0,sessionAdvancing=false;
+let executionTimerId=null,sessionAdvanceTimeoutId=null,executionStartedAt=0,executionElapsedMs=0,sessionAdvancing=false,lastRatedExecution=null;
 let pendingStartRequest=null,startChoiceMode='recommended';
 
 function clearSessionAdvanceTimer(){if(sessionAdvanceTimeoutId){clearTimeout(sessionAdvanceTimeoutId);sessionAdvanceTimeoutId=null}}
@@ -24,7 +24,7 @@ function ensureExecutionUI(){
   ensureSessionContextUI();
   if($('#executionCoach'))return;
   const target=$('#sessionMeaning'),box=document.createElement('section');box.id='executionCoach';box.className='executionCoach';
-  box.innerHTML='<div class="executionTop"><div><small id="executionLabel">EJECUCIÓN 1 DE 5</small><strong id="executionTimer">00:00.0</strong></div><span id="executionState" class="executionState">En curso</span></div><div id="executionDots" class="executionDots" aria-label="Progreso de ejecuciones"></div><p id="executionHint" class="executionHint"></p>';
+  box.innerHTML='<div class="executionTop"><div><small id="executionLabel">EJECUCIÓN 1 DE 5</small><strong id="executionTimer">00:00.0</strong></div><span id="executionState" class="executionState">En curso</span></div><div id="executionDots" class="executionDots" aria-label="Progreso de ejecuciones"></div><p id="executionHint" class="executionHint"></p><button id="undoExecutionBtn" class="executionUndoBtn" type="button" hidden>↶ Deshacer último resultado</button>';
   target.insertAdjacentElement('afterend',box);
 }
 function formatExecutionTime(ms){const total=Math.max(0,ms)/1000,min=Math.floor(total/60),sec=Math.floor(total%60),tenth=Math.floor((total%1)*10);return`${String(min).padStart(2,'0')}:${String(sec).padStart(2,'0')}.${tenth}`}
@@ -37,6 +37,7 @@ function updateExecutionDots(){
   $('#executionDots').innerHTML=Array.from({length:EXECUTIONS_PER_COMMAND},(_,i)=>{const outcome=results[i],current=!outcome&&i===session.trial;return `<span class="${current?'current':''} ${outcome||''}">${outcome?outcomeMark(outcome):i+1}</span>`}).join('');
 }
 function setOutcomeButtonsDisabled(disabled){['#missedBtn','#assistedBtn','#correctBtn'].forEach(id=>{const b=$(id);if(b)b.disabled=disabled})}
+function setUndoExecutionVisible(visible){const button=$('#undoExecutionBtn');if(button)button.hidden=!visible}
 function setSessionContextLocked(locked){['#sessionEnvironment','#sessionDistraction'].forEach(id=>{const el=$(id);if(el)el.disabled=!!locked})}
 function updateSessionContextFromUI(){
   if(!session||sessionAttemptCount()>0)return;
@@ -106,27 +107,41 @@ function renderSessionStep(){
   $('#sessionCounter').textContent=`Comando ${session.index+1} de ${total}`;$('#sessionCommandTitle').textContent=displayCommand(c);$('#sessionCategory').textContent=`Nivel ${c.level} · ${c.category}`;$('#sessionPron').textContent=displayPron(c);$('#sessionMeaning').textContent=c.meaning;$('#sessionSignal').textContent=c.signal;$('#sessionAction').textContent=c.action;$('#sessionHow').textContent=c.how;$('#sessionReward').textContent=c.reward;
   const safety=trainingSafety(c),safetyBox=$('#sessionSafety');if(safetyBox){safetyBox.hidden=!safety;safetyBox.classList.toggle('deferred',!!safety?.deferFromAdaptive);if(safety)safetyBox.innerHTML=`<strong>${escapeHtml(safety.label)}</strong><span>${escapeHtml(safety.message)}</span>`}
   const done=session.index*EXECUTIONS_PER_COMMAND+session.trial;$('#sessionProgressBar').style.width=`${Math.round(done/(total*EXECUTIONS_PER_COMMAND)*100)}%`;
-  syncSessionContextUI(c);$('#sessionAudioBtn').onclick=()=>speak(c);updateExecutionUI();startExecutionTimer();sessionAdvancing=false;setOutcomeButtonsDisabled(false);
+  lastRatedExecution=null;setUndoExecutionVisible(false);syncSessionContextUI(c);$('#sessionAudioBtn').onclick=()=>speak(c);updateExecutionUI();startExecutionTimer();sessionAdvancing=false;setOutcomeButtonsDisabled(false);
 }
 function rateExecution(outcome){
   if(!session||sessionAdvancing||!(outcome in OUTCOME_SCORE))return;
   sessionAdvancing=true;setOutcomeButtonsDisabled(true);stopExecutionTimer();
-  const c=session.commands[session.index];session.results[c.cmd].push(outcome);session.timings[c.cmd].push(executionElapsedMs);session.trial++;setSessionContextLocked(true);
-  $('#executionTimer').textContent=formatExecutionTime(executionElapsedMs);const state=$('#executionState');state.textContent=OUTCOME_LABEL[outcome];state.className=`executionState ${outcome}`;updateExecutionDots();
+  const c=session.commands[session.index],ratedMs=executionElapsedMs;
+  lastRatedExecution={commandIndex:session.index,cmd:c.cmd,trialBefore:session.trial,outcome,elapsedMs:ratedMs};
+  session.results[c.cmd].push(outcome);session.timings[c.cmd].push(ratedMs);session.trial++;setSessionContextLocked(true);
+  $('#executionTimer').textContent=formatExecutionTime(ratedMs);const state=$('#executionState');state.textContent=OUTCOME_LABEL[outcome];state.className=`executionState ${outcome}`;updateExecutionDots();setUndoExecutionVisible(true);
   const done=session.index*EXECUTIONS_PER_COMMAND+session.trial;$('#sessionProgressBar').style.width=`${Math.round(done/(session.commands.length*EXECUTIONS_PER_COMMAND)*100)}%`;
   clearSessionAdvanceTimer();
   sessionAdvanceTimeoutId=setTimeout(()=>{
-    sessionAdvanceTimeoutId=null;if(!session)return;
+    sessionAdvanceTimeoutId=null;lastRatedExecution=null;setUndoExecutionVisible(false);if(!session)return;
     if(session.trial>=EXECUTIONS_PER_COMMAND){toast(`${displayCommand(c)} · 5 ejecuciones registradas`);session.index++;session.trial=0;if(session.index>=session.commands.length){finishSession();return}}
     renderSessionStep();
-  },480);
+  },1600);
+}
+function undoLastExecution(){
+  if(!session||!lastRatedExecution)return;
+  clearSessionAdvanceTimer();
+  const last=lastRatedExecution,c=session.commands[last.commandIndex];
+  if(!c||c.cmd!==last.cmd||session.index!==last.commandIndex)return;
+  const results=session.results[last.cmd]||[],timings=session.timings[last.cmd]||[];
+  if(results.length)results.pop();if(timings.length)timings.pop();
+  session.trial=Math.max(0,last.trialBefore);lastRatedExecution=null;sessionAdvancing=false;setOutcomeButtonsDisabled(false);setUndoExecutionVisible(false);
+  setSessionContextLocked(sessionAttemptCount()>0);
+  const done=session.index*EXECUTIONS_PER_COMMAND+session.trial;$('#sessionProgressBar').style.width=`${Math.round(done/(session.commands.length*EXECUTIONS_PER_COMMAND)*100)}%`;
+  updateExecutionUI();startExecutionTimer();toast('Último resultado deshecho');
 }
 function sessionAttemptCount(){return session?Object.values(session.results).reduce((sum,list)=>sum+(Array.isArray(list)?list.length:0),0):0}
 function requestExitSession(){
   if(!session){$('#sessionDialog').close();return}
   const attempts=sessionAttemptCount(),message=attempts?'¿Salir de la sesión? Las ejecuciones de esta sesión no se guardarán.':'¿Salir de la sesión actual?';
   if(!confirm(message))return;
-  clearSessionAdvanceTimer();stopExecutionTimer();session=null;sessionAdvancing=false;setOutcomeButtonsDisabled(false);$('#sessionDialog').close();
+  clearSessionAdvanceTimer();stopExecutionTimer();lastRatedExecution=null;setUndoExecutionVisible(false);session=null;sessionAdvancing=false;setOutcomeButtonsDisabled(false);$('#sessionDialog').close();
 }
 async function finishSession(){
   if(!session)return;
@@ -160,7 +175,7 @@ function init(){
   $('#startChoiceDialog').addEventListener('cancel',e=>{e.preventDefault();closeStartChoice()});$('#startChoiceDialog').addEventListener('click',e=>{if(e.target===$('#startChoiceDialog'))closeStartChoice()});
   $('#search').oninput=renderCommands;
   $('#closeSessionBtn').onclick=requestExitSession;$('#sessionDialog').addEventListener('cancel',e=>{e.preventDefault();requestExitSession()});
-  $('#missedBtn').onclick=()=>rateExecution('missed');$('#assistedBtn').onclick=()=>rateExecution('assisted');$('#correctBtn').onclick=()=>rateExecution('achieved');
+  $('#missedBtn').onclick=()=>rateExecution('missed');$('#assistedBtn').onclick=()=>rateExecution('assisted');$('#correctBtn').onclick=()=>rateExecution('achieved');$('#undoExecutionBtn').onclick=undoLastExecution;
   $('#finishBtn').onclick=()=>{$('#finishDialog').close();setView('today')};
   renderCommands();renderAll();document.dispatchEvent(new Event('patrick:ready'));
 }
