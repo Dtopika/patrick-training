@@ -10,7 +10,7 @@ PWA móvil, local-first, para entrenar a Patrick con comandos en alemán, sesion
 ## Funciones
 - 41 comandos organizados en niveles 0 → 10.
 - Sesiones guiadas de cinco ejecuciones por comando.
-- Motor adaptativo por rendimiento, antigüedad de práctica y etapa/edad del perro.
+- Motor adaptativo v2 por nivel, rendimiento, antigüedad, contexto y etapa/edad del perro.\n- Progresión automática: consistencia → generalización → dominio basada en evidencia.\n- Contexto de sesión por entorno y nivel de distracción.
 - Historial, racha y evidencia reciente por comando.
 - Perfil del perro con edad y recomendaciones de seguridad.
 - Videos curados y pronunciación mediante la voz alemana del dispositivo.
