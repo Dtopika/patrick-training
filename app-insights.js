@@ -15,13 +15,13 @@ function renderSmartDailyPlan(){
   const plan=ENGINE.dailyPlan(COMMANDS,currentLevel,{dayType,trials,history,progress,stateScore:STATE_SCORE,profile:dogProfile});
   if(!plan.items.length){root.innerHTML='';root.hidden=true;return}
   root.hidden=false;
-  root.innerHTML=`<div class="smartPlanHead"><div><p class="kicker">ENTRENADOR ADAPTATIVO</p><h2>${escapeHtml(plan.title)}</h2><p>${plan.totalMinutes} min aprox. · ${escapeHtml(plan.stage)}</p></div><span class="smartPlanBadge">v2</span></div>
+  root.innerHTML=`<div class="smartPlanHead"><div><p class="kicker">ENTRENADOR ADAPTATIVO</p><h2>${escapeHtml(plan.title)}</h2><p>${plan.totalMinutes} min aprox. · ${escapeHtml(plan.stage)}</p></div><span class="smartPlanBadge">v3</span></div>
     <div class="smartPlanList">${plan.items.map((item,i)=>`<article class="smartPlanItem">
       <span class="smartPlanIndex">${i+1}</span>
-      <div class="smartPlanBody"><div class="smartPlanTitle"><strong>${escapeHtml(displayCommand(item.command))}</strong><span>${escapeHtml(item.state)}</span></div>
+      <div class="smartPlanBody"><div class="smartPlanTitle"><strong>${escapeHtml(displayCommand(item.command))}</strong><span>${escapeHtml(item.state)} · confianza ${escapeHtml(item.confidence.level.toLowerCase())}</span></div>
       <p>${escapeHtml(item.objective)}</p><small>${escapeHtml(item.reason)}</small>
-      <div class="smartPlanContext"><span>${escapeHtml(item.context.label)}</span><span>${item.attempts} ejecuciones · ${item.minutes} min</span></div></div>
-      <button class="smartPlanStart" type="button" data-smart-practice="${escapeHtml(item.command.cmd)}" data-environment="${escapeHtml(item.context.environment)}" data-distraction="${escapeHtml(item.context.distraction)}">Practicar</button>
+      <div class="smartPlanContext"><span>${escapeHtml(item.context.label)}</span><span>${escapeHtml(item.difficulty.target)}</span><span>${item.attempts} ejecuciones · ${item.minutes} min</span></div></div>
+      <button class="smartPlanStart" type="button" data-smart-practice="${escapeHtml(item.command.cmd)}">Practicar</button>
     </article>`).join('')}</div>`;
 }
 
@@ -48,7 +48,7 @@ function renderEvolutionDashboard(){
 function commandSeriesHtml(series){
   if(!series.length)return'<p class="insightEmpty">Todavía no hay sesiones terminadas para este comando.</p>';
   const fmt=new Intl.DateTimeFormat('es-CO',{day:'numeric',month:'short'});
-  return`<div class="commandSeriesRail" role="list" aria-label="Sesiones recientes, de izquierda a derecha">${series.map(item=>`<article class="commandSessionCard" role="listitem"><small>${fmt.format(new Date(item.at))}</small><strong>${Math.round(item.accuracy*100)}%</strong><span>${escapeHtml(ENGINE.contextLabel(item.context))}</span></article>`).join('')}</div><small class="commandSeriesHint">Más antiguo ← desliza → más reciente</small>`;
+  return`<div class="commandSeriesRail" role="list" aria-label="Sesiones recientes, de izquierda a derecha">${series.map(item=>`<article class="commandSessionCard" role="listitem"><small>${fmt.format(new Date(item.at))}</small><strong>${Math.round(item.accuracy*100)}%</strong><span>${escapeHtml(ENGINE.contextLabel(item.context))}</span>${item.timingMode==='cue-to-rating'&&item.avgSeconds?`<span>${item.avgSeconds.toFixed(1)} s · tiempo preciso</span>`:''}</article>`).join('')}</div><small class="commandSeriesHint">Más antiguo ← desliza → más reciente</small>`;
 }
 
 function openCommandInsight(cmdName){
@@ -64,9 +64,11 @@ function openCommandInsight(cmdName){
   $('#commandInsightLast').textContent=relativePracticeLabel(stats.lastMs);
   $('#commandInsightContexts').textContent=String(evidence.contextCount);
   $('#commandInsightTrend').textContent=trend.delta===null?'Sin comparación':signedPct(trend.delta);
+  $('#commandInsightConfidence').textContent=details.confidence.level;
   $('#commandInsightSeries').innerHTML=commandSeriesHtml(series);
   $('#commandInsightWhy').innerHTML=details.reasons.map(x=>`<li>${escapeHtml(x)}</li>`).join('');
-  $('#commandInsightNext').innerHTML=`<strong>${escapeHtml(details.recommendation.label)}</strong><span>${escapeHtml(stateProgressHint(stateOf(command.cmd)))}</span>`;
+  const timingText=details.timing.recentCount?`${details.timing.targetLabel} · observado ≈ ${details.timing.medianSeconds.toFixed(1)} s`:'El tiempo preciso aparecerá después de nuevas sesiones v7.';
+  $('#commandInsightNext').innerHTML=`<strong>${escapeHtml(details.difficulty.label)}</strong><span>${escapeHtml(stateProgressHint(stateOf(command.cmd)))}</span><span>${escapeHtml(timingText)}</span><span>${details.attempts} ejecuciones recomendadas · confianza ${escapeHtml(details.confidence.level.toLowerCase())}</span>`;
   const safety=details.safety,box=$('#commandInsightSafety');box.hidden=!safety;if(safety)box.innerHTML=`<strong>${escapeHtml(safety.label)}</strong><span>${escapeHtml(safety.message)}</span>`;
   if(!dialog.open)dialog.showModal();
 }
