@@ -60,8 +60,9 @@
           const safe=list.map(Number);if(safe.some(n=>!Number.isFinite(n)||n<0||n>3600000))fail('Tiempo de ejecución inválido');timings[cmd]=safe;
         }
       }
-      const context=normalizeTrainingContext(item.context);
-      return{version:Number(item.version)||5,at:new Date(item.at).toISOString(),level,dogName:String(item.dogName||'Patrick').trim().slice(0,24)||'Patrick',results,timings,context};
+      const context=normalizeTrainingContext(item.context),timingMode=item.timingMode===undefined?undefined:String(item.timingMode);
+      if(timingMode!==undefined&&timingMode!=='cue-to-rating')fail('Modo de tiempo de sesión inválido');
+      return{version:Number(item.version)||5,at:new Date(item.at).toISOString(),level,dogName:String(item.dogName||'Patrick').trim().slice(0,24)||'Patrick',results,timings,context,...(timingMode?{timingMode}:{})};
     });
   }
   function normalizeNotifications(value){
@@ -72,7 +73,7 @@
   function normalizeTheme(value,current='system'){
     const theme=String(value??current??'system');return['system','light','dark'].includes(theme)?theme:'system';
   }
-  function normalize(data,{commands=[],states=[],currentProfile=null,currentTrainingContext={environment:'Casa',distraction:'Baja'},currentTheme='system',maxSchemaVersion=8}={}){
+  function normalize(data,{commands=[],states=[],currentProfile=null,currentTrainingContext={environment:'Casa',distraction:'Baja'},currentTheme='system',maxSchemaVersion=9}={}){
     if(!plainObject(data))fail('Formato de respaldo inválido');
     const schema=Number(data.schemaVersion??data.version??5);
     if(!Number.isFinite(schema)||schema<5||schema>maxSchemaVersion)fail('Versión de respaldo no compatible');
