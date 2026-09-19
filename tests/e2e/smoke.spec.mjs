@@ -87,6 +87,50 @@ test('German voice settings and long-term evolution are available on mobile',asy
   await expect(page.locator('#longTermEvolution .longTermMonth')).toHaveCount(2);
 });
 
+test('full reset requires two confirmations and only then returns to first-run wizard',async({page})=>{
+  await onboard(page);
+  await expect.poll(()=>page.evaluate(()=>dogName())).toBe('Patrick');
+
+  await page.locator('#settingsAvatarBtn').click();
+  await page.locator('#openAppSettingsBtn').click();
+  await expect(page.locator('#appSettingsDialog')).toBeVisible();
+  await expect(page.locator('#resetAllDataBtn')).toBeVisible();
+
+  const firstMessages=[];
+  page.once('dialog',async dialog=>{firstMessages.push(dialog.message());await dialog.dismiss()});
+  await page.locator('#resetAllDataBtn').click();
+  await expect.poll(()=>firstMessages.length).toBe(1);
+  await expect.poll(()=>page.evaluate(()=>dogName())).toBe('Patrick');
+  await expect(page.locator('#setupWizardDialog')).not.toBeVisible();
+
+  const secondMessages=[];
+  const cancelSecond=async dialog=>{
+    secondMessages.push(dialog.message());
+    if(secondMessages.length===1)await dialog.accept();else await dialog.dismiss();
+  };
+  page.on('dialog',cancelSecond);
+  await page.locator('#resetAllDataBtn').click();
+  await expect.poll(()=>secondMessages.length).toBe(2);
+  page.off('dialog',cancelSecond);
+  await expect.poll(()=>page.evaluate(()=>dogName())).toBe('Patrick');
+  await expect(page.locator('#setupWizardDialog')).not.toBeVisible();
+
+  const finalMessages=[];
+  const acceptBoth=async dialog=>{finalMessages.push(dialog.message());await dialog.accept()};
+  page.on('dialog',acceptBoth);
+  await page.locator('#resetAllDataBtn').click();
+  await expect.poll(()=>finalMessages.length).toBe(2);
+  page.off('dialog',acceptBoth);
+
+  await expect(page.locator('#appSettingsDialog')).not.toBeVisible();
+  await expect(page.locator('#setupWizardDialog')).toBeVisible();
+  await expect(page.locator('#setupWizardCounter')).toHaveText('1 / 4');
+  await expect(page.locator('#setupDogName')).toHaveValue('');
+  await expect.poll(()=>page.evaluate(()=>({name:dogProfile.name||'',level:currentLevel,sessions:history.length,archived:archivedSessionCount(),wizard:setupWizardVersion}))).toEqual({name:'',level:0,sessions:0,archived:0,wizard:0});
+  expect(finalMessages[0]).toContain('Reiniciar todos los datos');
+  expect(finalMessages[1]).toContain('ÚLTIMA CONFIRMACIÓN');
+});
+
 test('completed session can be corrected from history',async({page})=>{
   await onboard(page);
   await page.locator('.bottomNav [data-view="commands"]').click();
