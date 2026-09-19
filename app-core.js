@@ -71,7 +71,8 @@ const STORAGE_DEFAULTS={
   patrickCurrentLevel:0,
   patrickDayType:'Todo el día',
   patrickDogProfile:null,
-  patrickTrainingContext:{environment:'Casa',distraction:'Baja'}
+  patrickTrainingContext:{environment:'Casa',distraction:'Baja'},
+  patrickTheme:'system'
 };
 const STORAGE_META_KEY='patrickStorageMetaV2';
 const memoryStore={};
