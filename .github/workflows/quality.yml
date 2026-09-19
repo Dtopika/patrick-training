@@ -21,6 +21,7 @@ jobs:
           node-version: 22
           package-manager-cache: false
       - run: npm install --ignore-scripts
+      - run: node --check scripts/release-version.mjs
       - run: npm test
 
   e2e:
