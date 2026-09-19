@@ -56,6 +56,10 @@ function updateExecutionUI(){
   updateExecutionDots();
   $('#executionHint').textContent=`Haz la ejecución con ${dogName()} y califica cómo salió. La app avanza sola.`;
 }
+function inferSessionLevel(commands,fallback=currentLevel){
+  const levels=[...new Set((commands||[]).map(c=>Number(c?.level)).filter(Number.isInteger))];
+  return levels.length===1?levels[0]:Number(fallback)||0;
+}
 function commandsForLevelStart(levelNumber){
   const level=levelBy(levelNumber);if(!level)return[];
   const count=dayType==='Solo noche'?2:3;
@@ -71,8 +75,9 @@ function closeStartChoice(){
 }
 function openStartChoice(cmds,{level=null,label='esta sesión'}={}){
   const commands=(Array.isArray(cmds)?cmds:[]).filter(c=>c&&typeof c.cmd==='string');if(!commands.length)return;
+  const sessionLevel=Number.isInteger(Number(level))?Number(level):inferSessionLevel(commands,currentLevel);
   const recommended=recommendedTrainingContext(commands[0]),last=ENGINE.normalizeContext(trainingContext);
-  pendingStartRequest={commands,level,recommended,last,label};
+  pendingStartRequest={commands,level:sessionLevel,recommended,last,label};
   $('#startChoiceSubtitle').textContent=level===null?`Vas a practicar ${label}.`:`Nivel ${level} · ${label}`;
   $('#recommendedStartLabel').textContent=recommended.label;
   $('#lastStartLabel').textContent=ENGINE.contextLabel(last);
@@ -84,14 +89,14 @@ function confirmStartChoice(){
   const request=pendingStartRequest,context=startChoiceMode==='last'?request.last:request.recommended;
   pendingStartRequest=null;
   const dialog=$('#startChoiceDialog');if(dialog?.open)dialog.close();
-  if(request.level!==null&&request.level!==currentLevel&&!activateLevel(request.level,{silent:true}))return;
-  startSession(request.commands,{context});
+  startSession(request.commands,{context,sessionLevel:request.level});
 }
 
 function startSession(cmds=focusForLevel(currentLevel),options={}){
   const safeCommands=(Array.isArray(cmds)?cmds:[]).filter(c=>c&&typeof c.cmd==='string');if(!safeCommands.length)return;
   clearSessionAdvanceTimer();stopExecutionTimer();sessionAdvancing=false;
-  session={commands:safeCommands,index:0,trial:0,results:{},timings:{},context:ENGINE.normalizeContext(options.context||trainingContext)};
+  const sessionLevel=Number.isInteger(Number(options.sessionLevel))?Number(options.sessionLevel):inferSessionLevel(safeCommands,currentLevel);
+  session={commands:safeCommands,level:sessionLevel,index:0,trial:0,results:{},timings:{},context:ENGINE.normalizeContext(options.context||trainingContext)};
   safeCommands.forEach(c=>{session.results[c.cmd]=[];session.timings[c.cmd]=[]});
   $('#sessionDialog').showModal();renderSessionStep();
 }
@@ -126,14 +131,14 @@ function requestExitSession(){
 async function finishSession(){
   if(!session)return;
   clearSessionAdvanceTimer();stopExecutionTimer();sessionAdvancing=true;setOutcomeButtonsDisabled(true);
-  const activeSession=session,finishedLevel=currentLevel;
+  const activeSession=session,finishedLevel=Number(activeSession.level);
   const nextTrials=Object.fromEntries(Object.entries(trials).map(([cmd,list])=>[cmd,Array.isArray(list)?[...list]:[]])),nextProgress={...progress};
   for(const [cmd,outcomes] of Object.entries(activeSession.results))for(const outcome of outcomes)applyRollingToState(nextTrials,nextProgress,cmd,OUTCOME_SCORE[outcome]);
   const stamp={version:CONFIG.SESSION_SCHEMA_VERSION,at:new Date().toISOString(),level:finishedLevel,dogName:dogName(),results:{},timings:activeSession.timings,context:ENGINE.normalizeContext(activeSession.context)};
   Object.entries(activeSession.results).forEach(([cmd,arr])=>{const times=activeSession.timings[cmd]||[],counts={achieved:arr.filter(x=>x==='achieved').length,assisted:arr.filter(x=>x==='assisted').length,missed:arr.filter(x=>x==='missed').length};stamp.results[cmd]={...counts,total:arr.length,score:arr.reduce((a,x)=>a+OUTCOME_SCORE[x],0),avgSeconds:times.length?Math.round(times.reduce((a,b)=>a+b,0)/times.length/100)/10:0}});
   const nextHistory=[stamp,...history].slice(0,200);
   for(const cmd of Object.keys(activeSession.results))nextProgress[cmd]=ENGINE.nextProgressState(cmd,nextProgress[cmd],{trials:nextTrials,history:nextHistory,stateScore:STATE_SCORE});
-  const advanced=levelReadyWithProgress(finishedLevel,nextProgress)&&finishedLevel<10&&currentLevel===finishedLevel,nextLevel=advanced?finishedLevel+1:currentLevel;
+  const advanced=finishedLevel===currentLevel&&levelReadyWithProgress(finishedLevel,nextProgress)&&finishedLevel<10,nextLevel=advanced?finishedLevel+1:currentLevel;
   const nextTrainingContext=stamp.context;
   await store.setMany({patrickTrials:nextTrials,patrickProgress:nextProgress,patrickHistory:nextHistory,patrickCurrentLevel:nextLevel,patrickTrainingContext:nextTrainingContext});
   trials=nextTrials;progress=nextProgress;history=nextHistory;currentLevel=nextLevel;trainingContext=nextTrainingContext;session=null;$('#sessionDialog').close();
@@ -147,7 +152,8 @@ function init(){
   ensureExecutionUI();initProfileUI();$('#dayType').value=dayType;
   $$('.bottomNav button').forEach(b=>b.onclick=()=>setView(b.dataset.view));$$('[data-go]').forEach(b=>b.onclick=()=>setView(b.dataset.go));
   $('#dayType').onchange=e=>{dayType=e.target.value;store.set('patrickDayType',dayType);renderToday();syncSettingsDrawer()};
-  $('#startSessionBtn').onclick=()=>startSession();$('#firstSessionBtn').onclick=()=>startSession();
+  const startToday=()=>{const level=levelBy(currentLevel),commands=focusForLevel(currentLevel);openStartChoice(commands,{level:currentLevel,label:level?.title||'sesión de hoy'})};
+  $('#startSessionBtn').onclick=startToday;$('#firstSessionBtn').onclick=startToday;
   $('#advanceBtn').onclick=()=>{if(currentLevel<10)activateLevel(currentLevel+1)};
   $$('[data-start-mode]').forEach(button=>button.onclick=()=>setStartChoiceMode(button.dataset.startMode));
   $('#cancelStartChoiceBtn').onclick=closeStartChoice;$('#closeStartChoiceBtn').onclick=closeStartChoice;$('#confirmStartChoiceBtn').onclick=confirmStartChoice;
