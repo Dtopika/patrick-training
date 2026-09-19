@@ -6,3 +6,27 @@
 .levelCard.lockedLevel .levelCommands{filter:saturate(.65)}
 .levelLocked{display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:0 10px;border-radius:10px;background:var(--surface2);color:var(--muted);font-size:10px;font-weight:900}
 .levelLocked .uiIcon{width:14px;height:14px}
+
+.levelList{position:relative;gap:12px}
+.levelCardV2{position:relative;overflow:hidden;padding:15px;border-radius:20px;transition:border-color .2s ease,transform .2s ease,background .2s ease}
+.levelCardV2::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--line)}
+.levelCardV2.activeLevel{border-color:color-mix(in srgb,var(--success) 55%,var(--line));background:linear-gradient(145deg,color-mix(in srgb,var(--success) 8%,var(--surface)),var(--surface))}
+.levelCardV2.activeLevel::before{background:var(--success)}
+.levelCardV2.completedLevel::before{background:color-mix(in srgb,var(--success) 55%,var(--line))}
+.levelCardV2.availableLevel::before{background:color-mix(in srgb,var(--accent) 55%,var(--line))}
+.levelCardV2.lockedLevel{opacity:.72;background:color-mix(in srgb,var(--surface) 94%,var(--surface2) 6%)}
+.levelRouteHead{display:grid;grid-template-columns:42px minmax(0,1fr) auto;gap:11px;align-items:start}
+.levelCardV2 .levelIndex{width:42px;height:42px;border-radius:14px;background:var(--surface2);border:1px solid var(--line);font-size:15px}
+.levelCardV2.activeLevel .levelIndex{background:var(--successSoft);color:var(--success);border-color:color-mix(in srgb,var(--success) 30%,var(--line))}
+.levelTitleWrap{min-width:0}.levelEyebrow{display:block;margin-bottom:2px;font-size:9px!important;letter-spacing:.1em;font-weight:950;color:var(--muted)}
+.levelTitleWrap strong{font-size:16px;line-height:1.2}.levelTitleWrap p{margin:4px 0 0;color:var(--muted);font-size:11px;line-height:1.35}
+.levelStatePill{display:inline-flex;align-items:center;gap:5px;min-height:28px;padding:0 8px;border-radius:999px;background:var(--surface2);border:1px solid var(--line);font-size:9px;font-weight:900;color:var(--muted);white-space:nowrap}
+.levelStatePill .uiIcon{width:13px;height:13px}.activeLevel .levelStatePill{background:var(--successSoft);color:var(--success);border-color:color-mix(in srgb,var(--success) 30%,var(--line))}
+.levelProgressBlock{margin-top:13px;padding:10px 11px;border-radius:13px;background:var(--surface2)}
+.levelProgressBlock>div:first-child{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:10px;color:var(--muted)}
+.levelProgressBlock>div:first-child strong{font-size:11px;color:var(--text)}.levelProgressBlock .miniBar{margin:7px 0 0;height:6px;background:color-mix(in srgb,var(--line) 70%,transparent)}
+.levelCommandPreview{display:flex;gap:7px;overflow-x:auto;margin-top:11px;padding-bottom:2px;scrollbar-width:none}.levelCommandPreview::-webkit-scrollbar{display:none}
+.levelCommandChip{flex:0 0 auto;min-width:112px;padding:8px 9px;border:1px solid var(--line);border-radius:11px;background:var(--surface);display:grid;gap:2px}.levelCommandChip b{font-size:11px}.levelCommandChip small{font-size:9px;color:var(--muted)}
+.levelCardV2 .levelActions{margin-top:11px}.levelCardV2 .setLevelBtn{width:100%;min-height:40px;border-radius:12px}.levelActiveHint{width:100%;text-align:center;padding:9px 10px;border-radius:11px;background:var(--successSoft);color:var(--success);font-size:10px;font-weight:900}
+.levelCardV2 .levelLocked{width:100%;justify-content:center}
+@media(max-width:420px){.levelRouteHead{grid-template-columns:40px minmax(0,1fr)}.levelStatePill{grid-column:2;justify-self:start}.levelCardV2 .levelIndex{width:40px;height:40px}}
