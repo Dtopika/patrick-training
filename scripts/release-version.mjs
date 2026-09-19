@@ -12,15 +12,16 @@ const config=read('config.js');
 const oldVersion=config.match(/APP_VERSION:'([^']+)'/)?.[1];
 if(!oldTag||!oldVersion)throw new Error('Could not detect current release metadata');
 
-for(const path of ['app-core.js','index.html','styles.css','pwa.js','sw.js','tests/hardening.test.mjs']){
+for(const path of ['app-core.js','index.html','styles.css','pwa.js','sw.js','tests/hardening.test.mjs','tests/insights-plan.test.mjs','tests/intelligent-progression.test.mjs']){
   let content=read(path);
   content=content.replaceAll(oldTag,tag).replaceAll(oldVersion,version);
   write(path,content);
 }
 
+const revision=tag.match(/-(r\d+)$/)?.[1]||'r1';
 let cfg=read('config.js');
 cfg=cfg.replace(/APP_VERSION:'[^']+'/,`APP_VERSION:'${version}'`);
-cfg=cfg.replace(/CACHE_NAME:'patrick-training-v[^']+'/,`CACHE_NAME:'patrick-training-v${version}-r1'`);
+cfg=cfg.replace(/CACHE_NAME:'patrick-training-v[^']+'/,`CACHE_NAME:'patrick-training-v${version}-${revision}'`);
 write('config.js',cfg);
 
 const pkg=JSON.parse(read('package.json'));pkg.version=version;write('package.json',JSON.stringify(pkg,null,2)+'\n');
