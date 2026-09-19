@@ -247,8 +247,8 @@
       if(item?.context)contexts.add(contextSignature(item.context));
     }
     const trends=(commands||[]).map(command=>({command,trend:commandTrend(history,command.cmd)})).filter(x=>x.trend.recent!==null);
-    const improving=trends.filter(x=>x.trend.delta!==null&&x.trend.delta>0).sort((a,b)=>b.trend.delta-a.trend.delta)[0]||null;
-    const attention=trends.filter(x=>x.trend.count>=2).sort((a,b)=>a.trend.recent-b.trend.recent)[0]||null;
+    const improving=trends.filter(x=>x.trend.count>=4&&x.trend.delta!==null&&x.trend.delta>=.1).sort((a,b)=>b.trend.delta-a.trend.delta)[0]||null;
+    const attention=trends.filter(x=>x.trend.count>=4&&x.trend.recent<.8).sort((a,b)=>a.trend.recent-b.trend.recent)[0]||null;
     const states={};
     for(const state of Object.keys(stateScore||{}))states[state]=0;
     for(const command of commands||[]){const state=progress[command.cmd]||'No iniciado';states[state]=(states[state]||0)+1}
