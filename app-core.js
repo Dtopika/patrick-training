@@ -158,9 +158,10 @@ async function speak(c){const text=displayCommand(c).replace(/!/g,'').trim();if(
 function levelProgress(n){const cmds=levelBy(n).commands;if(!cmds.length)return 0;return Math.round(cmds.reduce((a,x)=>a+STATE_SCORE[stateOf(x)]/4,0)/cmds.length*100)}
 function levelReady(n){const level=levelBy(n);return !!level&&level.commands.every(x=>STATE_SCORE[stateOf(x)]>=2)}
 function maxUnlockedLevel(){
-  let unlocked=0;
-  for(let n=0;n<LEVELS.length-1;n++){if(!levelReady(n))break;unlocked=n+1}
-  return Math.min(unlocked,LEVELS.at(-1)?.n||0);
+  const ordered=[...LEVELS].sort((a,b)=>a.n-b.n);if(!ordered.length)return 0;
+  let unlocked=ordered[0].n;
+  for(let i=0;i<ordered.length-1;i++){if(!levelReady(ordered[i].n))break;unlocked=ordered[i+1].n}
+  return unlocked;
 }
 function canActivateLevel(n){return Number.isInteger(Number(n))&&Number(n)>=0&&Number(n)<=maxUnlockedLevel()&&!!levelBy(Number(n))}
 function activateLevel(n,{silent=false}={}){
