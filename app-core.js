@@ -214,7 +214,7 @@ function renderLevels(){
     const action=active?'<span class="badge">Nivel activo</span>':locked?'<span class="levelLocked" aria-label="Nivel bloqueado">'+icon('lock')+' Bloqueado</span>':`<button class="setLevelBtn" data-set-level="${l.n}">${l.n<unlocked?'Repasar este nivel':'Trabajar este nivel'}</button>`;
     return `<article class="levelCard ${active?'activeLevel':''} ${locked?'lockedLevel':''}"><div class="levelTop"><span class="levelIndex">${l.n}</span><div class="levelTitleWrap"><strong>${escapeHtml(l.title)}</strong><small>${escapeHtml(l.goal)}</small></div><span class="levelProgress">${p}%</span></div><div class="miniBar"><div style="width:${p}%"></div></div><div class="levelCommands">${l.commands.map(n=>{const c=commandBy(n);return `<span class="tinyChip">${escapeHtml(displayCommand(c))} · ${escapeHtml(displayPron(c))}</span>`}).join('')}</div><div class="levelActions">${action}</div></article>`;
   }).join('');
-  $('[data-set-level]').forEach(b=>b.onclick=()=>activateLevel(+b.dataset.setLevel));
+  $$('[data-set-level]').forEach(b=>b.onclick=()=>activateLevel(+b.dataset.setLevel));
 }
 function categories(){return ['Todos',...new Set(COMMANDS.map(c=>c.category))]}
 function commandCard(c){
