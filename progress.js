@@ -25,21 +25,61 @@ function sessionAccuracy(item){
   for(const r of values){score+=Number(r?.score)||0;total+=Number(r?.total)||0}
   return total?Math.round(score/total*100):0;
 }
+let historyEditIndex=null;
 function renderSessionHistory(){
   const list=$('#sessionHistoryList'),count=$('#historyCount');if(!list)return;
   if(count)count.textContent=`${history.length} total`;
   if(!history.length){list.innerHTML='<article class="historyEmpty"><strong>Aún no hay sesiones</strong><p>Cuando termines una sesión aparecerá aquí con sus resultados.</p></article>';return}
   const fmt=new Intl.DateTimeFormat('es-CO',{day:'numeric',month:'short',hour:'numeric',minute:'2-digit'});
-  list.innerHTML=history.slice(0,24).map(item=>{
+  list.innerHTML=history.slice(0,24).map((item,index)=>{
     const date=new Date(item.at),accuracy=sessionAccuracy(item),entries=Object.entries(item.results||{}),context=ENGINE.normalizeContext(item.context);
-    return`<article class="historyCard"><div class="historyTop"><div><strong>${Number.isNaN(date.getTime())?'Sesión':fmt.format(date)}</strong><small>Nivel ${Number(item.level)||0} · ${accuracy}% de logro</small><small class="historyContext">${escapeHtml(ENGINE.contextLabel(context))}</small></div><span class="historyScore">${accuracy}%</span></div><div class="historyCommands">${entries.map(([cmd,r])=>`<span><b>${escapeHtml(displayCommand(commandBy(cmd)||cmd))}</b><small>${Number(r?.achieved)||0}✓ · ${Number(r?.assisted)||0}~ · ${Number(r?.missed)||0}×</small></span>`).join('')}</div></article>`;
+    return`<article class="historyCard"><div class="historyTop"><div><strong>${Number.isNaN(date.getTime())?'Sesión':fmt.format(date)}</strong><small>Nivel ${Number(item.level)||0} · ${accuracy}% de logro</small><small class="historyContext">${escapeHtml(ENGINE.contextLabel(context))}</small></div><div class="historyCardTools"><span class="historyScore">${accuracy}%</span><button class="historyEditBtn" type="button" data-history-edit="${index}" aria-label="Corregir sesión">Corregir</button></div></div><div class="historyCommands">${entries.map(([cmd,r])=>`<span><b>${escapeHtml(displayCommand(commandBy(cmd)||cmd))}</b><small>${Number(r?.achieved)||0}✓ · ${Number(r?.assisted)||0}~ · ${Number(r?.missed)||0}×</small></span>`).join('')}</div></article>`;
   }).join('');
+  $$('[data-history-edit]').forEach(button=>button.onclick=()=>openHistoryEditor(Number(button.dataset.historyEdit)));
 }
+function historyEditorRow(cmd,result){
+  const total=Math.max(1,Number(result?.total)||5);
+  return`<article class="historyEditRow" data-history-command="${escapeHtml(cmd)}" data-history-total="${total}">
+    <div><strong>${escapeHtml(displayCommand(commandBy(cmd)||cmd))}</strong><small>${total} ejecuciones registradas</small></div>
+    <label><span>Logrado</span><input data-history-field="achieved" type="number" min="0" max="${total}" inputmode="numeric" value="${Number(result?.achieved)||0}"></label>
+    <label><span>Con ayuda</span><input data-history-field="assisted" type="number" min="0" max="${total}" inputmode="numeric" value="${Number(result?.assisted)||0}"></label>
+    <label><span>No logrado</span><input data-history-field="missed" type="number" min="0" max="${total}" inputmode="numeric" value="${Number(result?.missed)||0}"></label>
+  </article>`;
+}
+function openHistoryEditor(index){
+  const item=history[index],dialog=$('#historyEditDialog');if(!item||!dialog)return;
+  historyEditIndex=index;const date=new Date(item.at),fmt=new Intl.DateTimeFormat('es-CO',{dateStyle:'medium',timeStyle:'short'}),context=ENGINE.normalizeContext(item.context);
+  $('#historyEditMeta').textContent=`Nivel ${Number(item.level)||0} · ${Number.isNaN(date.getTime())?'fecha desconocida':fmt.format(date)} · ${ENGINE.contextLabel(context)}`;
+  $('#historyEditResults').innerHTML=Object.entries(item.results||{}).map(([cmd,result])=>historyEditorRow(cmd,result)).join('');
+  if(!dialog.open)dialog.showModal();
+}
+function closeHistoryEditor(){historyEditIndex=null;const dialog=$('#historyEditDialog');if(dialog?.open)dialog.close()}
+async function saveHistoryCorrection(){
+  if(historyEditIndex===null||!history[historyEditIndex])return;
+  const original=history[historyEditIndex],results={...original.results},affected=[];
+  for(const row of $$('.historyEditRow')){
+    const cmd=row.dataset.historyCommand,total=Number(row.dataset.historyTotal)||5;
+    const read=field=>Math.max(0,Math.min(total,Number(row.querySelector(`[data-history-field="${field}"]`)?.value)||0));
+    const achieved=read('achieved'),assisted=read('assisted'),missed=read('missed');
+    if(achieved+assisted+missed!==total){toast(`${displayCommand(commandBy(cmd)||cmd)} debe sumar ${total} ejecuciones`);return}
+    const prev=results[cmd]||{},outcomes=[...Array(achieved).fill('achieved'),...Array(assisted).fill('assisted'),...Array(missed).fill('missed')];
+    results[cmd]={...prev,achieved,assisted,missed,total,score:achieved+assisted*.5,outcomes};affected.push(cmd);
+  }
+  const nextHistory=[...history];nextHistory[historyEditIndex]={...original,results};
+  await replaceHistoryAndRebuild(nextHistory,affected);closeHistoryEditor();toast('Sesión corregida y evidencia recalculada');
+}
+async function deleteHistorySession(){
+  if(historyEditIndex===null||!history[historyEditIndex])return;
+  if(!confirm('¿Eliminar esta sesión? Se recalculará la evidencia de sus comandos.'))return;
+  const item=history[historyEditIndex],affected=Object.keys(item.results||{}),nextHistory=history.filter((_,index)=>index!==historyEditIndex);
+  await replaceHistoryAndRebuild(nextHistory,affected);closeHistoryEditor();toast('Sesión eliminada y evidencia recalculada');
+}
+
 function renderProgress(){
-  const pct=totalProgress();renderDogIdentity();
+  const pct=levelProgress(currentLevel),routePct=totalProgress(),level=levelBy(currentLevel),levelTotal=level?.commands?.length||0;renderDogIdentity();
   $('#progressPct').textContent=pct+'%';$('#progressRing').style.setProperty('--p',pct);
-  $('#progressHeadline').textContent=pct===0?'Tu ruta empieza aquí':pct<35?'Construyendo bases':pct<70?'Buen progreso':'Obediencia avanzada';
-  $('#progressText').textContent=pct===0?'Completa una sesión guiada para empezar a construir el historial.':`${solidCount()} de ${COMMANDS.length} comandos están consistentes o mejor.`;
+  $('#progressHeadline').textContent=pct===0?'Empieza este nivel':pct<35?'Construyendo bases':pct<70?'Buen progreso del nivel':pct<100?'Casi listo para avanzar':'Nivel consolidado';
+  $('#progressText').textContent=pct===0?`Nivel ${currentLevel} · ${level?.title||''}. Completa una sesión para generar evidencia.`:`${currentLevelSolidCount()} de ${levelTotal} comandos del nivel están consistentes o mejor · ${routePct}% de la ruta completa.`;
   const adaptive=$('#adaptiveSummary');if(adaptive)adaptive.innerHTML=adaptiveSummaryHtml();
   renderSessionHistory();if(typeof renderEvolutionDashboard==='function')renderEvolutionDashboard();
 }
@@ -69,3 +109,10 @@ function renderHabit(){
   card.innerHTML=`<div class="habitHead"><div><p class="kicker">HÁBITO SALUDABLE</p><h2>${streak?`${streak} ${streak===1?'día':'días'} de racha`:'Empieza tu racha'}</h2><p>${history.length?'Una micro-sesión al día es suficiente. No necesitas entrenar de más para mantenerla.':'La primera sesión de la semana cuenta. Corta, clara y positiva.'}</p></div><div class="habitFlame" aria-hidden="true">${icon('flame')}</div></div><div class="habitWeek" aria-label="Actividad de esta semana">${weekDays().map((date,i)=>{const key=localDateKey(date),active=days.has(key),today=key===todayKey,future=date>new Date();return`<div class="habitDay ${active?'active':''} ${today?'today':''} ${future?'future':''}"><span>${names[i]}</span><div aria-label="${active?'Entrenamiento registrado':'Sin entrenamiento'}">${active?icon('check'):''}</div></div>`}).join('')}</div><div class="habitFoot"><span>${weekCount} ${weekCount===1?'sesión':'sesiones'} esta semana</span><span>${history.length} total</span></div>`;
   const first=$('#firstSessionCoach');if(first)first.hidden=history.length>0;
 }
+
+$('#closeHistoryEditBtn')?.addEventListener('click',closeHistoryEditor);
+$('#cancelHistoryEditBtn')?.addEventListener('click',closeHistoryEditor);
+$('#saveHistoryEditBtn')?.addEventListener('click',saveHistoryCorrection);
+$('#deleteHistorySessionBtn')?.addEventListener('click',deleteHistorySession);
+$('#historyEditDialog')?.addEventListener('cancel',e=>{e.preventDefault();closeHistoryEditor()});
+$('#historyEditDialog')?.addEventListener('click',e=>{if(e.target===$('#historyEditDialog'))closeHistoryEditor()});
