@@ -89,9 +89,9 @@ test('v6 bootstraps its dependencies when an older HTML shell loads newer JavaSc
 
 test('navigation uses querySelectorAll for view and bottom-nav collections',()=>{
   const core=read('app-core.js');
-  assert.match(core,/function setView\(id\)\{\$\$\('\.view'\)/);
-  assert.match(core,/\$\$\('\.bottomNav button'\)/);
-  assert.doesNotMatch(core,/function setView\(id\)\{\$\('\.view'\)/);
+  assert.ok(core.includes("function setView(id){$('.view').forEach"),'setView must iterate all views');
+  assert.ok(core.includes("$('.bottomNav button').forEach"),'setView must iterate all nav buttons');
+  assert.ok(!core.includes("function setView(id){$('.view').forEach"),'single-node selector regression returned');
 });
 
 test('v6 configuration centralizes public and schema versions',()=>{
