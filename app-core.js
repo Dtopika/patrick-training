@@ -75,6 +75,7 @@ const STORAGE_DEFAULTS={
   patrickTheme:'system',
   patrickHistoryArchive:{version:1,totalSessions:0,months:{}},
   patrickTeachingOnboardingVersion:0,
+  patrickSetupWizardVersion:0,
   patrickGermanVoice:'auto'
 };
 const STORAGE_META_KEY='patrickStorageMetaV2';
