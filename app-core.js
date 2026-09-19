@@ -38,28 +38,76 @@ const STORAGE_DEFAULTS={
   patrickDayType:'Todo el día',
   patrickDogProfile:null
 };
+const STORAGE_META_KEY='patrickStorageMetaV2';
 const memoryStore={};
 let storageMode='pending';
+
+function readStorageMeta(){
+  try{
+    const parsed=JSON.parse(localStorage.getItem(STORAGE_META_KEY)||'null');
+    return parsed&&typeof parsed==='object'&&parsed.updatedAt&&typeof parsed.updatedAt==='object'?parsed:{version:2,updatedAt:{}};
+  }catch{return{version:2,updatedAt:{}}}
+}
+function writeStorageMeta(meta){try{localStorage.setItem(STORAGE_META_KEY,JSON.stringify(meta))}catch{}}
+function parseLocalValue(key,fallback){
+  try{const raw=localStorage.getItem(key);return raw===null?fallback:JSON.parse(raw)}catch{return fallback}
+}
+function localTimestamp(meta,key){const n=Date.parse(meta?.updatedAt?.[key]||'');return Number.isFinite(n)?n:0}
+function writeLocalValue(key,value,updatedAt,meta=readStorageMeta()){
+  try{localStorage.setItem(key,JSON.stringify(value))}catch{}
+  meta.updatedAt[key]=updatedAt;writeStorageMeta(meta);return meta;
+}
+function removeLocalValue(key){
+  const meta=readStorageMeta();delete meta.updatedAt[key];writeStorageMeta(meta);
+  try{localStorage.removeItem(key)}catch{}
+}
+
 const store={
   async hydrate(){
+    const meta=readStorageMeta();
     try{
       await window.PatrickDB.open();
       await window.PatrickDB.migrateLocalStorage(Object.keys(STORAGE_DEFAULTS));
       for(const [key,fallback] of Object.entries(STORAGE_DEFAULTS)){
-        const value=await window.PatrickDB.get(key);memoryStore[key]=value===undefined?fallback:value;
+        const record=await window.PatrickDB.getRecord(key),dbTs=Date.parse(record?.updatedAt||'')||0;
+        const raw=localStorage.getItem(key),localTs=localTimestamp(meta,key);
+        let value,updatedAt;
+        if(raw!==null&&localTs>dbTs){
+          value=parseLocalValue(key,fallback);updatedAt=meta.updatedAt[key];
+          await window.PatrickDB.set(key,value,updatedAt);
+        }else if(record){
+          value=record.value===undefined?fallback:record.value;updatedAt=record.updatedAt||new Date().toISOString();
+          try{localStorage.setItem(key,JSON.stringify(value))}catch{}
+          meta.updatedAt[key]=updatedAt;
+        }else if(raw!==null){
+          value=parseLocalValue(key,fallback);updatedAt=meta.updatedAt[key]||new Date().toISOString();
+          await window.PatrickDB.set(key,value,updatedAt);meta.updatedAt[key]=updatedAt;
+        }else{
+          value=fallback;
+        }
+        memoryStore[key]=value;
       }
-      storageMode='indexeddb';
+      writeStorageMeta(meta);storageMode='indexeddb';
     }catch(e){
       console.warn('IndexedDB unavailable; using localStorage fallback',e);
-      for(const [key,fallback] of Object.entries(STORAGE_DEFAULTS)){
-        try{memoryStore[key]=JSON.parse(localStorage.getItem(key))??fallback}catch{memoryStore[key]=fallback}
-      }
+      for(const [key,fallback] of Object.entries(STORAGE_DEFAULTS))memoryStore[key]=parseLocalValue(key,fallback);
       storageMode='localStorage';
     }
   },
   get(k,d){return Object.prototype.hasOwnProperty.call(memoryStore,k)?memoryStore[k]:d},
-  set(k,v){memoryStore[k]=v;if(storageMode==='indexeddb')return window.PatrickDB.set(k,v).catch(e=>{console.warn('IndexedDB write failed; mirroring to localStorage',e);try{localStorage.setItem(k,JSON.stringify(v))}catch{};return false});try{localStorage.setItem(k,JSON.stringify(v))}catch{}return Promise.resolve(true)},
-  remove(k){delete memoryStore[k];if(storageMode==='indexeddb')window.PatrickDB.del(k).catch(console.warn);try{localStorage.removeItem(k)}catch{}}
+  set(k,v){
+    memoryStore[k]=v;const updatedAt=new Date().toISOString();writeLocalValue(k,v,updatedAt);
+    if(storageMode==='indexeddb')return window.PatrickDB.set(k,v,updatedAt).then(()=>true).catch(e=>{console.warn('IndexedDB write failed; local mirror kept current',e);return false});
+    return Promise.resolve(true);
+  },
+  setMany(values){
+    const updatedAt=new Date().toISOString(),meta=readStorageMeta(),entries=[];
+    for(const [key,value] of Object.entries(values)){memoryStore[key]=value;try{localStorage.setItem(key,JSON.stringify(value))}catch{}meta.updatedAt[key]=updatedAt;entries.push({key,value,updatedAt})}
+    writeStorageMeta(meta);
+    if(storageMode==='indexeddb')return window.PatrickDB.setMany(entries).then(()=>true).catch(e=>{console.warn('IndexedDB batch write failed; local mirror kept current',e);return false});
+    return Promise.resolve(true);
+  },
+  remove(k){delete memoryStore[k];removeLocalValue(k);if(storageMode==='indexeddb')window.PatrickDB.del(k).catch(console.warn)}
 };
 
 let progress={},trials={},history=[],currentLevel=0,dayType='Todo el día',filter='Todos';
