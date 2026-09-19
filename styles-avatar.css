@@ -11,8 +11,8 @@
 .patrickHeroCopy small{font-size:13px;font-weight:700;opacity:.94}
 
 @media(max-width:600px){
-  .patrickHero{height:148px;aspect-ratio:auto;border-radius:18px}
-  .patrickHero img{object-position:60% center}
+  .patrickHero{height:168px;aspect-ratio:auto;border-radius:18px}
+  .patrickHero img{object-position:58% center}
   .patrickHero::after{background:linear-gradient(90deg,rgba(8,65,120,.58) 0%,rgba(8,65,120,.18) 48%,rgba(8,65,120,0) 72%)}
   .patrickHeroCopy{left:14px;max-width:50%}
   .patrickHeroCopy strong{font-size:23px}

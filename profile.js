@@ -1,10 +1,18 @@
 const SYSTEM_THEME=window.matchMedia('(prefers-color-scheme: dark)');
+const DOG_MONTH_MS=30.4375*24*60*60*1000;
 const REMINDER_KEY='patrickNotifications';
 const REMINDER_TAG='patrick-daily-reminder';
-let profileUiInitialized=false,reminderLoaded=false,reminderTimer=null,reminderStorageMode='indexeddb',settingsReturnFocus=null;
+let profileUiInitialized=false,reminderLoaded=false,reminderTimer=null,reminderStorageMode='indexeddb';
 let reminderSettings={enabled:false,time:'19:00',lastNotifiedDate:null};
 
-function currentDogAgeMonths(){return ENGINE.effectiveAgeMonths(dogProfile)}
+function currentDogAgeMonths(){
+  const base=Number(dogProfile?.ageMonths||0);
+  if(!Number.isFinite(base)||base<=0)return 0;
+  const savedAt=Date.parse(dogProfile?.ageUpdatedAt||'');
+  if(!Number.isFinite(savedAt))return Math.max(1,Math.round(base));
+  const elapsed=Math.max(0,Math.floor((Date.now()-savedAt)/DOG_MONTH_MS));
+  return Math.max(1,Math.round(base)+elapsed);
+}
 function dogAgeLabel(){
   const months=currentDogAgeMonths();
   if(!months)return 'Edad sin configurar';
@@ -13,7 +21,7 @@ function dogAgeLabel(){
   const shown=Number.isInteger(years)?String(years):String(years).replace('.',',');
   return `${shown} ${years===1?'año':'años'}`;
 }
-function dogStageLabel(){const stage=ENGINE.ageStage(dogProfile);return stage.key==='unknown'?'':stage.label}
+function dogStageLabel(){const months=currentDogAgeMonths();return !months?'':months<12?'Cachorro':'Adulto'}
 
 function applySystemTheme(){
   const dark=SYSTEM_THEME.matches;
@@ -54,15 +62,100 @@ function saveDogProfile(){
 }
 
 function exportProgress(){
-  const payload={schemaVersion:CONFIG.BACKUP_SCHEMA_VERSION,appVersion:CONFIG.APP_VERSION,exportedAt:new Date().toISOString(),profile:dogProfile,storage:storageMode,progress,trials,history,currentLevel,dayType,notifications:reminderSettings};
+  const payload={version:5.6,exportedAt:new Date().toISOString(),profile:dogProfile,storage:storageMode,progress,trials,history,currentLevel,dayType,notifications:reminderSettings};
   const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`patrick-training-${dogName().toLowerCase().replace(/[^a-z0-9]+/gi,'-')||'backup'}.json`;a.click();URL.revokeObjectURL(a.href);toast('Respaldo descargado');
 }
 
+const BACKUP_MAX_BYTES=2*1024*1024;
+function plainObject(value){return !!value&&typeof value==='object'&&!Array.isArray(value)}
+function backupError(message){throw new Error(message)}
+function normalizeBackupProfile(value){
+  if(value==null)return dogProfile;
+  if(!plainObject(value))backupError('Perfil inválido');
+  const rawName=String(value.name??'').trim().replace(/\s+/g,' ');
+  if(rawName.length>24)backupError('Nombre demasiado largo');
+  const age=value.ageMonths==null?null:Number(value.ageMonths);
+  if(age!==null&&(!Number.isInteger(age)||age<1||age>240))backupError('Edad inválida');
+  const ageUpdatedAt=value.ageUpdatedAt==null?null:String(value.ageUpdatedAt);
+  if(ageUpdatedAt&&Number.isNaN(Date.parse(ageUpdatedAt)))backupError('Fecha de edad inválida');
+  return{name:rawName,breed:'Pastor Alemán',...(age!==null?{ageMonths:age}:{}),...(ageUpdatedAt?{ageUpdatedAt}:{} )};
+}
+function normalizeBackupProgress(value){
+  if(value==null)return{};
+  if(!plainObject(value))backupError('Progreso inválido');
+  const out={};
+  for(const [cmd,state] of Object.entries(value)){
+    if(!COMMANDS.some(c=>c.cmd===cmd)||!STATES.includes(state))backupError('Estado de comando inválido');
+    out[cmd]=state;
+  }
+  return out;
+}
+function normalizeBackupTrials(value){
+  if(value==null)return{};
+  if(!plainObject(value))backupError('Pruebas inválidas');
+  const out={};
+  for(const [cmd,list] of Object.entries(value)){
+    if(!COMMANDS.some(c=>c.cmd===cmd)||!Array.isArray(list)||list.length>10)backupError('Historial de ejecuciones inválido');
+    const scores=list.map(Number);
+    if(scores.some(n=>![0,.5,1].includes(n)))backupError('Puntuación de ejecución inválida');
+    out[cmd]=scores;
+  }
+  return out;
+}
+function normalizeBackupHistory(value){
+  if(value==null)return[];
+  if(!Array.isArray(value)||value.length>200)backupError('Historial de sesiones inválido');
+  return value.map(item=>{
+    if(!plainObject(item)||Number.isNaN(Date.parse(item.at||'')))backupError('Sesión inválida');
+    const level=Number(item.level);
+    if(!Number.isInteger(level)||level<0||level>10||!plainObject(item.results||{}))backupError('Nivel o resultados de sesión inválidos');
+    const results={},timings={};
+    for(const [cmd,r] of Object.entries(item.results)){
+      if(!COMMANDS.some(c=>c.cmd===cmd)||!plainObject(r))backupError('Comando de sesión inválido');
+      const achieved=Number(r.achieved),assisted=Number(r.assisted),missed=Number(r.missed),total=Number(r.total),score=Number(r.score),avgSeconds=Number(r.avgSeconds||0);
+      if([achieved,assisted,missed,total].some(n=>!Number.isInteger(n)||n<0||n>5)||achieved+assisted+missed!==total||total>5||!Number.isFinite(score)||score<0||score>5||!Number.isFinite(avgSeconds)||avgSeconds<0||avgSeconds>3600)backupError('Resultado de sesión inválido');
+      results[cmd]={achieved,assisted,missed,total,score,avgSeconds};
+    }
+    if(item.timings!==undefined){
+      if(!plainObject(item.timings))backupError('Tiempos de sesión inválidos');
+      for(const [cmd,list] of Object.entries(item.timings)){
+        if(!COMMANDS.some(c=>c.cmd===cmd)||!Array.isArray(list)||list.length>5)backupError('Tiempos de comando inválidos');
+        const safe=list.map(Number);if(safe.some(n=>!Number.isFinite(n)||n<0||n>3600000))backupError('Tiempo de ejecución inválido');timings[cmd]=safe;
+      }
+    }
+    return{version:Number(item.version)||5,at:new Date(item.at).toISOString(),level,dogName:String(item.dogName||'Patrick').trim().slice(0,24)||'Patrick',results,timings};
+  });
+}
+function normalizeBackupNotifications(value){
+  if(value==null)return null;
+  if(!plainObject(value))backupError('Recordatorios inválidos');
+  const time=String(value.time||'19:00');
+  if(!/^([01]\d|2[0-3]):[0-5]\d$/.test(time))backupError('Hora de recordatorio inválida');
+  return{enabled:!!value.enabled,time,lastNotifiedDate:null};
+}
+function normalizeBackup(data){
+  if(!plainObject(data))backupError('Formato de respaldo inválido');
+  const version=data.version==null?5:Number(data.version);
+  if(!Number.isFinite(version)||version<5||version>5.6)backupError('Versión de respaldo no compatible');
+  const currentLevel=Number(data.currentLevel??0);
+  if(!Number.isInteger(currentLevel)||currentLevel<0||currentLevel>10)backupError('Nivel actual inválido');
+  const dayType=data.dayType??'Todo el día';
+  if(!['Todo el día','Solo noche'].includes(dayType))backupError('Disponibilidad inválida');
+  return{
+    progress:normalizeBackupProgress(data.progress),
+    trials:normalizeBackupTrials(data.trials),
+    history:normalizeBackupHistory(data.history),
+    currentLevel,
+    dayType,
+    profile:normalizeBackupProfile(data.profile),
+    notifications:normalizeBackupNotifications(data.notifications)
+  };
+}
 async function importProgressFile(file){
   if(!file)return;
-  if(file.size>CONFIG.BACKUP_MAX_BYTES){toast('El respaldo es demasiado grande');return}
+  if(file.size>BACKUP_MAX_BYTES){toast('El respaldo es demasiado grande');return}
   let data,normalized;
-  try{data=JSON.parse(await file.text());normalized=BACKUP_SCHEMA.normalize(data,{commands:COMMANDS,states:STATES,currentProfile:dogProfile,maxSchemaVersion:CONFIG.BACKUP_SCHEMA_VERSION})}
+  try{data=JSON.parse(await file.text());normalized=normalizeBackup(data)}
   catch(e){console.warn('Respaldo rechazado',e);toast('El respaldo no tiene un formato compatible');return}
   if(!confirm('¿Restaurar este respaldo validado? Reemplazará el progreso actual de Patrick Training.'))return;
   const coreValues={
@@ -151,7 +244,7 @@ function ensureSettingsDrawer(){
   if($('#settingsDrawer'))return;
   document.body.insertAdjacentHTML('beforeend',`
     <div id="settingsBackdrop" class="settingsBackdrop" hidden></div>
-    <aside id="settingsDrawer" class="settingsDrawer" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="settingsTitle"><h2 id="settingsTitle" class="srOnly">Configuración de Patrick Training</h2>
+    <aside id="settingsDrawer" class="settingsDrawer" aria-hidden="true" aria-label="Configuración de Patrick Training">
       <header class="settingsDrawerHead"><img src="icons/icon-192.webp" alt=""><div class="settingsDrawerIdentity"><small>PERFIL ACTIVO</small><strong id="dogProfileName">${escapeHtml(dogName())}</strong><span id="dogProfileMeta">Pastor alemán</span></div><button id="settingsCloseBtn" class="settingsCloseBtn iconButton" type="button" aria-label="Cerrar configuración">${icon('x')}</button></header>
       <div class="settingsDrawerBody">
         <section class="settingsGroup"><div class="settingsGroupTitle">Perro</div><button id="editDogBtn" class="settingsRow" type="button"><span class="settingsRowIcon">${icon('dog')}</span><span class="settingsRowCopy"><strong>Perfil del perro</strong><small>Nombre y edad sin perder progreso.</small></span><span class="settingsChevron">${icon('chevron')}</span></button></section>
@@ -160,45 +253,22 @@ function ensureSettingsDrawer(){
         <section class="settingsGroup"><div class="settingsGroupTitle">Apariencia</div><div class="settingsMeta"><strong>Tema</strong><span id="systemThemeValue" class="settingsValue">Sistema</span></div></section>
         <section class="settingsGroup"><div class="settingsGroupTitle">Datos</div><div class="settingsMeta"><strong>Almacenamiento</strong><span id="storageModeLabel" class="storageBadge">IndexedDB</span></div><button id="exportBtn" class="settingsRow" type="button"><span class="settingsRowIcon">${icon('download')}</span><span class="settingsRowCopy"><strong>Exportar respaldo</strong><small>Descarga perfil, progreso y sesiones.</small></span><span class="settingsChevron">${icon('chevron')}</span></button><button id="importBtn" class="settingsRow" type="button"><span class="settingsRowIcon">${icon('upload')}</span><span class="settingsRowCopy"><strong>Restaurar respaldo</strong><small>Importa un JSON de Patrick Training.</small></span><span class="settingsChevron">${icon('chevron')}</span></button><input id="importFileInput" type="file" accept="application/json,.json" hidden></section>
       </div>
-      <footer class="settingsDrawerFoot"><strong>Patrick Training</strong><span>v${escapeHtml(CONFIG.APP_VERSION)}</span></footer>
+      <footer class="settingsDrawerFoot"><strong>Patrick Training</strong><span>v5.6</span></footer>
     </aside>`);
 }
 function syncSettingsDrawer(){
   if(!$('#settingsDrawer'))return;renderDogIdentity();$('#settingsDayType').value=dayType;
   const stage=dogStageLabel(),age=dogAgeLabel();$('#dogProfileMeta').textContent=`Pastor alemán${stage?` · ${stage}`:''} · ${age}`;applySystemTheme();syncReminderUI();
 }
-function settingsFocusables(){
-  const drawer=$('#settingsDrawer');if(!drawer)return[];
-  return [...drawer.querySelectorAll('button:not([disabled]),select:not([disabled]),input:not([disabled]),a[href],[tabindex]:not([tabindex="-1"])')].filter(el=>!el.hidden);
-}
-function setSettingsBackgroundInert(value){$('.appHeader,.appMain,.bottomNav').forEach(el=>{el.inert=!!value})}
-function handleSettingsKeydown(e){
-  const drawer=$('#settingsDrawer');if(!drawer?.classList.contains('open'))return;
-  if(e.key==='Escape'){e.preventDefault();closeSettingsDrawer();return}
-  if(e.key!=='Tab')return;
-  const focusable=settingsFocusables();if(!focusable.length){e.preventDefault();return}
-  const first=focusable[0],last=focusable.at(-1);
-  if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}
-  else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}
-}
-function openSettingsDrawer(){
-  ensureSettingsDrawer();syncSettingsDrawer();const drawer=$('#settingsDrawer'),backdrop=$('#settingsBackdrop');
-  settingsReturnFocus=document.activeElement;backdrop.hidden=false;drawer.setAttribute('aria-hidden','false');setSettingsBackgroundInert(true);document.body.classList.add('settingsOpen');
-  requestAnimationFrame(()=>{drawer.classList.add('open');backdrop.classList.add('open')});setTimeout(()=>$('#settingsCloseBtn')?.focus(),80);
-}
-function closeSettingsDrawer(){
-  const drawer=$('#settingsDrawer'),backdrop=$('#settingsBackdrop');if(!drawer)return;
-  drawer.classList.remove('open');backdrop.classList.remove('open');drawer.setAttribute('aria-hidden','true');setSettingsBackgroundInert(false);document.body.classList.remove('settingsOpen');
-  const delay=window.matchMedia('(prefers-reduced-motion: reduce)').matches?0:280;
-  setTimeout(()=>{if(!backdrop.classList.contains('open'))backdrop.hidden=true;const target=settingsReturnFocus;settingsReturnFocus=null;target?.focus?.()},delay);
-}
+function openSettingsDrawer(){ensureSettingsDrawer();syncSettingsDrawer();const drawer=$('#settingsDrawer'),backdrop=$('#settingsBackdrop');backdrop.hidden=false;drawer.setAttribute('aria-hidden','false');document.body.classList.add('settingsOpen');requestAnimationFrame(()=>{drawer.classList.add('open');backdrop.classList.add('open')});setTimeout(()=>$('#settingsCloseBtn')?.focus(),120)}
+function closeSettingsDrawer(){const drawer=$('#settingsDrawer'),backdrop=$('#settingsBackdrop');if(!drawer)return;drawer.classList.remove('open');backdrop.classList.remove('open');drawer.setAttribute('aria-hidden','true');document.body.classList.remove('settingsOpen');setTimeout(()=>{if(!backdrop.classList.contains('open'))backdrop.hidden=true},280)}
 function bindProfileUI(){
   $('#settingsAvatarBtn').onclick=openSettingsDrawer;$('#settingsCloseBtn').onclick=closeSettingsDrawer;$('#settingsBackdrop').onclick=closeSettingsDrawer;$('#editDogBtn').onclick=()=>{closeSettingsDrawer();setTimeout(()=>openDogProfileEditor(false),180)};
   $('#settingsDayType').onchange=e=>{dayType=e.target.value;store.set('patrickDayType',dayType);$('#dayType').value=dayType;renderToday();syncSettingsDrawer()};$('#exportBtn').onclick=exportProgress;$('#importBtn').onclick=()=>$('#importFileInput').click();$('#importFileInput').onchange=async e=>{const file=e.target.files?.[0];e.target.value='';await importProgressFile(file)};
   $('#notificationToggle').onclick=toggleDailyReminders;$('#notificationTime').onchange=async e=>{reminderSettings.time=e.target.value||'19:00';reminderSettings.lastNotifiedDate=null;await saveReminderSettings();scheduleForegroundReminder();syncReminderUI();toast(`Recordatorio: ${reminderSettings.time}`)};
   $('#saveProfileBtn').onclick=saveDogProfile;$('#profileCancelBtn').onclick=()=>$('#profileDialog').close();$('#dogNameInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();saveDogProfile()}});$('#dogAgeInput').addEventListener('input',updateDogAgePreview);
   $('#dogAgeUnit').addEventListener('change',()=>{const input=$('#dogAgeInput'),unit=$('#dogAgeUnit'),previous=unit.dataset.previous||'months',value=Number(input.value||0);if(value>0){const months=previous==='years'?value*12:value;input.value=unit.value==='years'?String(Math.round((months/12)*10)/10):String(Math.max(1,Math.round(months)))}unit.dataset.previous=unit.value;input.step=unit.value==='years'?'0.1':'1';updateDogAgePreview()});
-  $('#profileDialog').addEventListener('cancel',e=>{if($('#profileDialog').dataset.firstRun==='1')e.preventDefault()});document.addEventListener('keydown',handleSettingsKeydown);
+  $('#profileDialog').addEventListener('cancel',e=>{if($('#profileDialog').dataset.firstRun==='1')e.preventDefault()});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#settingsDrawer')?.classList.contains('open'))closeSettingsDrawer()});
 }
 function initProfileUI(){
   if(profileUiInitialized)return;profileUiInitialized=true;try{store.remove('patrickDark');localStorage.removeItem('patrickDark')}catch{}

@@ -1,25 +1,29 @@
-importScripts('./config.js');
-const CACHE=globalThis.PATRICK_CONFIG.CACHE_NAME;
-const CORE=["./","./index.html","./styles.css","./styles-base.css","./styles-ui.css","./styles-avatar.css","./styles-media.css","./styles-splash.css","./styles-session.css","./styles-profile.css","./styles-polish.css","./styles-notifications.css","./styles-v56.css","./styles-v6.css","./config.js","./training-engine.js","./backup-schema.js","./splash.js","./commands-1.js","./commands-2.js","./commands-3.js","./commands-4.js","./levels.js","./videos.js","./db.js","./app-core.js","./profile.js","./progress.js","./app-media.js","./app-session.js","./pwa.js","./manifest.webmanifest","./icons/icon-192.webp","./icons/icon-512.webp","./icons/icon-512-maskable.svg","./icons/icon-192.png","./assets/patrick-banner.webp"];
+const CACHE='patrick-training-v5.6.2';
+const CORE=["./","./index.html","./styles.css","./styles-base.css","./styles-ui.css","./styles-avatar.css","./styles-media.css","./styles-splash.css","./styles-session.css","./styles-profile.css","./styles-polish.css","./styles-notifications.css","./styles-v56.css","./commands-1.js","./commands-2.js","./commands-3.js","./commands-4.js","./levels.js","./videos.js","./db.js","./app-core.js","./profile.js","./progress.js","./app-media.js","./app-session.js","./pwa.js","./manifest.webmanifest","./icons/icon-192.webp","./icons/icon-512.webp","./icons/icon-512-maskable.svg","./icons/icon-192.png","./assets/patrick-banner.webp"];
 const REMINDER_TAG='patrick-daily-reminder';
 const DB_NAME='patrick-training-db',DB_VERSION=1,STORE='kv';
 
-self.addEventListener('install',e=>{e.waitUntil(Promise.all([caches.open(CACHE).then(c=>c.addAll(CORE)),self.skipWaiting()]))});
+self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)));self.skipWaiting()});
 self.addEventListener('activate',e=>{e.waitUntil(Promise.all([caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('patrick-training-')&&k!==CACHE).map(k=>caches.delete(k)))),self.clients.claim()]))});
-async function networkAndCache(request){
-  const response=await fetch(request);
-  if(response.ok){const cache=await caches.open(CACHE);await cache.put(request,response.clone())}
-  return response;
-}
 self.addEventListener('fetch',e=>{
   if(e.request.method!=='GET')return;
-  const url=new URL(e.request.url);if(url.origin!==self.location.origin)return;
-  const navigation=e.request.mode==='navigate'||e.request.destination==='document';
-  if(navigation){
-    e.respondWith(networkAndCache(e.request).catch(async()=>await caches.match(e.request)||await caches.match('./index.html')));
-    return;
-  }
-  e.respondWith(caches.match(e.request).then(cached=>cached||networkAndCache(e.request)).catch(()=>new Response('',{status:504,statusText:'Offline y recurso no cacheado'})));
+  const url=new URL(e.request.url);
+  if(url.origin!==self.location.origin)return;
+  e.respondWith(
+    fetch(e.request)
+      .then(r=>{
+        if(r.ok){
+          const copy=r.clone();
+          caches.open(CACHE).then(c=>c.put(e.request,copy));
+        }
+        return r;
+      })
+      .catch(()=>caches.match(e.request).then(r=>{
+        if(r)return r;
+        if(e.request.mode==='navigate'||e.request.destination==='document')return caches.match('./index.html');
+        return new Response('',{status:504,statusText:'Offline y recurso no cacheado'});
+      }))
+  );
 });
 
 function openReminderDb(){return new Promise((resolve,reject)=>{const request=indexedDB.open(DB_NAME,DB_VERSION);request.onupgradeneeded=()=>{const db=request.result;if(!db.objectStoreNames.contains(STORE))db.createObjectStore(STORE,{keyPath:'key'})};request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error||new Error('IndexedDB unavailable'))})}

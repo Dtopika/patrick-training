@@ -1,34 +1,32 @@
 # Patrick Training 🐺🇩🇪
 
-PWA móvil, local-first, para entrenar a Patrick con comandos en alemán, sesiones guiadas y progresión adaptativa.
-
-## Estado
-- Release estable publicada: v5.6.2.
-- Rama de desarrollo actual: Patrick v6.0.
-- Sin backend ni cuentas: los datos permanecen en el dispositivo salvo exportación manual.
+Mini app estática para entrenar a Patrick con comandos en alemán, progresión por niveles y seguimiento local.
 
 ## Funciones
-- 41 comandos organizados en niveles 0 → 10.
-- Sesiones guiadas de cinco ejecuciones por comando.
-- Motor adaptativo por rendimiento, antigüedad de práctica y etapa/edad del perro.
-- Historial, racha y evidencia reciente por comando.
-- Perfil del perro con edad y recomendaciones de seguridad.
-- Videos curados y pronunciación mediante la voz alemana del dispositivo.
-- IndexedDB con espejo local reconciliado por timestamp.
-- Exportación/restauración de backup validado.
-- Recordatorios cuando el navegador/sistema lo permite.
-- PWA offline con cache versionado.
+- Plan del día según `Todo el día` o `Solo noche`.
+- Niveles 0 → 10.
+- Diccionario de comandos en alemán.
+- Síntesis de voz alemana con Web Speech API.
+- Progreso local-first en IndexedDB con respaldo local reconciliado.
+- Sección de control defensivo seguro.
+- Responsive y sin backend.
+
+## GitHub Pages
+Publica desde:
+`Settings → Pages → Deploy from a branch → master / (root)`
+
+URL esperada:
+`https://dtopika.github.io/patrick-training/`
 
 ## Seguridad
-La app no enseña mordida ni ataque a personas. Los comandos defensivos se limitan a observación, reorientación y posiciones seguras. El trabajo de protección deportiva/IGP requiere club, entrenador y figurante cualificados.
+La app no incluye instrucciones de mordida o ataque a personas. El trabajo de protección deportiva/IGP debe hacerse con un club, entrenador y figurante cualificados.
 
 ## Desarrollo
+
+Quality Gate local:
 
 ```bash
 npm test
 ```
 
-El Quality Gate valida persistencia, backups, sesiones, motor adaptativo, PWA y regresiones de seguridad antes de promover cambios a `master`.
-
-## GitHub Pages
-Producción: https://dtopika.github.io/patrick-training/
+La persistencia principal usa IndexedDB con espejo local reconciliado por timestamp. Los cambios de progreso de una sesión se confirman al finalizarla.

@@ -12,8 +12,7 @@ function relativePracticeLabel(ms){
 }
 function trialTrendHtml(arr){
   if(!arr.length)return'<span class="trendEmpty">Sin ejecuciones aún</span>';
-  const recent=arr.slice(-10),labels=recent.map(v=>v>=1?'Logrado':v>=.5?'Con ayuda':'No logrado');
-  return`<span class="trialTrend"><span class="srOnly">Últimas ejecuciones: ${escapeHtml(labels.join(', '))}</span>${recent.map((v,i)=>`<i class="${v>=1?'hit':v>=.5?'assist':'miss'}" aria-hidden="true" title="${escapeHtml(labels[i])}"></i>`).join('')}</span>`;
+  return`<span class="trialTrend" aria-label="Últimas ejecuciones">${arr.slice(-10).map(v=>`<i class="${v>=1?'hit':v>=.5?'assist':'miss'}" title="${v>=1?'Logrado':v>=.5?'Con ayuda':'No logrado'}"></i>`).join('')}</span>`;
 }
 function adaptiveSummaryHtml(){
   const eligible=COMMANDS.filter(c=>c.level<=currentLevel).map(c=>({c,score:typeof adaptivePriority==='function'?adaptivePriority(c,currentLevel):0,stats:commandTrialStats(c.cmd)})).sort((a,b)=>b.score-a.score).slice(0,3);

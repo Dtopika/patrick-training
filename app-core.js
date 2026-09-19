@@ -1,8 +1,5 @@
 const COMMANDS=window.PATRICK_COMMANDS;
 const LEVELS=window.PATRICK_LEVELS;
-const CONFIG=window.PATRICK_CONFIG;
-const ENGINE=window.PatrickTrainingEngine;
-const BACKUP_SCHEMA=window.PatrickBackupSchema;
 const STATES=['No iniciado','En práctica','Consistente','Generalizando','Dominado'];
 const STATE_SCORE={'No iniciado':0,'En práctica':1,'Consistente':2,'Generalizando':3,'Dominado':4};
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
@@ -115,7 +112,7 @@ const store={
 
 let progress={},trials={},history=[],currentLevel=0,dayType='Todo el día',filter='Todos';
 let dogProfile={name:'',breed:'Pastor Alemán'};
-let session=null,toastTimer=null;
+let session=null,toastTimer=null,commandAudio=null;
 
 function dogName(){return String(dogProfile?.name||'').trim()||'Patrick'}
 function displayCommand(c){const raw=typeof c==='string'?c:c?.cmd||'';return raw==='Patrick'?dogName():raw}
@@ -126,18 +123,42 @@ function levelBy(n){return LEVELS.find(l=>l.n===n)}
 function escapeHtml(s=''){return String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]))}
 function toast(msg){const el=$('#toast');if(!el)return;el.textContent=msg;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),1800)}
 function localGermanSpeech(text){return new Promise((resolve,reject)=>{if(!('speechSynthesis'in window)){reject(new Error('speechSynthesis unavailable'));return}try{const synth=window.speechSynthesis;synth.cancel();synth.resume();const voices=synth.getVoices();const de=voices.find(v=>v.lang?.toLowerCase().startsWith('de'));const u=new SpeechSynthesisUtterance(text);u.lang=de?.lang||'de-DE';u.rate=.72;u.pitch=1;if(de)u.voice=de;u.onend=()=>resolve();u.onerror=e=>reject(e);synth.speak(u)}catch(e){reject(e)}})}
-async function speak(c){const text=displayCommand(c).replace(/!/g,'').trim();if(!text)return;try{await localGermanSpeech(text)}catch(e){console.warn('Local German TTS failed',e);toast('No pude reproducir el audio. Instala o activa una voz alemana en el teléfono.')}}
+async function remoteGermanSpeech(text){if(commandAudio){commandAudio.pause();commandAudio.src=''}const url=`https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=de&q=${encodeURIComponent(text)}`;commandAudio=new Audio(url);commandAudio.preload='auto';commandAudio.volume=1;await commandAudio.play()}
+async function speak(c){const text=displayCommand(c).replace(/!/g,'').trim();if(!text)return;try{await localGermanSpeech(text);return}catch(e){console.warn('Local German TTS failed, trying remote voice',e)}try{if(navigator.onLine){await remoteGermanSpeech(text);return}}catch(e){console.warn('Remote German TTS failed',e)}toast('No pude reproducir el audio. Revisa volumen o voz alemana del teléfono.')}
 function levelProgress(n){const cmds=levelBy(n).commands;if(!cmds.length)return 0;return Math.round(cmds.reduce((a,x)=>a+STATE_SCORE[stateOf(x)]/4,0)/cmds.length*100)}
 function levelReady(n){return levelBy(n).commands.every(x=>STATE_SCORE[stateOf(x)]>=2)}
 function totalProgress(){return Math.round(COMMANDS.reduce((a,c)=>a+STATE_SCORE[stateOf(c.cmd)]/4,0)/COMMANDS.length*100)}
 function solidCount(){return COMMANDS.filter(c=>STATE_SCORE[stateOf(c.cmd)]>=2).length}
-function commandLastPracticeMs(cmd){return ENGINE.lastPracticeMs(history,cmd)}
-function commandRecentAverage(cmd){return ENGINE.recentAverage(trials,cmd)}
-function trainingSafety(c){return ENGINE.safetyForCommand(c,dogProfile)}
-function adaptivePriority(c,n){return ENGINE.adaptivePriority(c,n,{trials,history,progress,stateScore:STATE_SCORE,profile:dogProfile})}
-function focusForLevel(n){return ENGINE.focusForLevel(COMMANDS,n,{dayType,trials,history,progress,stateScore:STATE_SCORE,profile:dogProfile})}
-function microPlan(){const focus=focusForLevel(currentLevel);return ENGINE.microPlan(COMMANDS,currentLevel,{dayType,progress,stateScore:STATE_SCORE,focus,profile:dogProfile})}
-function setView(id){$('.view').forEach(v=>v.classList.toggle('active',v.id===id));$('.bottomNav button').forEach(b=>b.classList.toggle('active',b.dataset.view===id));scrollTo({top:0,behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});if(id==='progress')renderProgress();if(id==='commands')renderCommands();if(id==='levels')renderLevels()}
+function commandLastPracticeMs(cmd){
+  let latest=0;
+  for(const item of history){if(!item?.results?.[cmd])continue;const t=Date.parse(item.at||'');if(Number.isFinite(t)&&t>latest)latest=t}
+  return latest;
+}
+function commandRecentAverage(cmd){
+  const arr=Array.isArray(trials[cmd])?trials[cmd].map(Number).filter(Number.isFinite):[];
+  return arr.length?arr.reduce((a,b)=>a+b,0)/arr.length:null;
+}
+function adaptivePriority(c,n){
+  const avg=commandRecentAverage(c.cmd),last=commandLastPracticeMs(c.cmd),days=last?Math.max(0,(Date.now()-last)/86400000):30,state=STATE_SCORE[stateOf(c.cmd)]||0;
+  let score=c.level===n?110:38;
+  score+=avg===null?34:(1-avg)*72;
+  score+=Math.min(days,30)*1.7;
+  if(state<2)score+=26;
+  if(state>=2&&avg!==null&&avg>=.9&&days<5)score-=34;
+  return score;
+}
+function focusForLevel(n){
+  const count=dayType==='Solo noche'?2:3;
+  const eligible=COMMANDS.filter(c=>c.level<=n).map(c=>({c,score:adaptivePriority(c,n)})).sort((a,b)=>b.score-a.score||b.c.level-a.c.level);
+  const current=eligible.filter(x=>x.c.level===n),review=eligible.filter(x=>x.c.level<n);
+  if(!current.length)return eligible.slice(0,count).map(x=>x.c);
+  const chosen=[current[0].c];
+  const rest=[...current.slice(1),...review].sort((a,b)=>b.score-a.score);
+  for(const item of rest){if(chosen.length>=count)break;if(!chosen.some(c=>c.cmd===item.c.cmd))chosen.push(item.c)}
+  return chosen;
+}
+function microPlan(){const f=focusForLevel(currentLevel);const known=COMMANDS.filter(c=>c.level<currentLevel&&STATE_SCORE[stateOf(c.cmd)]>=2).slice(-2);if(dayType==='Solo noche')return[['Al llegar','4–5 min','Nuevo + fácil',[f[0],known.at(-1)].filter(Boolean)],['Más tarde','4–5 min','Segundo foco + repaso',[f[1]||f[0],known.at(-2)].filter(Boolean)],['Antes de dormir','1–2 min','Una victoria fácil',[known.at(-1)||f[0]].filter(Boolean)]];return[['Mañana','3–5 min','Foco principal',[f[0],known.at(-1)].filter(Boolean)],['Mediodía','3–5 min','Control / calma',[f.find(c=>['Control','Autocontrol','Casa'].includes(c.category))||f[1]||f[0]].filter(Boolean)],['Tarde','3–5 min','Segundo foco',[f[1]||f[0]].filter(Boolean)],['Noche','2–4 min','Repaso fácil + juego',[known.at(-1)||f.at(-1)].filter(Boolean)]]}
+function setView(id){$$('.view').forEach(v=>v.classList.toggle('active',v.id===id));$$('.bottomNav button').forEach(b=>b.classList.toggle('active',b.dataset.view===id));scrollTo({top:0,behavior:'smooth'});if(id==='progress')renderProgress();if(id==='commands')renderCommands();if(id==='levels')renderLevels()}
 function renderDogIdentity(){const name=dogName();if($('#dogNameHeader'))$('#dogNameHeader').textContent=name;if($('#todayHeading'))$('#todayHeading').textContent=`Hoy con ${name}`;if($('#advanceTitle'))$('#advanceTitle').textContent=`${name} está listo para avanzar`;if($('#dogProfileName'))$('#dogProfileName').textContent=name;if($('#storageModeLabel'))$('#storageModeLabel').textContent=storageMode==='indexeddb'?'IndexedDB':'almacenamiento local'}
 function focusChipHtml(c){
   if(!c||typeof c!=='object')return'';
@@ -153,20 +174,13 @@ function renderToday(){
   $('#todaySummary').textContent=history.length===0?'Tu primera sesión puede durar apenas unos minutos. La constancia vale más que la duración.':dayType==='Solo noche'?'Plan adaptativo compacto: prioriza lo que más necesita refuerzo.':'Plan adaptativo: combina nivel actual, rendimiento reciente y repaso espaciado.';
   $('#dayType').value=dayType;$('#levelBadge').textContent=`Nivel ${currentLevel}`;$('#readinessBadge').textContent=ready&&currentLevel<10?'Listo para avanzar':'En curso';$('#readinessBadge').classList.toggle('ready',ready);$('#sessionTitle').textContent=l.title;$('#sessionGoal').textContent=l.goal;
   const focus=focusForLevel(currentLevel).filter(c=>c&&String(c.cmd||'').trim());$('#focusCommands').innerHTML=focus.map(focusChipHtml).filter(Boolean).join('');
-  const guidance=ENGINE.ageGuidance(dogProfile),ageBox=$('#ageGuidance');
-  if(ageBox){ageBox.hidden=!guidance;if(guidance)ageBox.innerHTML=`<strong>${escapeHtml(guidance.label)}</strong><span>${escapeHtml(guidance.message)}</span>`}
   $('#metricProgress').textContent=totalProgress()+'%';$('#metricSolid').textContent=solidCount();$('#metricSessions').textContent=history.length;
   $('#todayPlan').innerHTML=microPlan().map(([name,dur,goal,cmds],i)=>`<article class="planItem"><span class="planNumber">${i+1}</span><div><strong>${escapeHtml(name)} · ${escapeHtml(goal)}</strong><p>${cmds.map(c=>escapeHtml(displayCommand(c))).join(' · ')||'Juego y vínculo'}</p></div><small>${escapeHtml(dur)}</small></article>`).join('');
   $('#advanceCard').hidden=!(ready&&currentLevel<10);
 }
 function renderLevels(){$('#levelList').innerHTML=LEVELS.map(l=>{const p=levelProgress(l.n);return `<article class="levelCard ${currentLevel===l.n?'activeLevel':''}"><div class="levelTop"><span class="levelIndex">${l.n}</span><div class="levelTitleWrap"><strong>${escapeHtml(l.title)}</strong><small>${escapeHtml(l.goal)}</small></div><span class="levelProgress">${p}%</span></div><div class="miniBar"><div style="width:${p}%"></div></div><div class="levelCommands">${l.commands.map(n=>{const c=commandBy(n);return `<span class="tinyChip">${escapeHtml(displayCommand(c))} · ${escapeHtml(displayPron(c))}</span>`}).join('')}</div><div class="levelActions">${currentLevel===l.n?'<span class="badge">Nivel activo</span>':`<button class="setLevelBtn" data-set-level="${l.n}">Trabajar este nivel</button>`}</div></article>`}).join('');$$('[data-set-level]').forEach(b=>b.onclick=()=>{currentLevel=+b.dataset.setLevel;store.set('patrickCurrentLevel',currentLevel);renderAll();toast(`Nivel ${currentLevel} activado`)})}
 function categories(){return ['Todos',...new Set(COMMANDS.map(c=>c.category))]}
-function commandCard(c){
-  const shown=displayCommand(c),pron=displayPron(c),safety=trainingSafety(c);
-  const safetyChip=safety?`<span class="tinyChip safetyChip">${escapeHtml(safety.label)}</span>`:'';
-  const safetyRow=safety?`<div class="detailRow safetyDetail ${safety.deferFromAdaptive?'deferred':''}"><strong>Seguridad / etapa</strong><p>${escapeHtml(safety.message)}</p></div>`:'';
-  return `<article class="commandCard" data-command="${escapeHtml(c.cmd)}"><div class="commandSummary"><div><div class="commandTitle"><strong>${escapeHtml(shown)}</strong><span class="pronunciation">${escapeHtml(pron)}</span></div><div class="commandMeaning">${escapeHtml(c.meaning)}</div><div class="commandMeta"><span class="tinyChip">Nivel ${c.level}</span><span class="tinyChip">${escapeHtml(c.category)}</span>${safetyChip}</div></div><div class="commandActions"><button class="audioBtn" data-audio="${escapeHtml(c.cmd)}" aria-label="Escuchar pronunciación de ${escapeHtml(shown)}">${icon('volume')}</button><button class="practiceBtn" data-practice="${escapeHtml(c.cmd)}" aria-label="Practicar ${escapeHtml(shown)}">${icon('play')}</button></div></div><button class="commandToggle" data-toggle="${escapeHtml(c.cmd)}" aria-expanded="false">Ver cómo enseñarlo <span>${icon('chevron')}</span></button><div class="commandDetails">${safetyRow}<div class="detailRow"><strong>Señal / gesto</strong><p>${escapeHtml(c.signal)}</p></div><div class="detailRow"><strong>Qué debe hacer</strong><p>${escapeHtml(c.action)}</p></div><div class="detailRow"><strong>Paso a paso</strong><p>${escapeHtml(c.how)}</p></div><div class="detailRow"><strong>Premio</strong><p>${escapeHtml(c.reward)}</p></div><div class="detailRow"><strong>Criterio de avance</strong><p>En las últimas 10 ejecuciones: Logrado = 1 punto, Con ayuda = 0,5 y No logrado = 0. Al llegar a 8 puntos pasa a consistente.</p></div></div></article>`;
-}
+function commandCard(c){const shown=displayCommand(c),pron=displayPron(c);return `<article class="commandCard" data-command="${escapeHtml(c.cmd)}"><div class="commandSummary"><div><div class="commandTitle"><strong>${escapeHtml(shown)}</strong><span class="pronunciation">${escapeHtml(pron)}</span></div><div class="commandMeaning">${escapeHtml(c.meaning)}</div><div class="commandMeta"><span class="tinyChip">Nivel ${c.level}</span><span class="tinyChip">${escapeHtml(c.category)}</span></div></div><div class="commandActions"><button class="audioBtn" data-audio="${escapeHtml(c.cmd)}" aria-label="Escuchar pronunciación de ${escapeHtml(shown)}">${icon('volume')}</button><button class="practiceBtn" data-practice="${escapeHtml(c.cmd)}" aria-label="Practicar ${escapeHtml(shown)}">${icon('play')}</button></div></div><button class="commandToggle" data-toggle="${escapeHtml(c.cmd)}" aria-expanded="false">Ver cómo enseñarlo <span>${icon('chevron')}</span></button><div class="commandDetails"><div class="detailRow"><strong>Señal / gesto</strong><p>${escapeHtml(c.signal)}</p></div><div class="detailRow"><strong>Qué debe hacer</strong><p>${escapeHtml(c.action)}</p></div><div class="detailRow"><strong>Paso a paso</strong><p>${escapeHtml(c.how)}</p></div><div class="detailRow"><strong>Premio</strong><p>${escapeHtml(c.reward)}</p></div><div class="detailRow"><strong>Criterio de avance</strong><p>En las últimas 10 ejecuciones: Logrado = 1 punto, Con ayuda = 0,5 y No logrado = 0. Al llegar a 8 puntos pasa a consistente.</p></div></div></article>`}
 function renderCommands(){const q=$('#search').value.trim().toLowerCase();$('#filters').innerHTML=categories().map(x=>`<button class="filterBtn ${filter===x?'active':''}" data-filter="${escapeHtml(x)}">${escapeHtml(x)}</button>`).join('');const arr=COMMANDS.filter(c=>(filter==='Todos'||c.category===filter)&&(`${displayCommand(c)} ${displayPron(c)} ${c.meaning} ${c.category}`).toLowerCase().includes(q));$('#commandList').innerHTML=arr.map(commandCard).join('')||'<p class="muted">No encontré comandos con ese filtro.</p>';$$('[data-filter]').forEach(b=>b.onclick=()=>{filter=b.dataset.filter;renderCommands()});$$('[data-audio]').forEach(b=>b.onclick=()=>speak(commandBy(b.dataset.audio)));$$('[data-practice]').forEach(b=>b.onclick=()=>startSession([commandBy(b.dataset.practice)]));$$('[data-toggle]').forEach(b=>b.onclick=()=>{const card=b.closest('.commandCard');card.classList.toggle('open');b.setAttribute('aria-expanded',String(card.classList.contains('open')))})}
 
 window.PATRICK_READY=(async()=>{
