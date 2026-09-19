@@ -265,8 +265,10 @@
 
   function priorityDetails(command,currentLevel,{trials={},history=[],progress={},stateScore={},profile=null,now=Date.now()}={}){
     const avg=recentAverage(trials,command.cmd),last=lastPracticeMs(history,command.cmd);
-    const days=last?Math.max(0,(now-last)/DAY_MS):30,state=Number(stateScore[progress[command.cmd]||'No iniciado']||0);
-    const evidence=commandContextEvidence(history,command.cmd);
+    const days=last?Math.max(0,(now-last)/DAY_MS):30,stateName=progress[command.cmd]||'No iniciado',state=Number(stateScore[stateName]||0);
+    const evidence=commandContextEvidence(history,command.cmd),confidence=evidenceConfidence(history,trials,command);
+    const timing=commandTimingEvidence(history,command,stateName,{stateScore}),difficulty=difficultyTarget(command,stateName,{stateScore,context:recommendedContext(command,{progress,history,stateScore})});
+    const attempts=recommendedAttempts(command,{trials,history,progress,stateScore,profile,now});
     let score=command.level===currentLevel?110:38;
     score+=avg===null?34:(1-avg)*72;
     score+=Math.min(days,30)*1.7;
@@ -274,7 +276,10 @@
     if(state===2&&evidence.contextCount<3)score+=30;
     if(state===3&&evidence.contextCount<3)score+=18;
     if(avg!==null&&avg<.7)score+=24;
-    if(state>=2&&avg!==null&&avg>=.9&&days<5&&evidence.contextCount>=3)score-=34;
+    if(confidence.level==='Baja')score+=10;
+    if(timing.mode==='response'&&timing.recentCount>=2&&timing.targetSeconds&&timing.medianSeconds>timing.targetSeconds*1.25)score+=14;
+    if(timing.mode==='duration'&&timing.recentCount>=2&&timing.targetSeconds&&timing.medianSeconds<timing.targetSeconds*.8)score+=12;
+    if(state>=2&&avg!==null&&avg>=.9&&days<5&&evidence.contextCount>=3&&confidence.level==='Alta')score-=34;
 
     const reasons=[];
     if(command.level===currentLevel)reasons.push('Es parte del nivel actual');
@@ -284,12 +289,15 @@
     else if(state===2&&evidence.contextCount<2)reasons.push('Falta probarlo en otro contexto');
     else if(state===2)reasons.push('Conviene seguir generalizándolo');
     else if(state===3)reasons.push('Necesita más evidencia para considerarlo dominado');
+    if(timing.mode==='response'&&timing.recentCount>=2&&timing.targetSeconds&&timing.medianSeconds>timing.targetSeconds*1.25)reasons.push('La respuesta aún tarda ≈ '+timing.medianSeconds.toFixed(1)+' s');
+    if(timing.mode==='duration'&&timing.recentCount>=2&&timing.targetSeconds&&timing.medianSeconds<timing.targetSeconds*.8)reasons.push('Conviene alargar la duración estable');
+    if(confidence.level==='Baja'&&confidence.sessions>0)reasons.push('La confianza todavía es baja: falta más evidencia');
     if(days>=7)reasons.push('Lleva '+Math.floor(days)+' días sin practicarse');
     if(!reasons.length)reasons.push('Repaso espaciado para conservar la respuesta');
 
     const safety=safetyForCommand(command,profile,now);
     if(safety?.deferFromAdaptive)score-=1000;
-    return{score,reasons,evidence,recommendation:recommendedContext(command,{progress,history,stateScore}),safety};
+    return{score,reasons,evidence,confidence,timing,difficulty,attempts,recommendation:recommendedContext(command,{progress,history,stateScore}),safety};
   }
 
   function adaptivePriority(command,currentLevel,options={}){
@@ -366,16 +374,16 @@
 
   function dailyPlan(commands,currentLevel,{dayType='Todo el día',trials={},history=[],progress={},stateScore={},profile=null,now=Date.now()}={}){
     const focus=focusForLevel(commands,currentLevel,{dayType,trials,history,progress,stateScore,profile,now});
-    const stage=ageStage(profile,now),minutesPerCommand=stage.key==='young-puppy'?3:4;
+    const stage=ageStage(profile,now);
     const items=focus.map(command=>{
       const details=priorityDetails(command,currentLevel,{trials,history,progress,stateScore,profile,now});
-      const state=progress[command.cmd]||'No iniciado',level=Number(stateScore[state]||0);
+      const state=progress[command.cmd]||'No iniciado',level=Number(stateScore[state]||0),minutes=stage.key==='young-puppy'?3:details.attempts>=5?5:4;
       const objective=level<2?'Construir una respuesta clara':level===2?'Generalizar sin perder precisión':level===3?'Consolidar bajo más dificultad':'Repaso para mantenerlo sólido';
-      return{command,attempts:5,minutes:minutesPerCommand,state,objective,reason:details.reasons[0],context:details.recommendation};
+      return{command,attempts:details.attempts,minutes,state,objective,reason:details.reasons[0],context:details.recommendation,confidence:details.confidence,timing:details.timing,difficulty:details.difficulty};
     });
     return{
       title:dayType==='Solo noche'?'Plan compacto de hoy':'Plan inteligente de hoy',
-      totalMinutes:items.length*minutesPerCommand,
+      totalMinutes:items.reduce((sum,item)=>sum+item.minutes,0),
       stage:stage.label,
       items
     };
@@ -407,7 +415,8 @@
 
   globalThis.PatrickTrainingEngine=Object.freeze({
     CONTEXT_ENVIRONMENTS,CONTEXT_DISTRACTIONS,normalizeContext,contextSignature,contextDifficulty,contextLabel,
-    effectiveAgeMonths,ageStage,safetyForCommand,lastPracticeMs,recentAverage,commandContextEvidence,nextProgressState,
-    recommendedContext,priorityDetails,adaptivePriority,focusForLevel,commandHistorySeries,commandTrend,evolutionSummary,dailyPlan,microPlan,ageGuidance
+    effectiveAgeMonths,ageStage,safetyForCommand,skillFamily,difficultyTarget,timingTarget,commandTimingEvidence,evidenceConfidence,recommendedAttempts,
+    lastPracticeMs,recentAverage,commandContextEvidence,nextProgressState,recommendedContext,priorityDetails,adaptivePriority,focusForLevel,
+    commandHistorySeries,commandTrend,evolutionSummary,dailyPlan,microPlan,ageGuidance
   });
 })();
