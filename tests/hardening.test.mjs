@@ -137,15 +137,15 @@ test('storage reconciliation prefers IndexedDB over legacy local data without fr
 
 test('backup schema accepts 5.x backups, v6 schema, and rejects malformed nested data',()=>{
   const env=baseContext();loadArchitecture(env.ctx);
-  const schema=env.ctx.PatrickBackupSchema,opts={commands:env.ctx.PATRICK_COMMANDS,states:['No iniciado','En práctica','Consistente','Generalizando','Dominado'],currentProfile:{name:'Patrick'},maxSchemaVersion:9};
+  const schema=env.ctx.PatrickBackupSchema,opts={commands:env.ctx.PATRICK_COMMANDS,states:['No iniciado','En práctica','Consistente','Generalizando','Dominado'],currentProfile:{name:'Patrick'},maxSchemaVersion:11};
   const legacy=schema.normalize({version:5.1,currentLevel:1,dayType:'Todo el día',progress:{Sitz:'En práctica'},trials:{Sitz:[1,.5,0]},history:[],profile:{name:'Patrick',ageMonths:4},notifications:{enabled:false,time:'19:00'}},opts);
   assert.equal(legacy.profile.name,'Patrick');
   assert.deepEqual(Array.from(legacy.trials.Sitz),[1,.5,0]);
-  const current=schema.normalize({schemaVersion:9,appVersion:'7.2.0',currentLevel:0,dayType:'Solo noche',history:[]},opts);
+  const current=schema.normalize({schemaVersion:11,appVersion:'7.2.0',currentLevel:0,dayType:'Solo noche',history:[]},opts);
   assert.equal(current.dayType,'Solo noche');
   assert.throws(()=>schema.normalize({schemaVersion:7,currentLevel:0,dayType:'Todo el día',trials:{Sitz:['boom']}},opts));
   assert.throws(()=>schema.normalize({schemaVersion:7,currentLevel:0,dayType:'Todo el día',history:[null]},opts));
-  assert.throws(()=>schema.normalize({schemaVersion:10,currentLevel:0,dayType:'Todo el día'},opts));
+  assert.throws(()=>schema.normalize({schemaVersion:12,currentLevel:0,dayType:'Todo el día'},opts));
 });
 
 test('age-aware engine defers Hopp from adaptive sessions for a young puppy',()=>{
