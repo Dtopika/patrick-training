@@ -43,13 +43,14 @@ test('evolution summary compares recent performance and finds signals',()=>{
     session('2026-09-19T10:00:00Z','Sitz',5,5,{environment:'Parque',distraction:'Media'}),
     session('2026-09-18T10:00:00Z','Sitz',5,5,{environment:'Casa',distraction:'Media'}),
     session('2026-09-17T10:00:00Z','Nein',3,5,{environment:'Casa',distraction:'Baja'}),
+    session('2026-09-16T10:00:00Z','Nein',2,5,{environment:'Exterior tranquilo',distraction:'Baja'}),
     session('2026-09-12T10:00:00Z','Sitz',3,5,{environment:'Casa',distraction:'Baja'}),
     session('2026-09-11T10:00:00Z','Sitz',2,5,{environment:'Casa',distraction:'Baja'})
   ];
   const stateScore={'No iniciado':0,'En práctica':1,'Consistente':2,'Generalizando':3,'Dominado':4};
   const summary=e.evolutionSummary(commands,{history,progress:{Sitz:'Consistente',Nein:'En práctica'},stateScore,now});
-  assert.equal(summary.sessions7,3);
-  assert.equal(summary.sessions30,5);
+  assert.equal(summary.sessions7,4);
+  assert.equal(summary.sessions30,6);
   assert.equal(summary.activeCommands30,2);
   assert.ok(summary.contexts30>=3);
   assert.ok(summary.accuracy7>summary.previousAccuracy7);
