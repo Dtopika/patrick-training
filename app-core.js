@@ -63,7 +63,8 @@ const STORAGE_DEFAULTS={
   patrickHistory:[],
   patrickCurrentLevel:0,
   patrickDayType:'Todo el día',
-  patrickDogProfile:null
+  patrickDogProfile:null,
+  patrickTrainingContext:{environment:'Casa',distraction:'Baja'}
 };
 const STORAGE_META_KEY='patrickStorageMetaV2';
 const memoryStore={};
@@ -139,6 +140,7 @@ const store={
 
 let progress={},trials={},history=[],currentLevel=0,dayType='Todo el día',filter='Todos';
 let dogProfile={name:'',breed:'Pastor Alemán'};
+let trainingContext={environment:'Casa',distraction:'Baja'};
 let session=null,toastTimer=null;
 
 function dogName(){return String(dogProfile?.name||'').trim()||'Patrick'}
@@ -159,6 +161,9 @@ function commandLastPracticeMs(cmd){return ENGINE.lastPracticeMs(history,cmd)}
 function commandRecentAverage(cmd){return ENGINE.recentAverage(trials,cmd)}
 function trainingSafety(c){return ENGINE.safetyForCommand(c,dogProfile)}
 function adaptivePriority(c,n){return ENGINE.adaptivePriority(c,n,{trials,history,progress,stateScore:STATE_SCORE,profile:dogProfile})}
+function commandPriorityDetails(c,n=currentLevel){return ENGINE.priorityDetails(c,n,{trials,history,progress,stateScore:STATE_SCORE,profile:dogProfile})}
+function commandContextEvidence(cmd){return ENGINE.commandContextEvidence(history,cmd)}
+function recommendedTrainingContext(c){return ENGINE.recommendedContext(c,{progress,history,stateScore:STATE_SCORE})}
 function focusForLevel(n){return ENGINE.focusForLevel(COMMANDS,n,{dayType,trials,history,progress,stateScore:STATE_SCORE,profile:dogProfile})}
 function microPlan(){const focus=focusForLevel(currentLevel);return ENGINE.microPlan(COMMANDS,currentLevel,{dayType,progress,stateScore:STATE_SCORE,focus,profile:dogProfile})}
 function setView(id){$$('.view').forEach(v=>v.classList.toggle('active',v.id===id));$$('.bottomNav button').forEach(b=>b.classList.toggle('active',b.dataset.view===id));scrollTo({top:0,behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});if(id==='progress')renderProgress();if(id==='commands')renderCommands();if(id==='levels')renderLevels()}
@@ -189,13 +194,13 @@ function commandCard(c){
   const shown=displayCommand(c),pron=displayPron(c),safety=trainingSafety(c);
   const safetyChip=safety?`<span class="tinyChip safetyChip">${escapeHtml(safety.label)}</span>`:'';
   const safetyRow=safety?`<div class="detailRow safetyDetail ${safety.deferFromAdaptive?'deferred':''}"><strong>Seguridad / etapa</strong><p>${escapeHtml(safety.message)}</p></div>`:'';
-  return `<article class="commandCard" data-command="${escapeHtml(c.cmd)}"><div class="commandSummary"><div><div class="commandTitle"><strong>${escapeHtml(shown)}</strong><span class="pronunciation">${escapeHtml(pron)}</span></div><div class="commandMeaning">${escapeHtml(c.meaning)}</div><div class="commandMeta"><span class="tinyChip">Nivel ${c.level}</span><span class="tinyChip">${escapeHtml(c.category)}</span>${safetyChip}</div></div><div class="commandActions"><button class="audioBtn" data-audio="${escapeHtml(c.cmd)}" aria-label="Escuchar pronunciación de ${escapeHtml(shown)}">${icon('volume')}</button><button class="practiceBtn" data-practice="${escapeHtml(c.cmd)}" aria-label="Practicar ${escapeHtml(shown)}">${icon('play')}</button></div></div><button class="commandToggle" data-toggle="${escapeHtml(c.cmd)}" aria-expanded="false">Ver cómo enseñarlo <span>${icon('chevron')}</span></button><div class="commandDetails">${safetyRow}<div class="detailRow"><strong>Señal / gesto</strong><p>${escapeHtml(c.signal)}</p></div><div class="detailRow"><strong>Qué debe hacer</strong><p>${escapeHtml(c.action)}</p></div><div class="detailRow"><strong>Paso a paso</strong><p>${escapeHtml(c.how)}</p></div><div class="detailRow"><strong>Premio</strong><p>${escapeHtml(c.reward)}</p></div><div class="detailRow"><strong>Criterio de avance</strong><p>En las últimas 10 ejecuciones: Logrado = 1 punto, Con ayuda = 0,5 y No logrado = 0. Al llegar a 8 puntos pasa a consistente.</p></div></div></article>`;
+  return `<article class="commandCard" data-command="${escapeHtml(c.cmd)}"><div class="commandSummary"><div><div class="commandTitle"><strong>${escapeHtml(shown)}</strong><span class="pronunciation">${escapeHtml(pron)}</span></div><div class="commandMeaning">${escapeHtml(c.meaning)}</div><div class="commandMeta"><span class="tinyChip">Nivel ${c.level}</span><span class="tinyChip">${escapeHtml(c.category)}</span>${safetyChip}</div></div><div class="commandActions"><button class="audioBtn" data-audio="${escapeHtml(c.cmd)}" aria-label="Escuchar pronunciación de ${escapeHtml(shown)}">${icon('volume')}</button><button class="practiceBtn" data-practice="${escapeHtml(c.cmd)}" aria-label="Practicar ${escapeHtml(shown)}">${icon('play')}</button></div></div><button class="commandToggle" data-toggle="${escapeHtml(c.cmd)}" aria-expanded="false">Ver cómo enseñarlo <span>${icon('chevron')}</span></button><div class="commandDetails">${safetyRow}<div class="detailRow"><strong>Señal / gesto</strong><p>${escapeHtml(c.signal)}</p></div><div class="detailRow"><strong>Qué debe hacer</strong><p>${escapeHtml(c.action)}</p></div><div class="detailRow"><strong>Paso a paso</strong><p>${escapeHtml(c.how)}</p></div><div class="detailRow"><strong>Premio</strong><p>${escapeHtml(c.reward)}</p></div><div class="detailRow"><strong>Criterio de avance</strong><p>Primero necesita 8/10 puntos recientes para ser consistente. Después debe repetir buenos resultados en contextos y dificultades diferentes para generalizar y dominar.</p></div></div></article>`;
 }
 function renderCommands(){const q=$('#search').value.trim().toLowerCase();$('#filters').innerHTML=categories().map(x=>`<button class="filterBtn ${filter===x?'active':''}" data-filter="${escapeHtml(x)}">${escapeHtml(x)}</button>`).join('');const arr=COMMANDS.filter(c=>(filter==='Todos'||c.category===filter)&&(`${displayCommand(c)} ${displayPron(c)} ${c.meaning} ${c.category}`).toLowerCase().includes(q));$('#commandList').innerHTML=arr.map(commandCard).join('')||'<p class="muted">No encontré comandos con ese filtro.</p>';$$('[data-filter]').forEach(b=>b.onclick=()=>{filter=b.dataset.filter;renderCommands()});$$('[data-audio]').forEach(b=>b.onclick=()=>speak(commandBy(b.dataset.audio)));$$('[data-practice]').forEach(b=>b.onclick=()=>startSession([commandBy(b.dataset.practice)]));$$('[data-toggle]').forEach(b=>b.onclick=()=>{const card=b.closest('.commandCard');card.classList.toggle('open');b.setAttribute('aria-expanded',String(card.classList.contains('open')))})}
 
 window.PATRICK_READY=(async()=>{
   await ensureV6Dependencies();
-  await store.hydrate();progress=store.get('patrickProgress',{})||{};trials=store.get('patrickTrials',{})||{};history=store.get('patrickHistory',[])||[];currentLevel=Number(store.get('patrickCurrentLevel',0))||0;dayType=store.get('patrickDayType','Todo el día')||'Todo el día';dogProfile=store.get('patrickDogProfile',null)||{name:'',breed:'Pastor Alemán'};
+  await store.hydrate();progress=store.get('patrickProgress',{})||{};trials=store.get('patrickTrials',{})||{};history=store.get('patrickHistory',[])||[];currentLevel=Number(store.get('patrickCurrentLevel',0))||0;dayType=store.get('patrickDayType','Todo el día')||'Todo el día';dogProfile=store.get('patrickDogProfile',null)||{name:'',breed:'Pastor Alemán'};trainingContext=ENGINE.normalizeContext(store.get('patrickTrainingContext',trainingContext));
   const hasExistingData=Object.keys(progress).length>0||Object.keys(trials).length>0||history.length>0||currentLevel>0;
   if(!String(dogProfile?.name||'').trim()&&hasExistingData){dogProfile={...dogProfile,name:'Patrick',breed:'Pastor Alemán'};store.set('patrickDogProfile',dogProfile)}
 })();
