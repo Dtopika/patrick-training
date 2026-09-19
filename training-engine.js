@@ -326,7 +326,7 @@
       const result=item?.results?.[cmd];if(!result)continue;
       const total=Number(result.total)||0,score=Number(result.score)||0,at=Date.parse(item.at||'');
       if(total<=0||!Number.isFinite(at))continue;
-      rows.push({at,accuracy:Math.max(0,Math.min(1,score/total)),context:normalizeContext(item.context)});
+      rows.push({at,accuracy:Math.max(0,Math.min(1,score/total)),context:normalizeContext(item.context),avgSeconds:Number(result.avgSeconds)||0,timingMode:item.timingMode||null});
     }
     rows.sort((a,b)=>a.at-b.at);
     return rows.slice(-Math.max(1,Number(limit)||8));
