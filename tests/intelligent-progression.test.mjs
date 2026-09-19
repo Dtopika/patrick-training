@@ -95,8 +95,8 @@ test('schema 8 accepts detailed outcomes but does not require them from legacy s
   const ctx=vm.createContext({console});vm.runInContext(read('backup-schema.js'),ctx,{filename:'backup-schema.js'});
   const schema=ctx.PatrickBackupSchema,commands=[{cmd:'Sitz'}],states=['No iniciado','En práctica','Consistente','Generalizando','Dominado'];
   const normalized=schema.normalize({
-    schemaVersion:9,currentLevel:1,dayType:'Todo el día',
-    history:[{version:9,at:'2026-09-19T12:00:00Z',level:1,dogName:'Patrick',context:{environment:'Casa',distraction:'Baja'},results:{Sitz:{achieved:4,assisted:1,missed:0,total:5,score:4.5,avgSeconds:1,outcomes:['achieved','achieved','achieved','achieved','assisted']}},timings:{Sitz:[1,1,1,1,1]}}]
+    schemaVersion:8,currentLevel:1,dayType:'Todo el día',
+    history:[{version:8,at:'2026-09-19T12:00:00Z',level:1,dogName:'Patrick',context:{environment:'Casa',distraction:'Baja'},results:{Sitz:{achieved:4,assisted:1,missed:0,total:5,score:4.5,avgSeconds:1,outcomes:['achieved','achieved','achieved','achieved','assisted']}},timings:{Sitz:[1,1,1,1,1]}}]
   },{commands,states,currentProfile:{name:'Patrick'},maxSchemaVersion:8});
   assert.deepEqual(Array.from(normalized.history[0].results.Sitz.outcomes),['achieved','achieved','achieved','achieved','assisted']);
   assert.equal(normalized.history[0].timingMode,undefined);
