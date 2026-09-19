@@ -1,7 +1,17 @@
 (()=>{'use strict';
+  const CONTEXT_ENVIRONMENTS=['Casa','Exterior tranquilo','Calle','Parque'];
+  const CONTEXT_DISTRACTIONS=['Baja','Media','Alta'];
+
   function plainObject(value){return !!value&&typeof value==='object'&&!Array.isArray(value)}
   function fail(message){throw new Error(message)}
   function commandSet(commands){return new Set((commands||[]).map(c=>c.cmd))}
+  function normalizeTrainingContext(value,fallback={environment:'Casa',distraction:'Baja'}){
+    const source=value==null?fallback:value;
+    if(!plainObject(source))fail('Contexto de entrenamiento inválido');
+    const environment=String(source.environment||'Casa'),distraction=String(source.distraction||'Baja');
+    if(!CONTEXT_ENVIRONMENTS.includes(environment)||!CONTEXT_DISTRACTIONS.includes(distraction))fail('Contexto de entrenamiento inválido');
+    return{environment,distraction};
+  }
   function normalizeProfile(value,currentProfile){
     if(value==null)return currentProfile;
     if(!plainObject(value))fail('Perfil inválido');
@@ -48,7 +58,8 @@
           const safe=list.map(Number);if(safe.some(n=>!Number.isFinite(n)||n<0||n>3600000))fail('Tiempo de ejecución inválido');timings[cmd]=safe;
         }
       }
-      return{version:Number(item.version)||5,at:new Date(item.at).toISOString(),level,dogName:String(item.dogName||'Patrick').trim().slice(0,24)||'Patrick',results,timings};
+      const context=normalizeTrainingContext(item.context);
+      return{version:Number(item.version)||5,at:new Date(item.at).toISOString(),level,dogName:String(item.dogName||'Patrick').trim().slice(0,24)||'Patrick',results,timings,context};
     });
   }
   function normalizeNotifications(value){
@@ -56,7 +67,7 @@
     const time=String(value.time||'19:00');if(!/^([01]\d|2[0-3]):[0-5]\d$/.test(time))fail('Hora de recordatorio inválida');
     return{enabled:!!value.enabled,time,lastNotifiedDate:null};
   }
-  function normalize(data,{commands=[],states=[],currentProfile=null,maxSchemaVersion=6}={}){
+  function normalize(data,{commands=[],states=[],currentProfile=null,currentTrainingContext={environment:'Casa',distraction:'Baja'},maxSchemaVersion=7}={}){
     if(!plainObject(data))fail('Formato de respaldo inválido');
     const schema=Number(data.schemaVersion??data.version??5);
     if(!Number.isFinite(schema)||schema<5||schema>maxSchemaVersion)fail('Versión de respaldo no compatible');
@@ -68,6 +79,7 @@
       history:normalizeHistory(data.history,commands),
       currentLevel,dayType,
       profile:normalizeProfile(data.profile,currentProfile),
+      trainingContext:normalizeTrainingContext(data.trainingContext,currentTrainingContext),
       notifications:normalizeNotifications(data.notifications)
     };
   }
