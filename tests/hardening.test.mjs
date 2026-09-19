@@ -87,11 +87,16 @@ test('v6 bootstraps its dependencies when an older HTML shell loads newer JavaSc
   assert.deepEqual(env.scripts.map(s=>s.src),['config.js?v600-r2','training-engine.js?v600-r2','backup-schema.js?v600-r2']);
 });
 
-test('navigation uses querySelectorAll for view and bottom-nav collections',()=>{
-  const core=read('app-core.js');
-  assert.ok(core.includes("function setView(id){$('.view').forEach"),'setView must iterate all views');
-  assert.ok(core.includes("$('.bottomNav button').forEach"),'setView must iterate all nav buttons');
-  assert.ok(!core.includes("function setView(id){$('.view').forEach"),'single-node selector regression returned');
+test('navigation and settings click wiring remain collection-safe',()=>{
+  const core=read('app-core.js'),session=read('app-session.js'),profile=read('profile.js');
+  assert.ok(core.includes("function setView(id){$$('.view').forEach"),'setView must iterate all views');
+  assert.ok(core.includes("$$('.bottomNav button').forEach"),'setView must iterate all nav buttons');
+  assert.ok(session.includes("$$('.bottomNav button').forEach"),'bottom-nav handlers must bind to all buttons');
+  assert.ok(profile.includes("$('#settingsAvatarBtn').onclick=openSettingsDrawer"),'settings avatar handler missing');
+  for(const [name,source] of [['app-core.js',core],['app-session.js',session],['profile.js',profile],['progress.js',read('progress.js')],['app-media.js',read('app-media.js')]]){
+    const accidental=[...source.matchAll(/(?<!\$)\$\('[^']+'\)\.forEach/g)].map(m=>m[0]);
+    assert.deepEqual(accidental,[],name+' has single-node selector used as a collection: '+accidental.join(', '));
+  }
 });
 
 test('v6 configuration centralizes public and schema versions',()=>{
