@@ -128,6 +128,16 @@ test('schema 11 preserves archive, teaching state and German voice preference',(
   assert.equal(normalized.germanVoice,'Google Deutsch');
 });
 
+test('schema 12 preserves first-run wizard completion state',()=>{
+  const ctx=vm.createContext({console});vm.runInContext(read('backup-schema.js'),ctx,{filename:'backup-schema.js'});
+  const schema=ctx.PatrickBackupSchema,commands=[{cmd:'Sitz'}],states=['No iniciado','En práctica','Consistente','Generalizando','Dominado'];
+  const normalized=schema.normalize({
+    schemaVersion:12,currentLevel:0,dayType:'Todo el día',setupWizardVersion:1,teachingGuideVersion:1
+  },{commands,states,currentProfile:{name:'Patrick'},maxSchemaVersion:12});
+  assert.equal(normalized.setupWizardVersion,1);
+  assert.equal(normalized.teachingGuideVersion,1);
+});
+
 test('session flow persists context only with the completed transaction',()=>{
   const session=read('app-session.js'),core=read('app-core.js'),profile=read('profile.js');
   assert.match(core,/patrickTrainingContext:\{environment:'Casa',distraction:'Baja'\}/);
