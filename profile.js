@@ -152,6 +152,39 @@ function exportDiagnostic(){
   downloadJson(`patrick-training-diagnostico-${new Date().toISOString().slice(0,10)}.json`,payload);toast('Diagnóstico exportado');
 }
 
+function freshStorageValues(){
+  const values={};
+  for(const [key,value] of Object.entries(STORAGE_DEFAULTS))values[key]=value&&typeof value==='object'?JSON.parse(JSON.stringify(value)):value;
+  return values;
+}
+async function resetAllTrainingData(){
+  const first=confirm('¿Reiniciar todos los datos de Patrick Training en este dispositivo?\n\nSe borrarán perfil, progreso, sesiones, archivo histórico, preferencias y recordatorios.');
+  if(!first)return false;
+  const second=confirm('ÚLTIMA CONFIRMACIÓN\n\nEsto no se puede deshacer. ¿Borrar todo y volver a la configuración inicial?');
+  if(!second)return false;
+
+  clearTimeout(reminderTimer);reminderTimer=null;
+  try{await periodicReminderRegistration(false)}catch{}
+  try{localStorage.removeItem(REMINDER_KEY)}catch{}
+  try{await window.PatrickDB?.del?.(REMINDER_KEY)}catch{}
+  try{
+    const reg=await navigator.serviceWorker?.ready,notifications=await reg?.getNotifications?.({tag:REMINDER_TAG});
+    notifications?.forEach?.(notification=>notification.close());
+  }catch{}
+
+  const fresh=freshStorageValues();await store.setMany(fresh);
+  progress={};trials={};history=[];historyArchive=emptyHistoryArchive();currentLevel=0;dayType='Todo el día';filter='Todos';
+  dogProfile={name:'',breed:'Pastor Alemán'};trainingContext=ENGINE.normalizeContext({environment:'Casa',distraction:'Baja'});
+  themePreference='system';germanVoicePreference='auto';teachingOnboardingVersion=0;setupWizardVersion=0;
+  reminderSettings={enabled:false,time:'19:00',lastNotifiedDate:null};reminderLoaded=true;reminderStorageMode=storageMode==='indexeddb'?'indexeddb':'localStorage';
+  applyTheme();renderCommands();renderAll();syncSettingsDrawer();syncManagementDialogs();syncReminderUI();
+  const settings=$('#appSettingsDialog');if(settings?.open)settings.close();closeSettingsDrawer();
+  if(typeof setView==='function')setView('today');
+  toast('Datos reiniciados');
+  setTimeout(openSetupWizard,180);
+  return true;
+}
+
 async function importProgressFile(file){
   if(!file)return;
   if(file.size>CONFIG.BACKUP_MAX_BYTES){toast('El respaldo es demasiado grande');return}
@@ -266,7 +299,7 @@ function ensureManagementDialogs(){
     <dialog id="appSettingsDialog" class="managementDialog" aria-labelledby="appSettingsTitle"><section class="managementCard">
       <header class="managementHeader"><div><p class="kicker">APLICACIÓN</p><h2 id="appSettingsTitle">Configuración</h2><p class="muted">Apariencia, almacenamiento y respaldos.</p></div><button id="closeAppSettingsBtn" class="roundBtn" type="button" aria-label="Cerrar configuración">${icon('x')}</button></header>
       <section class="managementSection"><div class="managementSectionTitle"><span class="managementIcon">${icon('palette')}</span><div><strong>Apariencia</strong><small id="themeCurrentValue">Sistema</small></div></div><label class="managementControl"><span>Tema</span><select id="themeSelect" aria-label="Tema de la aplicación"><option value="system">Usar sistema</option><option value="light">Claro</option><option value="dark">Oscuro</option></select></label></section><section class="managementSection"><div class="managementSectionTitle"><span class="managementIcon">${icon('volume')}</span><div><strong>Pronunciación alemana</strong><small id="germanVoiceCurrent">Automática</small></div></div><label class="managementControl"><span>Voz</span><select id="germanVoiceSelect" aria-label="Voz alemana"></select></label><button id="testGermanVoiceBtn" class="managementAction" type="button"><span>${icon('volume')}</span><div><strong>Probar voz</strong><small>Reproduce “Sitz” con la voz seleccionada.</small></div><i>${icon('chevron')}</i></button><small class="settingsNote">Usa las voces instaladas en tu dispositivo. Si la voz elegida deja de existir, la app vuelve automáticamente a una voz alemana disponible.</small></section>
-      <section class="managementSection"><div class="managementSectionTitle"><span class="managementIcon">${icon('database')}</span><div><strong>Datos y almacenamiento</strong><small>Tu información permanece en este dispositivo.</small></div></div><div class="managementMeta"><span>Motor de almacenamiento</span><strong id="storageModeLabel" class="storageBadge">IndexedDB</strong></div><div class="managementMeta"><span>Estado técnico</span><strong id="diagnosticSummary">v${escapeHtml(CONFIG.APP_VERSION)} · schema ${CONFIG.BACKUP_SCHEMA_VERSION}</strong></div><button id="exportBtn" class="managementAction" type="button"><span>${icon('download')}</span><div><strong>Exportar respaldo</strong><small>Descarga perfil, progreso, sesiones y preferencias.</small></div><i>${icon('chevron')}</i></button><button id="importBtn" class="managementAction" type="button"><span>${icon('upload')}</span><div><strong>Restaurar respaldo</strong><small>Importa un respaldo validado de Patrick Training.</small></div><i>${icon('chevron')}</i></button><button id="exportDiagnosticBtn" class="managementAction" type="button"><span>${icon('info')}</span><div><strong>Exportar diagnóstico</strong><small>Versión, almacenamiento, ruta y estado técnico; sin historial detallado.</small></div><i>${icon('chevron')}</i></button><input id="importFileInput" type="file" accept="application/json,.json" hidden></section>
+      <section class="managementSection"><div class="managementSectionTitle"><span class="managementIcon">${icon('database')}</span><div><strong>Datos y almacenamiento</strong><small>Tu información permanece en este dispositivo.</small></div></div><div class="managementMeta"><span>Motor de almacenamiento</span><strong id="storageModeLabel" class="storageBadge">IndexedDB</strong></div><div class="managementMeta"><span>Estado técnico</span><strong id="diagnosticSummary">v${escapeHtml(CONFIG.APP_VERSION)} · schema ${CONFIG.BACKUP_SCHEMA_VERSION}</strong></div><button id="exportBtn" class="managementAction" type="button"><span>${icon('download')}</span><div><strong>Exportar respaldo</strong><small>Descarga perfil, progreso, sesiones y preferencias.</small></div><i>${icon('chevron')}</i></button><button id="importBtn" class="managementAction" type="button"><span>${icon('upload')}</span><div><strong>Restaurar respaldo</strong><small>Importa un respaldo validado de Patrick Training.</small></div><i>${icon('chevron')}</i></button><button id="exportDiagnosticBtn" class="managementAction" type="button"><span>${icon('info')}</span><div><strong>Exportar diagnóstico</strong><small>Versión, almacenamiento, ruta y estado técnico; sin historial detallado.</small></div><i>${icon('chevron')}</i></button><button id="resetAllDataBtn" class="managementAction managementDangerAction" type="button"><span>${icon('x')}</span><div><strong>Reiniciar todos los datos</strong><small>Borra perfil, progreso, sesiones, preferencias y vuelve al wizard inicial.</small></div><i>${icon('chevron')}</i></button><input id="importFileInput" type="file" accept="application/json,.json" hidden></section>
     </section></dialog>
     <dialog id="aboutDialog" class="managementDialog" aria-labelledby="aboutTitle"><section class="managementCard aboutCard">
       <header class="managementHeader"><div><p class="kicker">ACERCA DE</p><h2 id="aboutTitle">Patrick Training</h2><p class="muted">Entrenamiento local-first para construir vínculo, obediencia y progreso.</p></div><button id="closeAboutBtn" class="roundBtn" type="button" aria-label="Cerrar acerca de">${icon('x')}</button></header>
@@ -335,7 +368,7 @@ function bindProfileUI(){
   $('#openTeachingGuideBtn').onclick=openTeachingGuide;$('#openAppSettingsBtn').onclick=openAppSettingsDialog;$('#openAboutBtn').onclick=openAboutDialog;
   $('#settingsDayType').onchange=e=>{dayType=e.target.value;store.set('patrickDayType',dayType);$('#dayType').value=dayType;renderToday();syncSettingsDrawer()};
   $('#themeSelect').onchange=e=>setThemePreference(e.target.value);$('#germanVoiceSelect').onchange=e=>setGermanVoicePreference(e.target.value);$('#testGermanVoiceBtn').onclick=()=>speak(commandBy('Sitz'));$('#closeAppSettingsBtn').onclick=()=>$('#appSettingsDialog').close();$('#closeAboutBtn').onclick=()=>$('#aboutDialog').close();$('#closeTeachingGuideBtn').onclick=closeTeachingGuide;$('#finishTeachingGuideBtn').onclick=closeTeachingGuide;
-  $('#exportBtn').onclick=exportProgress;$('#exportDiagnosticBtn').onclick=exportDiagnostic;$('#importBtn').onclick=()=>$('#importFileInput').click();$('#importFileInput').onchange=async e=>{const file=e.target.files?.[0];e.target.value='';await importProgressFile(file)};
+  $('#exportBtn').onclick=exportProgress;$('#exportDiagnosticBtn').onclick=exportDiagnostic;$('#resetAllDataBtn').onclick=resetAllTrainingData;$('#importBtn').onclick=()=>$('#importFileInput').click();$('#importFileInput').onchange=async e=>{const file=e.target.files?.[0];e.target.value='';await importProgressFile(file)};
   $('#appSettingsDialog').addEventListener('click',e=>{if(e.target===$('#appSettingsDialog'))$('#appSettingsDialog').close()});$('#aboutDialog').addEventListener('click',e=>{if(e.target===$('#aboutDialog'))$('#aboutDialog').close()});$('#teachingGuideDialog').addEventListener('cancel',e=>{e.preventDefault();closeTeachingGuide()});$('#teachingGuideDialog').addEventListener('click',e=>{if(e.target===$('#teachingGuideDialog'))closeTeachingGuide()});
   $('#notificationToggle').onclick=toggleDailyReminders;$('#notificationTime').onchange=async e=>{reminderSettings.time=e.target.value||'19:00';reminderSettings.lastNotifiedDate=null;await saveReminderSettings();scheduleForegroundReminder();syncReminderUI();toast(`Recordatorio: ${reminderSettings.time}`)};
   $('#saveProfileBtn').onclick=saveDogProfile;$('#profileCancelBtn').onclick=()=>$('#profileDialog').close();$('#dogNameInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();saveDogProfile()}});$('#dogAgeInput').addEventListener('input',updateDogAgePreview);
