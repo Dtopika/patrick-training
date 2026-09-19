@@ -63,7 +63,7 @@ function commandsForLevelStart(levelNumber){
 }
 function setStartChoiceMode(mode){
   startChoiceMode=mode==='last'?'last':'recommended';
-  $('[data-start-mode]').forEach(button=>{const selected=button.dataset.startMode===startChoiceMode;button.classList.toggle('selected',selected);button.setAttribute('aria-checked',String(selected))});
+  $$('[data-start-mode]').forEach(button=>{const selected=button.dataset.startMode===startChoiceMode;button.classList.toggle('selected',selected);button.setAttribute('aria-checked',String(selected))});
 }
 function closeStartChoice(){
   pendingStartRequest=null;startChoiceMode='recommended';
