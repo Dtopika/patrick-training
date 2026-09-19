@@ -44,13 +44,13 @@
 
       <section id="smartDailyPlan" class="smartDailyPlan" aria-label="Plan inteligente de entrenamiento"></section>
 
-      <div class="metricGrid"><article class="metric"><strong id="metricProgress">0%</strong><span>progreso total</span></article><article class="metric"><strong id="metricSolid">0</strong><span>consistentes+</span></article><article class="metric"><strong id="metricSessions">0</strong><span>sesiones</span></article></div>
+      <div class="metricGrid"><article class="metric"><strong id="metricProgress">0%</strong><span>nivel actual</span></article><article class="metric"><strong id="metricSolid">0</strong><span>consistentes del nivel</span></article><article class="metric"><strong id="metricSessions">0</strong><span>sesiones</span></article></div>
       <section id="habitCard" class="habitCard" aria-label="Racha y actividad semanal"></section>
       <section class="contentBlock"><div class="sectionTitle"><div><p class="kicker">PLAN FLEXIBLE</p><h2>Micro-sesiones</h2></div><span class="muted">3–5 min</span></div><div id="todayPlan" class="planList"></div></section>
       <article id="advanceCard" class="advanceCard" hidden><div><strong id="advanceTitle">Patrick está listo para avanzar</strong><p class="muted">Los comandos del nivel actual ya están consistentes.</p></div><button id="advanceBtn" class="secondaryBtn">Siguiente nivel</button></article>
     </section>
 
-    <section id="levels" class="view" aria-labelledby="levelsHeading"><div class="pageHead"><p class="kicker">RUTA DE APRENDIZAJE</p><h1 id="levelsHeading">Niveles</h1><p class="muted">Trabaja un nivel a la vez. Puedes cambiarlo manualmente sin perder el progreso.</p></div><div id="levelList" class="levelList"></div></section>
+    <section id="levels" class="view" aria-labelledby="levelsHeading"><div class="pageHead"><p class="kicker">RUTA DE APRENDIZAJE</p><h1 id="levelsHeading">Niveles</h1><p class="muted">Tu nivel activo marca el foco de la ruta. Puedes repasar niveles anteriores sin cambiarlo ni alterar el autoavance.</p></div><div id="levelList" class="levelList"></div></section>
 
     <section id="commands" class="view" aria-labelledby="commandsHeading"><div class="pageHead commandPageHead"><div><p class="kicker">DICCIONARIO</p><h1 id="commandsHeading">Comandos</h1><p class="muted">Pronunciación, gesto, ejecución, premio y demostraciones en video.</p></div></div><label class="searchBox"><svg class="uiIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg><input id="search" type="search" autocomplete="off" placeholder="Buscar comando o significado" aria-label="Buscar comando o significado"></label><div id="filters" class="filterRow"></div><div id="commandList" class="commandList"></div></section>
 
@@ -84,6 +84,13 @@
     </div>
     <footer class="sessionActions" aria-label="Resultado de la ejecución"><button id="missedBtn" class="missedBtn">No logrado</button><button id="assistedBtn" class="assistedBtn">Con ayuda</button><button id="correctBtn" class="correctBtn">Logrado</button></footer>
   </div></dialog>
+
+  <dialog id="historyEditDialog" class="historyEditDialog" aria-labelledby="historyEditTitle"><section class="historyEditCard">
+    <header class="historyEditHeader"><div><p class="kicker">CORREGIR EVIDENCIA</p><h2 id="historyEditTitle">Editar sesión</h2><p id="historyEditMeta" class="muted"></p></div><button id="closeHistoryEditBtn" class="roundBtn" type="button" aria-label="Cerrar edición"><svg class="uiIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></header>
+    <p class="historyEditNote">Corrige únicamente registros que hayas marcado por error. La app recalculará la evidencia reciente de los comandos afectados.</p>
+    <div id="historyEditResults" class="historyEditResults"></div>
+    <footer class="historyEditActions"><button id="deleteHistorySessionBtn" class="dangerBtn" type="button">Eliminar sesión</button><div><button id="cancelHistoryEditBtn" class="secondaryBtn" type="button">Cancelar</button><button id="saveHistoryEditBtn" class="primaryBtn" type="button">Guardar corrección</button></div></footer>
+  </section></dialog>
 
   <dialog id="finishDialog" class="finishDialog" aria-labelledby="finishDialogTitle"><div class="finishCard"><div class="finishIcon"><svg class="uiIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></div><p class="kicker">SESIÓN TERMINADA</p><h2 id="finishDialogTitle">Buen trabajo</h2><p id="finishSummary" class="muted"></p><div id="finishResults" class="finishResults"></div><button id="finishBtn" class="primaryBtn">Volver a Hoy</button></div></dialog>
 
