@@ -1,0 +1,8 @@
+.ageGuidance{margin:10px 0 12px;padding:10px 11px;border-radius:13px;border:1px solid color-mix(in srgb,var(--success) 28%,var(--line));background:color-mix(in srgb,var(--success) 7%,var(--surface));display:grid;gap:3px}
+.ageGuidance[hidden],.sessionSafety[hidden]{display:none}.ageGuidance strong,.sessionSafety strong{font-size:11px;letter-spacing:.05em;text-transform:uppercase}.ageGuidance span,.sessionSafety span{font-size:11px;line-height:1.4;color:var(--muted)}
+.sessionSafety{margin:0 0 12px;padding:11px 12px;border-radius:14px;border:1px solid color-mix(in srgb,var(--warning) 35%,var(--line));background:var(--warningSoft);display:grid;gap:3px}.sessionSafety.deferred{border-color:color-mix(in srgb,var(--danger) 28%,var(--line));background:color-mix(in srgb,var(--danger) 7%,var(--surface))}
+.safetyChip{border-color:color-mix(in srgb,var(--warning) 35%,var(--line));color:var(--warning)}.safetyDetail{border:1px solid color-mix(in srgb,var(--warning) 28%,var(--line))}.safetyDetail.deferred{border-color:color-mix(in srgb,var(--danger) 30%,var(--line))}
+
+.networkStatus{display:inline-flex;align-items:center;min-height:30px;padding:0 9px;border-radius:999px;border:1px solid color-mix(in srgb,var(--warning) 35%,var(--line));background:var(--warningSoft);color:var(--warning);font-size:10px;font-weight:900;white-space:nowrap}
+.networkStatus[hidden]{display:none}
+body.isOffline .installAction{display:none!important}
