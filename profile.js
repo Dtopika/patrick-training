@@ -13,7 +13,7 @@ function dogAgeLabel(){
   const shown=Number.isInteger(years)?String(years):String(years).replace('.',',');
   return `${shown} ${years===1?'año':'años'}`;
 }
-function dogStageLabel(){const months=currentDogAgeMonths();return !months?'':months<12?'Cachorro':'Adulto'}
+function dogStageLabel(){const stage=ENGINE.ageStage(dogProfile);return stage.key==='unknown'?'':stage.label}
 
 function applySystemTheme(){
   const dark=SYSTEM_THEME.matches;
