@@ -3,8 +3,8 @@
 PWA móvil, local-first, para entrenar a Patrick con comandos en alemán, sesiones guiadas y progresión adaptativa.
 
 ## Estado
-- Release estable publicada: v7.0.0.
-- Línea actual: Adaptive Engine v3 con dificultad por habilidad, tiempo preciso, confianza y repeticiones adaptativas.
+- Release estable publicada: v7.1.0.
+- Línea actual: Teaching Experience con Misión de hoy, guía integrada y archivo histórico mensual.
 - Sin backend ni cuentas: los datos permanecen en el dispositivo salvo exportación manual.
 
 ## Funciones
@@ -34,6 +34,10 @@ PWA móvil, local-first, para entrenar a Patrick con comandos en alemán, sesion
 - Repeticiones adaptativas de 3 a 5 según rendimiento, estado y etapa del perro.
 - Cronometraje cue-to-rating: el tiempo empieza cuando el guía inicia realmente la ejecución; tiempos antiguos no se usan como latencia.
 - Ficha inteligente y plan diario muestran confianza, objetivo específico y timing cuando ya hay evidencia v7.
+- Misión de hoy como único CTA principal; el detalle adaptativo y micro-sesiones quedan plegables.
+- Guía “Cómo funciona” con estados, confianza, repeticiones adaptativas y medición precisa.
+- Archivo histórico mensual: las sesiones antiguas dejan de descartarse al superar 200.
+- Backups schema 10 incluyen archivo histórico y estado del onboarding.
 - Historial, racha y evidencia reciente por comando.
 - Perfil del perro con edad y recomendaciones de seguridad.
 - Videos curados y pronunciación mediante la voz alemana del dispositivo.
