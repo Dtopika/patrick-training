@@ -18,7 +18,7 @@ function trialTrendHtml(arr){
 function adaptiveSummaryHtml(){
   const eligible=COMMANDS.filter(c=>c.level<=currentLevel).map(c=>{const details=commandPriorityDetails(c,currentLevel);return{c,details,stats:commandTrialStats(c.cmd)}}).sort((a,b)=>b.details.score-a.details.score).slice(0,3);
   if(!eligible.length)return'';
-  return`<div class="adaptiveSummaryHead"><div><p class="kicker">MOTOR ADAPTATIVO V2</p><h2>Prioridades de hoy</h2></div><span class="adaptiveBadge">Explicable</span></div><div class="adaptiveCards adaptiveCardsV2">${eligible.map(({c,details,stats})=>`<article><div class="adaptiveCardTop"><strong>${escapeHtml(displayCommand(c))}</strong><span>${stats.avg===null?'Nuevo':Math.round(stats.avg*100)+'%'}</span></div><p>${escapeHtml(details.reasons[0])}</p><small>${escapeHtml(details.recommendation.label)} · ${relativePracticeLabel(stats.lastMs)}</small></article>`).join('')}</div><p class="adaptiveExplain">La prioridad combina nivel, rendimiento reciente, tiempo sin practicar y evidencia en contextos diferentes. La sugerencia de contexto no cambia tu sesión hasta que tú la selecciones.</p>`;
+  return`<div class="adaptiveSummaryHead"><div><p class="kicker">MOTOR ADAPTATIVO V3</p><h2>Prioridades de hoy</h2></div><span class="adaptiveBadge">Explicable</span></div><div class="adaptiveCards adaptiveCardsV2">${eligible.map(({c,details,stats})=>`<article><div class="adaptiveCardTop"><strong>${escapeHtml(displayCommand(c))}</strong><span>${stats.avg===null?'Nuevo':Math.round(stats.avg*100)+'%'}</span></div><p>${escapeHtml(details.reasons[0])}</p><small>${escapeHtml(details.recommendation.label)} · ${relativePracticeLabel(stats.lastMs)}</small></article>`).join('')}</div><p class="adaptiveExplain">La prioridad combina nivel, rendimiento reciente, tiempo sin practicar y evidencia en contextos diferentes. La sugerencia de contexto no cambia tu sesión hasta que tú la selecciones.</p>`;
 }
 function sessionAccuracy(item){
   const values=Object.values(item?.results||{});let score=0,total=0;
@@ -28,7 +28,7 @@ function sessionAccuracy(item){
 let historyEditIndex=null;
 function renderSessionHistory(){
   const list=$('#sessionHistoryList'),count=$('#historyCount');if(!list)return;
-  if(count)count.textContent=`${history.length} total`;
+  if(count)count.textContent=archivedSessionCount()?`${history.length} recientes · ${archivedSessionCount()} archivadas`:`${history.length} recientes`;
   if(!history.length){list.innerHTML='<article class="historyEmpty"><strong>Aún no hay sesiones</strong><p>Cuando termines una sesión aparecerá aquí con sus resultados.</p></article>';return}
   const fmt=new Intl.DateTimeFormat('es-CO',{day:'numeric',month:'short',hour:'numeric',minute:'2-digit'});
   list.innerHTML=history.slice(0,24).map((item,index)=>{
@@ -37,6 +37,23 @@ function renderSessionHistory(){
   }).join('');
   $$('[data-history-edit]').forEach(button=>button.onclick=()=>openHistoryEditor(Number(button.dataset.historyEdit)));
 }
+function archiveMonthLabel(key){
+  if(!/^\d{4}-\d{2}$/.test(key))return key;
+  const [year,month]=key.split('-').map(Number),date=new Date(Date.UTC(year,month-1,1));
+  const label=new Intl.DateTimeFormat('es-CO',{month:'long',year:'numeric',timeZone:'UTC'}).format(date);
+  return label.charAt(0).toUpperCase()+label.slice(1);
+}
+function renderHistoryArchive(){
+  const section=$('#historyArchiveSection'),list=$('#historyArchiveList'),count=$('#archiveCount');if(!section||!list)return;
+  const months=Object.entries(historyArchive?.months||{}).sort(([a],[b])=>b.localeCompare(a));
+  section.hidden=!months.length;if(count)count.textContent=`${archivedSessionCount()} ${archivedSessionCount()===1?'sesión':'sesiones'}`;
+  list.innerHTML=months.map(([key,month])=>{
+    const accuracy=Number(month.total)>0?Math.round(Number(month.score||0)/Number(month.total)*100):0;
+    const commands=Object.entries(month.commands||{}).sort((a,b)=>(b[1]?.sessions||0)-(a[1]?.sessions||0)).slice(0,4);
+    return`<article class="archiveMonthCard"><div class="archiveMonthTop"><div><strong>${escapeHtml(archiveMonthLabel(key))}</strong><small>${Number(month.sessions)||0} sesiones · ${Object.keys(month.contexts||{}).length} contextos</small></div><span>${accuracy}%</span></div><div class="archiveCommands">${commands.map(([cmd,data])=>`<span><b>${escapeHtml(displayCommand(commandBy(cmd)||cmd))}</b><small>${Number(data.sessions)||0} sesiones · ${Number(data.total)>0?Math.round(Number(data.score||0)/Number(data.total)*100):0}%</small></span>`).join('')}</div></article>`;
+  }).join('');
+}
+
 function historyEditorRow(cmd,result){
   const total=Math.max(1,Number(result?.total)||5);
   return`<article class="historyEditRow" data-history-command="${escapeHtml(cmd)}" data-history-total="${total}">
@@ -82,7 +99,7 @@ function renderProgress(){
   $('#progressHeadline').textContent=pct===0?'Empieza este nivel':pct<35?'Construyendo bases':pct<70?'Buen progreso del nivel':pct<100?'Casi listo para avanzar':'Nivel consolidado';
   $('#progressText').textContent=pct===0?`Nivel ${currentLevel} · ${level?.title||''}. Completa una sesión para generar evidencia.`:`${currentLevelSolidCount()} de ${levelTotal} comandos del nivel están consistentes o mejor · ${routePct}% de la ruta completa.`;
   const adaptive=$('#adaptiveSummary');if(adaptive)adaptive.innerHTML=adaptiveSummaryHtml();
-  renderSessionHistory();if(typeof renderEvolutionDashboard==='function')renderEvolutionDashboard();
+  renderSessionHistory();renderHistoryArchive();if(typeof renderEvolutionDashboard==='function')renderEvolutionDashboard();
 }
 function localDateKey(date){const y=date.getFullYear(),m=String(date.getMonth()+1).padStart(2,'0'),d=String(date.getDate()).padStart(2,'0');return`${y}-${m}-${d}`}
 function historyDaySet(){return new Set(history.map(x=>{const d=new Date(x.at);return Number.isNaN(d.getTime())?null:localDateKey(d)}).filter(Boolean))}
@@ -107,8 +124,8 @@ function renderHabit(){
   const card=$('#habitCard');if(!card)return;
   const days=historyDaySet(),todayKey=localDateKey(new Date()),streak=currentHealthyStreak(),weekCount=sessionsThisWeek();
   const names=['L','M','X','J','V','S','D'];
-  card.innerHTML=`<div class="habitHead"><div><p class="kicker">HÁBITO SALUDABLE</p><h2>${streak?`${streak} ${streak===1?'día':'días'} de racha`:'Empieza tu racha'}</h2><p>${history.length?'Una micro-sesión al día es suficiente. No necesitas entrenar de más para mantenerla.':'La primera sesión de la semana cuenta. Corta, clara y positiva.'}</p></div><div class="habitFlame" aria-hidden="true">${icon('flame')}</div></div><div class="habitWeek" aria-label="Actividad de esta semana">${weekDays().map((date,i)=>{const key=localDateKey(date),active=days.has(key),today=key===todayKey,future=date>new Date();return`<div class="habitDay ${active?'active':''} ${today?'today':''} ${future?'future':''}"><span>${names[i]}</span><div aria-label="${active?'Entrenamiento registrado':'Sin entrenamiento'}">${active?icon('check'):''}</div></div>`}).join('')}</div><div class="habitFoot"><span>${weekCount} ${weekCount===1?'sesión':'sesiones'} esta semana</span><span>${history.length} total</span></div>`;
-  const first=$('#firstSessionCoach');if(first)first.hidden=history.length>0;
+  card.innerHTML=`<div class="habitHead"><div><p class="kicker">HÁBITO SALUDABLE</p><h2>${streak?`${streak} ${streak===1?'día':'días'} de racha`:'Empieza tu racha'}</h2><p>${history.length?'Una micro-sesión al día es suficiente. No necesitas entrenar de más para mantenerla.':'La primera sesión de la semana cuenta. Corta, clara y positiva.'}</p></div><div class="habitFlame" aria-hidden="true">${icon('flame')}</div></div><div class="habitWeek" aria-label="Actividad de esta semana">${weekDays().map((date,i)=>{const key=localDateKey(date),active=days.has(key),today=key===todayKey,future=date>new Date();return`<div class="habitDay ${active?'active':''} ${today?'today':''} ${future?'future':''}"><span>${names[i]}</span><div aria-label="${active?'Entrenamiento registrado':'Sin entrenamiento'}">${active?icon('check'):''}</div></div>`}).join('')}</div><div class="habitFoot"><span>${weekCount} ${weekCount===1?'sesión':'sesiones'} esta semana</span><span>${allSessionCount()} total</span></div>`;
+  const first=$('#firstSessionCoach');if(first)first.hidden=allSessionCount()>0;
 }
 
 $('#closeHistoryEditBtn')?.addEventListener('click',closeHistoryEditor);
