@@ -93,7 +93,8 @@ test('backup parser accepts legacy 5.1 backup and rejects malformed nested data'
 
 test('rolling state becomes consistent only after enough committed evidence',async()=>{
   const env=await loadCore(baseContext());
-  vm.runInContext(read('app-session.js'),env.ctx,{filename:'app-session.js'});
+  const sessionLogic=read('app-session.js').replace(/window\.PATRICK_READY\.then\([\s\S]*$/,'');
+  vm.runInContext(sessionLogic,env.ctx,{filename:'app-session.js'});
   const state=vm.runInContext("(()=>{const t={},p={};[1,1,1,1,1,1,1,1,0,0].forEach(s=>applyRollingToState(t,p,'Sitz',s));return {trials:t.Sitz,state:p.Sitz}})()",env.ctx);
   assert.equal(state.trials.length,10);
   assert.equal(state.state,'Consistente');
