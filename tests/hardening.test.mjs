@@ -81,10 +81,10 @@ test('v6 bootstraps its dependencies when an older HTML shell loads newer JavaSc
   const env=baseContext();
   vm.runInContext(read('app-core.js'),env.ctx,{filename:'app-core.js'});
   await env.ctx.PATRICK_READY;
-  assert.equal(vm.runInContext("CONFIG.APP_VERSION",env.ctx),'6.3.0');
+  assert.equal(vm.runInContext("CONFIG.APP_VERSION",env.ctx),'6.3.1');
   assert.equal(vm.runInContext("typeof ENGINE.focusForLevel",env.ctx),'function');
   assert.equal(vm.runInContext("typeof BACKUP_SCHEMA.normalize",env.ctx),'function');
-  assert.deepEqual(env.scripts.map(s=>s.src),['config.js?v630-r1','training-engine.js?v630-r1','backup-schema.js?v630-r1']);
+  assert.deepEqual(env.scripts.map(s=>s.src),['config.js?v631-r1','training-engine.js?v631-r1','backup-schema.js?v631-r1']);
 });
 
 test('navigation and settings click wiring remain collection-safe',()=>{
@@ -99,13 +99,13 @@ test('navigation and settings click wiring remain collection-safe',()=>{
   }
 });
 
-test('v6.3 configuration centralizes public and schema versions',()=>{
+test('v6.3.1 configuration centralizes public and schema versions',()=>{
   const env=baseContext();loadArchitecture(env.ctx);
-  assert.equal(env.ctx.PATRICK_CONFIG.APP_VERSION,'6.3.0');
+  assert.equal(env.ctx.PATRICK_CONFIG.APP_VERSION,'6.3.1');
   assert.equal(env.ctx.PATRICK_CONFIG.BACKUP_SCHEMA_VERSION,7);
   assert.equal(env.ctx.PATRICK_CONFIG.SESSION_SCHEMA_VERSION,7);
-  assert.equal(env.ctx.PATRICK_CONFIG.CACHE_NAME,'patrick-training-v6.3.0-r1');
-  assert.equal(JSON.parse(read('package.json')).version,'6.3.0');
+  assert.equal(env.ctx.PATRICK_CONFIG.CACHE_NAME,'patrick-training-v6.3.1-r1');
+  assert.equal(JSON.parse(read('package.json')).version,'6.3.1');
 });
 
 test('storage reconciliation prefers newer local mirror and repairs IndexedDB',async()=>{
@@ -140,7 +140,7 @@ test('backup schema accepts 5.x backups, v6 schema, and rejects malformed nested
   const legacy=schema.normalize({version:5.1,currentLevel:1,dayType:'Todo el día',progress:{Sitz:'En práctica'},trials:{Sitz:[1,.5,0]},history:[],profile:{name:'Patrick',ageMonths:4},notifications:{enabled:false,time:'19:00'}},opts);
   assert.equal(legacy.profile.name,'Patrick');
   assert.deepEqual(Array.from(legacy.trials.Sitz),[1,.5,0]);
-  const current=schema.normalize({schemaVersion:7,appVersion:'6.3.0',currentLevel:0,dayType:'Solo noche',history:[]},opts);
+  const current=schema.normalize({schemaVersion:7,appVersion:'6.3.1',currentLevel:0,dayType:'Solo noche',history:[]},opts);
   assert.equal(current.dayType,'Solo noche');
   assert.throws(()=>schema.normalize({schemaVersion:7,currentLevel:0,dayType:'Todo el día',trials:{Sitz:['boom']}},opts));
   assert.throws(()=>schema.normalize({schemaVersion:7,currentLevel:0,dayType:'Todo el día',history:[null]},opts));
@@ -193,6 +193,24 @@ test('v6.3 separates progress, route and application settings responsibilities',
   assert.match(insights,/className='audioBtn insightBtn'/);
 });
 
+test('v6.3.1 keeps level cards compact and gates starts through an explicit chooser',()=>{
+  const index=read('index.html'),core=read('app-core.js'),session=read('app-session.js'),styles=read('styles-ui.css'),insights=read('app-insights.js');
+  assert.match(index,/id="startChoiceDialog"/);
+  assert.match(index,/¿Cómo deseas iniciar\?/);
+  assert.match(index,/id="cancelStartChoiceBtn"/);
+  assert.match(index,/id="confirmStartChoiceBtn"/);
+  assert.match(core,/compactLevelCard/);
+  assert.match(core,/data-start-level/);
+  assert.match(core,/openStartChoice\(commands,\{level:n/);
+  assert.match(core,/openStartChoice\(\[command\],\{label:displayCommand\(command\)\}\)/);
+  assert.match(session,/function openStartChoice/);
+  assert.match(session,/function confirmStartChoice/);
+  assert.match(session,/data-start-mode/);
+  assert.match(styles,/compactLevelCard\{/);
+  assert.match(styles,/bottomNav button\.active>span/);
+  assert.match(insights,/openStartChoice\(\[command\]/);
+});
+
 test('adaptive focus always returns command objects, never score wrappers',async()=>{
   const env=await loadCore(baseContext());
   const result=vm.runInContext("focusForLevel(0)",env.ctx);
@@ -227,9 +245,9 @@ test('all 41 commands map one-to-one to levels and curated videos',()=>{
   assert.deepEqual(new Set(videoCommands),new Set(commands));
 });
 
-test('v6.3 upgrade contract cache-busts every critical browser asset',()=>{
+test('v6.3.1 upgrade contract cache-busts every critical browser asset',()=>{
   const index=read('index.html'),styles=read('styles.css'),pwa=read('pwa.js'),sw=read('sw.js');
-  const tag='v630-r1';
+  const tag='v631-r1';
   const scriptSrc=[...index.matchAll(/<script src="([^"]+\.js\?[^"]+)"><\/script>/g)].map(m=>m[1]);
   assert.ok(scriptSrc.length>=10,'expected versioned script URLs');
   assert.ok(scriptSrc.every(src=>src.endsWith('?'+tag)));
