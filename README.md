@@ -3,8 +3,8 @@
 PWA móvil, local-first, para entrenar a Patrick con comandos en alemán, sesiones guiadas y progresión adaptativa.
 
 ## Estado
-- Release estable publicada: v6.3.1.
-- Línea actual: entrenador adaptativo con progreso limpio, ruta visual y configuración unificada.
+- Release estable publicada: v6.4.0.
+- Línea actual: corrección de evidencia, sesiones semánticamente seguras y Quality Gate con navegador real.
 - Sin backend ni cuentas: los datos permanecen en el dispositivo salvo exportación manual.
 
 ## Funciones
@@ -21,6 +21,13 @@ PWA móvil, local-first, para entrenar a Patrick con comandos en alemán, sesion
 - Ruta de niveles bloqueada: no se puede activar un nivel futuro sin completar los anteriores.
 - Niveles compactos y flujo guiado para iniciar sesiones desde Niveles o Comandos.
 - Navegación principal con estados activos más claros.
+- Nivel de sesión separado del nivel activo: repasar no altera la ruta ni el autoavance.
+- Deshacer inmediato del último resultado antes del autoavance.
+- Corrección o eliminación segura de sesiones con recálculo de evidencia.
+- Backups schema 8 con outcomes individuales y tema.
+- Exportación de diagnóstico técnico sin historial detallado.
+- Quality Gate con Playwright móvil además de tests unitarios.
+- Script único de preparación de releases para versión, cache y asset tags.
 - Historial, racha y evidencia reciente por comando.
 - Perfil del perro con edad y recomendaciones de seguridad.
 - Videos curados y pronunciación mediante la voz alemana del dispositivo.
