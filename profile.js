@@ -66,31 +66,106 @@ function exportProgress(){
   const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`patrick-training-${dogName().toLowerCase().replace(/[^a-z0-9]+/gi,'-')||'backup'}.json`;a.click();URL.revokeObjectURL(a.href);toast('Respaldo descargado');
 }
 
-function validBackupObject(data){
-  if(!data||typeof data!=='object'||Array.isArray(data))return false;
-  if(data.progress!==undefined&&(typeof data.progress!=='object'||Array.isArray(data.progress)))return false;
-  if(data.trials!==undefined&&(typeof data.trials!=='object'||Array.isArray(data.trials)))return false;
-  if(data.history!==undefined&&!Array.isArray(data.history))return false;
-  if(data.currentLevel!==undefined&&(!Number.isInteger(Number(data.currentLevel))||Number(data.currentLevel)<0||Number(data.currentLevel)>10))return false;
-  if(data.dayType!==undefined&&!['Todo el día','Solo noche'].includes(data.dayType))return false;
-  return true;
+const BACKUP_MAX_BYTES=2*1024*1024;
+function plainObject(value){return !!value&&typeof value==='object'&&!Array.isArray(value)}
+function backupError(message){throw new Error(message)}
+function normalizeBackupProfile(value){
+  if(value==null)return dogProfile;
+  if(!plainObject(value))backupError('Perfil inválido');
+  const rawName=String(value.name??'').trim().replace(/\s+/g,' ');
+  if(rawName.length>24)backupError('Nombre demasiado largo');
+  const age=value.ageMonths==null?null:Number(value.ageMonths);
+  if(age!==null&&(!Number.isInteger(age)||age<1||age>240))backupError('Edad inválida');
+  const ageUpdatedAt=value.ageUpdatedAt==null?null:String(value.ageUpdatedAt);
+  if(ageUpdatedAt&&Number.isNaN(Date.parse(ageUpdatedAt)))backupError('Fecha de edad inválida');
+  return{name:rawName,breed:'Pastor Alemán',...(age!==null?{ageMonths:age}:{}),...(ageUpdatedAt?{ageUpdatedAt}:{} )};
+}
+function normalizeBackupProgress(value){
+  if(value==null)return{};
+  if(!plainObject(value))backupError('Progreso inválido');
+  const out={};
+  for(const [cmd,state] of Object.entries(value)){
+    if(!COMMANDS.some(c=>c.cmd===cmd)||!STATES.includes(state))backupError('Estado de comando inválido');
+    out[cmd]=state;
+  }
+  return out;
+}
+function normalizeBackupTrials(value){
+  if(value==null)return{};
+  if(!plainObject(value))backupError('Pruebas inválidas');
+  const out={};
+  for(const [cmd,list] of Object.entries(value)){
+    if(!COMMANDS.some(c=>c.cmd===cmd)||!Array.isArray(list)||list.length>10)backupError('Historial de ejecuciones inválido');
+    const scores=list.map(Number);
+    if(scores.some(n=>![0,.5,1].includes(n)))backupError('Puntuación de ejecución inválida');
+    out[cmd]=scores;
+  }
+  return out;
+}
+function normalizeBackupHistory(value){
+  if(value==null)return[];
+  if(!Array.isArray(value)||value.length>200)backupError('Historial de sesiones inválido');
+  return value.map(item=>{
+    if(!plainObject(item)||Number.isNaN(Date.parse(item.at||'')))backupError('Sesión inválida');
+    const level=Number(item.level);
+    if(!Number.isInteger(level)||level<0||level>10||!plainObject(item.results||{}))backupError('Nivel o resultados de sesión inválidos');
+    const results={},timings={};
+    for(const [cmd,r] of Object.entries(item.results)){
+      if(!COMMANDS.some(c=>c.cmd===cmd)||!plainObject(r))backupError('Comando de sesión inválido');
+      const achieved=Number(r.achieved),assisted=Number(r.assisted),missed=Number(r.missed),total=Number(r.total),score=Number(r.score),avgSeconds=Number(r.avgSeconds||0);
+      if([achieved,assisted,missed,total].some(n=>!Number.isInteger(n)||n<0||n>5)||achieved+assisted+missed!==total||total>5||!Number.isFinite(score)||score<0||score>5||!Number.isFinite(avgSeconds)||avgSeconds<0||avgSeconds>3600)backupError('Resultado de sesión inválido');
+      results[cmd]={achieved,assisted,missed,total,score,avgSeconds};
+    }
+    if(item.timings!==undefined){
+      if(!plainObject(item.timings))backupError('Tiempos de sesión inválidos');
+      for(const [cmd,list] of Object.entries(item.timings)){
+        if(!COMMANDS.some(c=>c.cmd===cmd)||!Array.isArray(list)||list.length>5)backupError('Tiempos de comando inválidos');
+        const safe=list.map(Number);if(safe.some(n=>!Number.isFinite(n)||n<0||n>3600000))backupError('Tiempo de ejecución inválido');timings[cmd]=safe;
+      }
+    }
+    return{version:Number(item.version)||5,at:new Date(item.at).toISOString(),level,dogName:String(item.dogName||'Patrick').trim().slice(0,24)||'Patrick',results,timings};
+  });
+}
+function normalizeBackupNotifications(value){
+  if(value==null)return null;
+  if(!plainObject(value))backupError('Recordatorios inválidos');
+  const time=String(value.time||'19:00');
+  if(!/^([01]\d|2[0-3]):[0-5]\d$/.test(time))backupError('Hora de recordatorio inválida');
+  return{enabled:!!value.enabled,time,lastNotifiedDate:null};
+}
+function normalizeBackup(data){
+  if(!plainObject(data))backupError('Formato de respaldo inválido');
+  const version=data.version==null?5:Number(data.version);
+  if(!Number.isFinite(version)||version<5||version>5.6)backupError('Versión de respaldo no compatible');
+  const currentLevel=Number(data.currentLevel??0);
+  if(!Number.isInteger(currentLevel)||currentLevel<0||currentLevel>10)backupError('Nivel actual inválido');
+  const dayType=data.dayType??'Todo el día';
+  if(!['Todo el día','Solo noche'].includes(dayType))backupError('Disponibilidad inválida');
+  return{
+    progress:normalizeBackupProgress(data.progress),
+    trials:normalizeBackupTrials(data.trials),
+    history:normalizeBackupHistory(data.history),
+    currentLevel,
+    dayType,
+    profile:normalizeBackupProfile(data.profile),
+    notifications:normalizeBackupNotifications(data.notifications)
+  };
 }
 async function importProgressFile(file){
   if(!file)return;
-  let data;
-  try{data=JSON.parse(await file.text())}catch{toast('Ese archivo no es un respaldo JSON válido');return}
-  if(!validBackupObject(data)){toast('El respaldo no tiene un formato compatible');return}
-  if(!confirm('¿Restaurar este respaldo? Reemplazará el progreso actual de Patrick Training.'))return;
-  const nextProgress=data.progress||{},nextTrials=data.trials||{},nextHistory=Array.isArray(data.history)?data.history.slice(0,200):[],nextLevel=Number(data.currentLevel)||0,nextDay=['Todo el día','Solo noche'].includes(data.dayType)?data.dayType:'Todo el día';
-  const nextProfile=data.profile&&typeof data.profile==='object'?data.profile:dogProfile;
-  await Promise.all([
-    store.set('patrickProgress',nextProgress),store.set('patrickTrials',nextTrials),store.set('patrickHistory',nextHistory),
-    store.set('patrickCurrentLevel',nextLevel),store.set('patrickDayType',nextDay),store.set('patrickDogProfile',nextProfile)
-  ]);
-  progress=nextProgress;trials=nextTrials;history=nextHistory;currentLevel=nextLevel;dayType=nextDay;dogProfile=nextProfile;
-  if(data.notifications&&typeof data.notifications==='object'){
-    reminderSettings={...reminderSettings,...data.notifications,lastNotifiedDate:null};
-    reminderSettings.time=/^([01]\d|2[0-3]):[0-5]\d$/.test(reminderSettings.time||'')?reminderSettings.time:'19:00';
+  if(file.size>BACKUP_MAX_BYTES){toast('El respaldo es demasiado grande');return}
+  let data,normalized;
+  try{data=JSON.parse(await file.text());normalized=normalizeBackup(data)}
+  catch(e){console.warn('Respaldo rechazado',e);toast('El respaldo no tiene un formato compatible');return}
+  if(!confirm('¿Restaurar este respaldo validado? Reemplazará el progreso actual de Patrick Training.'))return;
+  const coreValues={
+    patrickProgress:normalized.progress,patrickTrials:normalized.trials,patrickHistory:normalized.history,
+    patrickCurrentLevel:normalized.currentLevel,patrickDayType:normalized.dayType,patrickDogProfile:normalized.profile
+  };
+  await store.setMany(coreValues);
+  progress=normalized.progress;trials=normalized.trials;history=normalized.history;currentLevel=normalized.currentLevel;dayType=normalized.dayType;dogProfile=normalized.profile;
+  if(normalized.notifications){
+    reminderSettings={...reminderSettings,...normalized.notifications,lastNotifiedDate:null};
     await saveReminderSettings();scheduleForegroundReminder();
     if(reminderSettings.enabled&&notificationSupported()&&Notification.permission==='granted')await periodicReminderRegistration(true);
   }
