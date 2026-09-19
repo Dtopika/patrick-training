@@ -137,6 +137,34 @@ function undoLastExecution(){
   updateExecutionUI();startExecutionTimer();toast('Último resultado deshecho');
 }
 function sessionAttemptCount(){return session?Object.values(session.results).reduce((sum,list)=>sum+(Array.isArray(list)?list.length:0),0):0}
+function resultOutcomeScores(result){
+  if(Array.isArray(result?.outcomes)&&result.outcomes.every(x=>x in OUTCOME_SCORE))return result.outcomes.map(x=>OUTCOME_SCORE[x]);
+  return[
+    ...Array(Math.max(0,Number(result?.achieved)||0)).fill(1),
+    ...Array(Math.max(0,Number(result?.assisted)||0)).fill(.5),
+    ...Array(Math.max(0,Number(result?.missed)||0)).fill(0)
+  ];
+}
+function rebuildCommandEvidence(cmd,nextHistory){
+  let rolling=[],state='No iniciado';const seen=[];
+  const chronological=[...nextHistory].sort((a,b)=>Date.parse(a.at||'')-Date.parse(b.at||''));
+  for(const item of chronological){
+    seen.push(item);const result=item?.results?.[cmd];if(!result)continue;
+    for(const score of resultOutcomeScores(result)){rolling.push(score);rolling=rolling.slice(-10)}
+    state=ENGINE.nextProgressState(cmd,state,{trials:{[cmd]:rolling},history:seen,stateScore:STATE_SCORE});
+  }
+  return{trials:rolling,state};
+}
+async function replaceHistoryAndRebuild(nextHistory,affectedCommands){
+  const cleanHistory=[...nextHistory].slice(0,200),nextTrials=Object.fromEntries(Object.entries(trials).map(([cmd,list])=>[cmd,Array.isArray(list)?[...list]:[]])),nextProgress={...progress};
+  for(const cmd of new Set(affectedCommands||[])){
+    const rebuilt=rebuildCommandEvidence(cmd,cleanHistory);nextTrials[cmd]=rebuilt.trials;
+    if(rebuilt.state==='No iniciado')delete nextProgress[cmd];else nextProgress[cmd]=rebuilt.state;
+  }
+  const frontier=maxUnlockedLevelFrom(nextProgress),nextLevel=Math.min(currentLevel,frontier);
+  await store.setMany({patrickHistory:cleanHistory,patrickTrials:nextTrials,patrickProgress:nextProgress,patrickCurrentLevel:nextLevel});
+  history=cleanHistory;trials=nextTrials;progress=nextProgress;currentLevel=nextLevel;renderAll();
+}
 function requestExitSession(){
   if(!session){$('#sessionDialog').close();return}
   const attempts=sessionAttemptCount(),message=attempts?'¿Salir de la sesión? Las ejecuciones de esta sesión no se guardarán.':'¿Salir de la sesión actual?';
@@ -150,7 +178,7 @@ async function finishSession(){
   const nextTrials=Object.fromEntries(Object.entries(trials).map(([cmd,list])=>[cmd,Array.isArray(list)?[...list]:[]])),nextProgress={...progress};
   for(const [cmd,outcomes] of Object.entries(activeSession.results))for(const outcome of outcomes)applyRollingToState(nextTrials,nextProgress,cmd,OUTCOME_SCORE[outcome]);
   const stamp={version:CONFIG.SESSION_SCHEMA_VERSION,at:new Date().toISOString(),level:finishedLevel,dogName:dogName(),results:{},timings:activeSession.timings,context:ENGINE.normalizeContext(activeSession.context)};
-  Object.entries(activeSession.results).forEach(([cmd,arr])=>{const times=activeSession.timings[cmd]||[],counts={achieved:arr.filter(x=>x==='achieved').length,assisted:arr.filter(x=>x==='assisted').length,missed:arr.filter(x=>x==='missed').length};stamp.results[cmd]={...counts,total:arr.length,score:arr.reduce((a,x)=>a+OUTCOME_SCORE[x],0),avgSeconds:times.length?Math.round(times.reduce((a,b)=>a+b,0)/times.length/100)/10:0}});
+  Object.entries(activeSession.results).forEach(([cmd,arr])=>{const times=activeSession.timings[cmd]||[],counts={achieved:arr.filter(x=>x==='achieved').length,assisted:arr.filter(x=>x==='assisted').length,missed:arr.filter(x=>x==='missed').length};stamp.results[cmd]={...counts,total:arr.length,score:arr.reduce((a,x)=>a+OUTCOME_SCORE[x],0),avgSeconds:times.length?Math.round(times.reduce((a,b)=>a+b,0)/times.length/100)/10:0,outcomes:[...arr]}});
   const nextHistory=[stamp,...history].slice(0,200);
   for(const cmd of Object.keys(activeSession.results))nextProgress[cmd]=ENGINE.nextProgressState(cmd,nextProgress[cmd],{trials:nextTrials,history:nextHistory,stateScore:STATE_SCORE});
   const advanced=finishedLevel===currentLevel&&levelReadyWithProgress(finishedLevel,nextProgress)&&finishedLevel<10,nextLevel=advanced?finishedLevel+1:currentLevel;
