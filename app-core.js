@@ -161,14 +161,17 @@ function escapeHtml(s=''){return String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<
 function toast(msg){const el=$('#toast');if(!el)return;el.textContent=msg;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),1800)}
 function localGermanSpeech(text){return new Promise((resolve,reject)=>{if(!('speechSynthesis'in window)){reject(new Error('speechSynthesis unavailable'));return}try{const synth=window.speechSynthesis;synth.cancel();synth.resume();const voices=synth.getVoices();const de=voices.find(v=>v.lang?.toLowerCase().startsWith('de'));const u=new SpeechSynthesisUtterance(text);u.lang=de?.lang||'de-DE';u.rate=.72;u.pitch=1;if(de)u.voice=de;u.onend=()=>resolve();u.onerror=e=>reject(e);synth.speak(u)}catch(e){reject(e)}})}
 async function speak(c){const text=displayCommand(c).replace(/!/g,'').trim();if(!text)return;try{await localGermanSpeech(text)}catch(e){console.warn('Local German TTS failed',e);toast('No pude reproducir el audio. Instala o activa una voz alemana en el teléfono.')}}
-function levelProgress(n){const cmds=levelBy(n).commands;if(!cmds.length)return 0;return Math.round(cmds.reduce((a,x)=>a+STATE_SCORE[stateOf(x)]/4,0)/cmds.length*100)}
-function levelReady(n){const level=levelBy(n);return !!level&&level.commands.every(x=>STATE_SCORE[stateOf(x)]>=2)}
-function maxUnlockedLevel(){
+function levelProgressFrom(n,source=progress){const level=levelBy(n),cmds=level?.commands||[];if(!cmds.length)return 0;return Math.round(cmds.reduce((a,x)=>a+STATE_SCORE[source[x]||'No iniciado']/4,0)/cmds.length*100)}
+function levelProgress(n){return levelProgressFrom(n,progress)}
+function levelReadyFrom(n,source=progress){const level=levelBy(n);return !!level&&level.commands.every(x=>STATE_SCORE[source[x]||'No iniciado']>=2)}
+function levelReady(n){return levelReadyFrom(n,progress)}
+function maxUnlockedLevelFrom(source=progress){
   const ordered=[...LEVELS].sort((a,b)=>a.n-b.n);if(!ordered.length)return 0;
   let unlocked=ordered[0].n;
-  for(let i=0;i<ordered.length-1;i++){if(!levelReady(ordered[i].n))break;unlocked=ordered[i+1].n}
+  for(let i=0;i<ordered.length-1;i++){if(!levelReadyFrom(ordered[i].n,source))break;unlocked=ordered[i+1].n}
   return unlocked;
 }
+function maxUnlockedLevel(){return maxUnlockedLevelFrom(progress)}
 function canActivateLevel(n){return Number.isInteger(Number(n))&&Number(n)>=0&&Number(n)<=maxUnlockedLevel()&&!!levelBy(Number(n))}
 function activateLevel(n,{silent=false}={}){
   const next=Number(n);
@@ -181,6 +184,7 @@ function repairCurrentLevel({persist=true}={}){
   currentLevel=unlocked;if(persist)store.set('patrickCurrentLevel',currentLevel);return true;
 }
 function totalProgress(){return Math.round(COMMANDS.reduce((a,c)=>a+STATE_SCORE[stateOf(c.cmd)]/4,0)/COMMANDS.length*100)}
+function currentLevelSolidCount(){const level=levelBy(currentLevel);return (level?.commands||[]).filter(cmd=>STATE_SCORE[stateOf(cmd)]>=2).length}
 function solidCount(){return COMMANDS.filter(c=>STATE_SCORE[stateOf(c.cmd)]>=2).length}
 function commandLastPracticeMs(cmd){return ENGINE.lastPracticeMs(history,cmd)}
 function commandRecentAverage(cmd){return ENGINE.recentAverage(trials,cmd)}
@@ -209,7 +213,7 @@ function renderToday(){
   const focus=focusForLevel(currentLevel).filter(c=>c&&String(c.cmd||'').trim());$('#focusCommands').innerHTML=focus.map(focusChipHtml).filter(Boolean).join('');
   const guidance=ENGINE.ageGuidance(dogProfile),ageBox=$('#ageGuidance');
   if(ageBox){ageBox.hidden=!guidance;if(guidance)ageBox.innerHTML=`<strong>${escapeHtml(guidance.label)}</strong><span>${escapeHtml(guidance.message)}</span>`}
-  $('#metricProgress').textContent=totalProgress()+'%';$('#metricSolid').textContent=solidCount();$('#metricSessions').textContent=history.length;
+  $('#metricProgress').textContent=levelProgress(currentLevel)+'%';$('#metricSolid').textContent=currentLevelSolidCount();$('#metricSessions').textContent=history.length;
   $('#todayPlan').innerHTML=microPlan().map(([name,dur,goal,cmds],i)=>`<article class="planItem"><span class="planNumber">${i+1}</span><div><strong>${escapeHtml(name)} · ${escapeHtml(goal)}</strong><p>${cmds.map(c=>escapeHtml(displayCommand(c))).join(' · ')||'Juego y vínculo'}</p></div><small>${escapeHtml(dur)}</small></article>`).join('');
   $('#advanceCard').hidden=!(ready&&currentLevel<10);if(typeof renderSmartDailyPlan==='function')renderSmartDailyPlan();
 }
