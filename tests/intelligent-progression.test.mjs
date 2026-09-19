@@ -86,3 +86,14 @@ test('backup schema 7 preserves context while legacy sessions remain compatible'
   assert.deepEqual({...legacy.trainingContext},{environment:'Exterior tranquilo',distraction:'Baja'});
   assert.deepEqual({...legacy.history[0].context},{environment:'Casa',distraction:'Baja'});
 });
+
+
+test('session flow persists context only with the completed transaction',()=>{
+  const session=read('app-session.js'),core=read('app-core.js'),profile=read('profile.js');
+  assert.match(core,/patrickTrainingContext:\{environment:'Casa',distraction:'Baja'\}/);
+  assert.match(session,/context:ENGINE\.normalizeContext\(activeSession\.context\)/);
+  assert.match(session,/patrickTrainingContext:nextTrainingContext/);
+  assert.match(session,/ENGINE\.nextProgressState/);
+  assert.doesNotMatch(session.match(/function rateExecution\(outcome\)\{([\s\S]*?)\n\}/)?.[1]||'',/store\.set/);
+  assert.match(profile,/trainingContext/);
+});
