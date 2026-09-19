@@ -76,6 +76,112 @@
     return context.environment+' · distracción '+context.distraction.toLowerCase();
   }
 
+  const SKILL_FAMILIES=Object.freeze({
+    communication:{label:'Comunicación',timingMode:'response',dimension:'claridad de respuesta'},
+    position:{label:'Posición',timingMode:'response',dimension:'distancia del guía'},
+    hold:{label:'Duración / autocontrol',timingMode:'duration',dimension:'duración estable'},
+    recall:{label:'Llamada',timingMode:'response',dimension:'distancia de llamada'},
+    heel:{label:'Paseo / secuencia',timingMode:'neutral',dimension:'pasos y ritmo'},
+    search:{label:'Búsqueda',timingMode:'neutral',dimension:'área y dificultad del escondite'},
+    object:{label:'Objetos',timingMode:'response',dimension:'distancia y novedad del objeto'},
+    control:{label:'Control',timingMode:'response',dimension:'dificultad del estímulo'},
+    direction:{label:'Movimiento / distancia',timingMode:'response',dimension:'distancia y precisión'},
+    household:{label:'Casa',timingMode:'response',dimension:'distancia y contexto'},
+    alert:{label:'Alerta controlada',timingMode:'response',dimension:'control de activación'},
+    default:{label:'Habilidad',timingMode:'neutral',dimension:'dificultad general'}
+  });
+  const COMMAND_FAMILY=Object.freeze({
+    'Patrick':'communication','Ja!':'communication','Frei':'communication',
+    Sitz:'position',Platz:'position',Steh:'position',Decke:'position',Mitte:'position',Hinter:'position',
+    Bleib:'hold',Warte:'hold',
+    Komm:'recall',Hier:'recall',
+    'Fuß':'heel','Los!':'heel',Weiter:'heel',Langsam:'heel','Zurück':'heel',
+    Such:'search',
+    Bring:'object',Gib:'object',Nimm:'object',Hol:'object',
+    Nein:'control',Aus:'control','Lass es':'control',Stopp:'control',Ruhe:'control',Schau:'control',
+    Links:'direction',Rechts:'direction',Voraus:'direction',Hoch:'direction',Runter:'direction',Hopp:'direction',
+    Rein:'household',Raus:'household',Box:'household','Lös dich':'household',
+    Laut:'alert','Pass auf':'alert'
+  });
+
+  function skillFamily(command){
+    const cmd=typeof command==='string'?command:command?.cmd,category=typeof command==='object'?command?.category:'';
+    const key=COMMAND_FAMILY[cmd]||
+      (category==='Posiciones'?'position':category==='Autocontrol'?'hold':category==='Llamada'?'recall':
+      category==='Objetos'?'object':category==='Casa'?'household':category==='Dirección'||category==='Movimiento'||category==='Distancia'?'direction':
+      category==='Paseo'||category==='Obediencia'?'heel':category==='Seguridad'||category==='Control'?'control':
+      category==='Alerta'||category==='Control defensivo'?'alert':category==='Olfato'?'search':'default');
+    return{key,...SKILL_FAMILIES[key]};
+  }
+
+  function stateLevel(state,stateScore={}){return Number(stateScore[state]||0)}
+
+  function difficultyTarget(command,state,{stateScore={},context=null}={}){
+    const family=skillFamily(command),level=stateLevel(state,stateScore),ctx=normalizeContext(context);
+    const table={
+      communication:['cerca y sin distracción','1–2 m y una distracción leve','varía habitación o postura','generaliza en exterior','repaso impredecible y breve'],
+      position:['junto a ti','1 paso de distancia','2–3 m','3–5 m','distancia variable'],
+      hold:['2 s estables','4 s estables','6–8 s','10–12 s','12–15 s con variación'],
+      recall:['1–2 m','3–5 m','5–8 m','8–12 m','distancia variable con seguridad'],
+      heel:['3–5 pasos','6–8 pasos','10–15 pasos','15–20 pasos','ritmo y giros variables'],
+      search:['objeto visible / muy fácil','escondite sencillo','una habitación','área pequeña con variación','búsqueda variada'],
+      object:['objeto familiar y cerca','1–2 m','3–5 m u objeto distinto','distancia y objeto variables','repaso variado'],
+      control:['estímulo fácil y cercano','estímulo leve','distracción media','distracción alta controlada','situaciones variadas y seguras'],
+      direction:['1 m y trayectoria simple','2–3 m','4–6 m','distancia y ángulo variables','generalización controlada'],
+      household:['mismo lugar y cerca','otra posición o habitación','distancia moderada','contextos domésticos variados','repaso funcional'],
+      alert:['1 repetición controlada','1–2 repeticiones con vuelta a calma','estímulo neutro distinto','generaliza sin subir confrontación','mantenimiento breve'],
+      default:['muy fácil','fácil','moderado','variable','mantenimiento']
+    };
+    return{family,target:table[family.key]?.[Math.min(4,Math.max(0,level))]||table.default[0],context:ctx,label:family.label+' · '+(table[family.key]?.[Math.min(4,Math.max(0,level))]||table.default[0])};
+  }
+
+  function timingTarget(command,state,{stateScore={}}={}){
+    const family=skillFamily(command),level=stateLevel(state,stateScore);
+    if(family.timingMode==='duration'){
+      const seconds=[2,4,7,11,14][Math.min(4,Math.max(0,level))];
+      return{mode:'duration',seconds,label:'mantener ≈ '+seconds+' s'};
+    }
+    if(family.timingMode==='response'){
+      const base=[4.5,3.5,2.8,2.3,2][Math.min(4,Math.max(0,level))];
+      const seconds=family.key==='recall'?base+.7:base;
+      return{mode:'response',seconds,label:'responder en ≲ '+seconds.toFixed(1)+' s'};
+    }
+    return{mode:'neutral',seconds:null,label:'tiempo informativo'};
+  }
+
+  function commandTimingEvidence(history,command,state,{stateScore={}}={}){
+    const cmd=typeof command==='string'?command:command?.cmd,family=skillFamily(command),rows=[];
+    for(const item of Array.isArray(history)?history:[]){
+      if(item?.timingMode!=='cue-to-rating')continue;
+      const result=item?.results?.[cmd],seconds=Number(result?.avgSeconds);
+      const at=Date.parse(item?.at||'');if(!result||!Number.isFinite(seconds)||seconds<=0||!Number.isFinite(at))continue;
+      rows.push({at,seconds});
+    }
+    rows.sort((a,b)=>a.at-b.at);const recent=rows.slice(-6),values=recent.map(x=>x.seconds).sort((a,b)=>a-b);
+    const median=values.length?(values.length%2?values[(values.length-1)/2]:(values[values.length/2-1]+values[values.length/2])/2):null;
+    const target=timingTarget(command,state,{stateScore});
+    return{mode:family.timingMode,count:rows.length,recentCount:recent.length,medianSeconds:median,targetSeconds:target.seconds,targetLabel:target.label};
+  }
+
+  function evidenceConfidence(history,trials,command){
+    const cmd=typeof command==='string'?command:command?.cmd,sessions=[];
+    for(const item of Array.isArray(history)?history:[]){if(item?.results?.[cmd])sessions.push(item)}
+    const trialCount=Array.isArray(trials?.[cmd])?trials[cmd].length:0,evidence=commandContextEvidence(history,cmd);
+    const times=sessions.map(x=>Date.parse(x.at||'')).filter(Number.isFinite).sort((a,b)=>a-b);
+    const spanDays=times.length>1?(times.at(-1)-times[0])/DAY_MS:0;
+    const score=Math.min(sessions.length/6,.35)+Math.min(trialCount/10,.25)+Math.min(evidence.contextCount/3,.2)+Math.min(spanDays/7,.2);
+    const normalized=Math.max(0,Math.min(1,score)),level=normalized>=.72?'Alta':normalized>=.4?'Media':'Baja';
+    return{score:normalized,level,sessions:sessions.length,trials:trialCount,contexts:evidence.contextCount,spanDays};
+  }
+
+  function recommendedAttempts(command,{trials={},history=[],progress={},stateScore={},profile=null,now=Date.now()}={}){
+    const cmd=typeof command==='string'?command:command?.cmd,state=progress[cmd]||'No iniciado',level=stateLevel(state,stateScore),avg=recentAverage(trials,cmd),stage=ageStage(profile,now);
+    let attempts=avg===null?4:avg<.55?3:avg<.8?5:level>=2?3:4;
+    if(stage.key==='young-puppy')attempts=Math.min(attempts,4);
+    if(stage.key==='puppy')attempts=Math.min(attempts,5);
+    return Math.max(3,Math.min(5,attempts));
+  }
+
   function lastPracticeMs(history,cmd){
     let latest=0;
     for(const item of Array.isArray(history)?history:[]){
