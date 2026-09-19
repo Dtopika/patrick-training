@@ -43,6 +43,41 @@ function archiveMonthLabel(key){
   const label=new Intl.DateTimeFormat('es-CO',{month:'long',year:'numeric',timeZone:'UTC'}).format(date);
   return label.charAt(0).toUpperCase()+label.slice(1);
 }
+function monthSummarySeed(source={}){
+  return{sessions:Number(source.sessions)||0,score:Number(source.score)||0,total:Number(source.total)||0,contexts:{...(source.contexts||{})},commands:Object.fromEntries(Object.entries(source.commands||{}).map(([cmd,data])=>[cmd,{...data}]))};
+}
+function addSessionToMonthlySummary(month,item){
+  month.sessions++;
+  const context=ENGINE.contextLabel(ENGINE.normalizeContext(item?.context));month.contexts[context]=(month.contexts[context]||0)+1;
+  for(const [cmd,result] of Object.entries(item?.results||{})){
+    const score=Number(result?.score)||0,total=Number(result?.total)||0;month.score+=score;month.total+=total;
+    const data=month.commands[cmd]||{sessions:0,score:0,total:0,timedSessions:0,seconds:0};data.sessions++;data.score+=score;data.total+=total;
+    if(item?.timingMode==='cue-to-rating'&&Number(result?.avgSeconds)>0){data.timedSessions++;data.seconds+=Number(result.avgSeconds)}
+    month.commands[cmd]=data;
+  }
+  return month;
+}
+function longTermEvolutionRows(limit=6){
+  const months=Object.fromEntries(Object.entries(historyArchive?.months||{}).map(([key,value])=>[key,monthSummarySeed(value)]));
+  for(const item of history){
+    const key=archiveMonthKey(item?.at);if(key==='unknown')continue;
+    months[key]=addSessionToMonthlySummary(months[key]||monthSummarySeed(),item);
+  }
+  return Object.entries(months).sort(([a],[b])=>a.localeCompare(b)).slice(-limit).map(([key,month])=>{
+    const accuracy=month.total>0?Math.round(month.score/month.total*100):0;
+    const topCommand=Object.entries(month.commands||{}).sort((a,b)=>(b[1]?.sessions||0)-(a[1]?.sessions||0))[0]||null;
+    return{key,month,accuracy,topCommand};
+  });
+}
+function renderLongTermEvolution(){
+  const root=$('#longTermEvolution');if(!root)return;
+  const rows=longTermEvolutionRows(6);root.hidden=rows.length<2;if(rows.length<2){root.innerHTML='';return}
+  const first=rows[0],last=rows.at(-1),delta=last.accuracy-first.accuracy,maxSessions=Math.max(...rows.map(x=>x.month.sessions),1);
+  root.innerHTML=`<div class="longTermHead"><div><p class="kicker">EVOLUCIÓN A LARGO PLAZO</p><h2>Últimos ${rows.length} meses con actividad</h2><p>${delta===0?'Precisión estable':delta>0?`+${delta} pts de precisión desde ${archiveMonthLabel(first.key)}`:`${delta} pts desde ${archiveMonthLabel(first.key)}`} · ${allSessionCount()} sesiones registradas</p></div><span>${last.accuracy}% actual</span></div>
+    <div class="longTermChart" role="list" aria-label="Evolución mensual">${rows.map(row=>`<article class="longTermMonth" role="listitem"><div class="longTermBars"><i class="longTermSessionBar" style="height:${Math.max(12,Math.round(row.month.sessions/maxSessions*100))}%"></i><i class="longTermAccuracyBar" style="height:${Math.max(8,row.accuracy)}%"></i></div><strong>${row.accuracy}%</strong><small>${escapeHtml(archiveMonthLabel(row.key).replace(/ de /g,' '))}</small><span>${row.month.sessions} ses. · ${Object.keys(row.month.contexts||{}).length} ctx.</span>${row.topCommand?`<em>${escapeHtml(displayCommand(commandBy(row.topCommand[0])||row.topCommand[0]))}</em>`:''}</article>`).join('')}</div>
+    <div class="longTermLegend"><span><i class="legendSessions"></i> sesiones</span><span><i class="legendAccuracy"></i> precisión</span></div>`;
+}
+
 function renderHistoryArchive(){
   const section=$('#historyArchiveSection'),list=$('#historyArchiveList'),count=$('#archiveCount');if(!section||!list)return;
   const months=Object.entries(historyArchive?.months||{}).sort(([a],[b])=>b.localeCompare(a));
@@ -99,7 +134,7 @@ function renderProgress(){
   $('#progressHeadline').textContent=pct===0?'Empieza este nivel':pct<35?'Construyendo bases':pct<70?'Buen progreso del nivel':pct<100?'Casi listo para avanzar':'Nivel consolidado';
   $('#progressText').textContent=pct===0?`Nivel ${currentLevel} · ${level?.title||''}. Completa una sesión para generar evidencia.`:`${currentLevelSolidCount()} de ${levelTotal} comandos del nivel están consistentes o mejor · ${routePct}% de la ruta completa.`;
   const adaptive=$('#adaptiveSummary');if(adaptive)adaptive.innerHTML=adaptiveSummaryHtml();
-  renderSessionHistory();renderHistoryArchive();if(typeof renderEvolutionDashboard==='function')renderEvolutionDashboard();
+  renderSessionHistory();renderHistoryArchive();renderLongTermEvolution();if(typeof renderEvolutionDashboard==='function')renderEvolutionDashboard();
 }
 function localDateKey(date){const y=date.getFullYear(),m=String(date.getMonth()+1).padStart(2,'0'),d=String(date.getDate()).padStart(2,'0');return`${y}-${m}-${d}`}
 function historyDaySet(){return new Set(history.map(x=>{const d=new Date(x.at);return Number.isNaN(d.getTime())?null:localDateKey(d)}).filter(Boolean))}
