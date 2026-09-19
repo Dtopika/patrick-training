@@ -35,9 +35,9 @@ function populateDogProfileEditor(){
 function updateDogAgePreview(){
   const value=Number($('#dogAgeInput')?.value||0),unit=$('#dogAgeUnit')?.value,preview=$('#dogAgePreview');if(!preview)return;
   if(!value){preview.textContent='Indica la edad de tu perro.';return}
-  const months=Math.max(1,Math.round(unit==='years'?value*12:value));
-  if(months<12){preview.textContent=`Cachorro · ${months} ${months===1?'mes':'meses'}`;return}
-  const years=Math.round((months/12)*10)/10,shown=Number.isInteger(years)?String(years):String(years).replace('.',',');preview.textContent=`Adulto · ${shown} ${years===1?'año':'años'}`;
+  const months=Math.max(1,Math.round(unit==='years'?value*12:value)),stage=ENGINE.ageStage({ageMonths:months,ageUpdatedAt:new Date().toISOString()});
+  if(months<12){preview.textContent=`${stage.label} · ${months} ${months===1?'mes':'meses'}`;return}
+  const years=Math.round((months/12)*10)/10,shown=Number.isInteger(years)?String(years):String(years).replace('.',',');preview.textContent=`${stage.label} · ${shown} ${years===1?'año':'años'}`;
 }
 function openDogProfileEditor(firstRun=false,ageOnly=false){
   const dialog=$('#profileDialog');dialog.dataset.firstRun=firstRun?'1':'0';
