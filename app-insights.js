@@ -47,7 +47,8 @@ function renderEvolutionDashboard(){
 
 function commandSeriesHtml(series){
   if(!series.length)return'<p class="insightEmpty">Todavía no hay sesiones terminadas para este comando.</p>';
-  return`<div class="commandSeries" aria-label="Rendimiento de sesiones recientes">${series.map(item=>`<div class="commandSeriesPoint" title="${escapeHtml(ENGINE.contextLabel(item.context))} · ${Math.round(item.accuracy*100)}%"><i style="height:${Math.max(10,Math.round(item.accuracy*100))}%"></i><small>${Math.round(item.accuracy*100)}</small></div>`).join('')}</div>`;
+  const fmt=new Intl.DateTimeFormat('es-CO',{day:'numeric',month:'short'});
+  return`<div class="commandSeriesRail" role="list" aria-label="Sesiones recientes, de izquierda a derecha">${series.map(item=>`<article class="commandSessionCard" role="listitem"><small>${fmt.format(new Date(item.at))}</small><strong>${Math.round(item.accuracy*100)}%</strong><span>${escapeHtml(ENGINE.contextLabel(item.context))}</span></article>`).join('')}</div><small class="commandSeriesHint">Más antiguo ← desliza → más reciente</small>`;
 }
 
 function openCommandInsight(cmdName){
@@ -78,7 +79,7 @@ function closeCommandInsight(){
 function decorateInsightButtons(){
   $$('.commandCard').forEach(card=>{
     const actions=card.querySelector('.commandActions');if(!actions||actions.querySelector('.insightBtn'))return;
-    const button=document.createElement('button');button.className='insightBtn';button.type='button';button.dataset.commandInsight=card.dataset.command;button.title='Ver ficha inteligente';button.setAttribute('aria-label','Ver ficha inteligente de '+displayCommand(commandBy(card.dataset.command)||card.dataset.command));button.innerHTML=icon('target');
+    const button=document.createElement('button');button.className='insightBtn';button.type='button';button.dataset.commandInsight=card.dataset.command;button.title='Ver ficha inteligente';button.setAttribute('aria-label','Ver ficha inteligente de '+displayCommand(commandBy(card.dataset.command)||card.dataset.command));button.innerHTML=icon('chart');
     actions.prepend(button);
   });
 }
