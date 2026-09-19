@@ -72,7 +72,9 @@ const STORAGE_DEFAULTS={
   patrickDayType:'Todo el día',
   patrickDogProfile:null,
   patrickTrainingContext:{environment:'Casa',distraction:'Baja'},
-  patrickTheme:'system'
+  patrickTheme:'system',
+  patrickHistoryArchive:{version:1,totalSessions:0,months:{}},
+  patrickTeachingOnboardingVersion:0
 };
 const STORAGE_META_KEY='patrickStorageMetaV2';
 const memoryStore={};
@@ -146,10 +148,38 @@ const store={
   remove(k){delete memoryStore[k];removeLocalValue(k);if(storageMode==='indexeddb')window.PatrickDB.del(k).catch(console.warn)}
 };
 
-let progress={},trials={},history=[],currentLevel=0,dayType='Todo el día',filter='Todos';
+let progress={},trials={},history=[],historyArchive={version:1,totalSessions:0,months:{}},currentLevel=0,dayType='Todo el día',filter='Todos';
 let dogProfile={name:'',breed:'Pastor Alemán'};
 let trainingContext={environment:'Casa',distraction:'Baja'};
 let session=null,toastTimer=null;
+
+function emptyHistoryArchive(){return{version:1,totalSessions:0,months:{}}}
+function normalizeHistoryArchive(value){
+  if(!value||typeof value!=='object'||Array.isArray(value))return emptyHistoryArchive();
+  const months=value.months&&typeof value.months==='object'&&!Array.isArray(value.months)?value.months:{};
+  return{version:1,totalSessions:Math.max(0,Number(value.totalSessions)||0),months};
+}
+function archiveMonthKey(at){const d=new Date(at);return Number.isNaN(d.getTime())?'unknown':d.toISOString().slice(0,7)}
+function archiveSessionInto(archive,item){
+  const next=normalizeHistoryArchive(JSON.parse(JSON.stringify(archive||emptyHistoryArchive()))),key=archiveMonthKey(item?.at);
+  const month=next.months[key]||{sessions:0,score:0,total:0,contexts:{},commands:{}};
+  month.sessions++;
+  const context=ENGINE?.contextLabel?ENGINE.contextLabel(item?.context||{}):'Casa · distracción baja';month.contexts[context]=(month.contexts[context]||0)+1;
+  for(const [cmd,result] of Object.entries(item?.results||{})){
+    const score=Number(result?.score)||0,total=Number(result?.total)||0;month.score+=score;month.total+=total;
+    const command=month.commands[cmd]||{sessions:0,score:0,total:0,timedSessions:0,seconds:0};command.sessions++;command.score+=score;command.total+=total;
+    if(item?.timingMode==='cue-to-rating'&&Number(result?.avgSeconds)>0){command.timedSessions++;command.seconds+=Number(result.avgSeconds)}
+    month.commands[cmd]=command;
+  }
+  next.months[key]=month;next.totalSessions++;return next;
+}
+function compactHistory(candidate,archive=historyArchive,limit=200){
+  const rows=[...(candidate||[])];let nextArchive=normalizeHistoryArchive(archive);
+  for(const item of rows.slice(limit))nextArchive=archiveSessionInto(nextArchive,item);
+  return{history:rows.slice(0,limit),archive:nextArchive};
+}
+function archivedSessionCount(){return Number(historyArchive?.totalSessions)||0}
+function allSessionCount(){return history.length+archivedSessionCount()}
 
 function dogName(){return String(dogProfile?.name||'').trim()||'Patrick'}
 function displayCommand(c){const raw=typeof c==='string'?c:c?.cmd||'';return raw==='Patrick'?dogName():raw}
@@ -213,7 +243,7 @@ function renderToday(){
   const focus=focusForLevel(currentLevel).filter(c=>c&&String(c.cmd||'').trim());$('#focusCommands').innerHTML=focus.map(focusChipHtml).filter(Boolean).join('');
   const guidance=ENGINE.ageGuidance(dogProfile),ageBox=$('#ageGuidance');
   if(ageBox){ageBox.hidden=!guidance;if(guidance)ageBox.innerHTML=`<strong>${escapeHtml(guidance.label)}</strong><span>${escapeHtml(guidance.message)}</span>`}
-  $('#metricProgress').textContent=levelProgress(currentLevel)+'%';$('#metricSolid').textContent=currentLevelSolidCount();$('#metricSessions').textContent=history.length;
+  $('#metricProgress').textContent=levelProgress(currentLevel)+'%';$('#metricSolid').textContent=currentLevelSolidCount();$('#metricSessions').textContent=allSessionCount();
   $('#todayPlan').innerHTML=microPlan().map(([name,dur,goal,cmds],i)=>`<article class="planItem"><span class="planNumber">${i+1}</span><div><strong>${escapeHtml(name)} · ${escapeHtml(goal)}</strong><p>${cmds.map(c=>escapeHtml(displayCommand(c))).join(' · ')||'Juego y vínculo'}</p></div><small>${escapeHtml(dur)}</small></article>`).join('');
   $('#advanceCard').hidden=!(ready&&currentLevel<10);if(typeof renderSmartDailyPlan==='function')renderSmartDailyPlan();
 }
@@ -248,7 +278,7 @@ function renderCommands(){const q=$('#search').value.trim().toLowerCase();$('#fi
 
 window.PATRICK_READY=(async()=>{
   await ensureV6Dependencies();
-  await store.hydrate();progress=store.get('patrickProgress',{})||{};trials=store.get('patrickTrials',{})||{};history=store.get('patrickHistory',[])||[];currentLevel=Number(store.get('patrickCurrentLevel',0))||0;dayType=store.get('patrickDayType','Todo el día')||'Todo el día';dogProfile=store.get('patrickDogProfile',null)||{name:'',breed:'Pastor Alemán'};trainingContext=ENGINE.normalizeContext(store.get('patrickTrainingContext',trainingContext));
+  await store.hydrate();progress=store.get('patrickProgress',{})||{};trials=store.get('patrickTrials',{})||{};history=store.get('patrickHistory',[])||[];historyArchive=normalizeHistoryArchive(store.get('patrickHistoryArchive',emptyHistoryArchive()));currentLevel=Number(store.get('patrickCurrentLevel',0))||0;dayType=store.get('patrickDayType','Todo el día')||'Todo el día';dogProfile=store.get('patrickDogProfile',null)||{name:'',breed:'Pastor Alemán'};trainingContext=ENGINE.normalizeContext(store.get('patrickTrainingContext',trainingContext));
   if(repairCurrentLevel({persist:false}))await store.set('patrickCurrentLevel',currentLevel)
   const hasExistingData=Object.keys(progress).length>0||Object.keys(trials).length>0||history.length>0||currentLevel>0;
   if(!String(dogProfile?.name||'').trim()&&hasExistingData){dogProfile={...dogProfile,name:'Patrick',breed:'Pastor Alemán'};store.set('patrickDogProfile',dogProfile)}
