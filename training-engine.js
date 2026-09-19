@@ -206,6 +206,75 @@
     return chosen.slice(0,count);
   }
 
+  function commandHistorySeries(history,cmd,limit=8){
+    const rows=[];
+    for(const item of Array.isArray(history)?history:[]){
+      const result=item?.results?.[cmd];if(!result)continue;
+      const total=Number(result.total)||0,score=Number(result.score)||0,at=Date.parse(item.at||'');
+      if(total<=0||!Number.isFinite(at))continue;
+      rows.push({at,accuracy:Math.max(0,Math.min(1,score/total)),context:normalizeContext(item.context)});
+    }
+    rows.sort((a,b)=>a.at-b.at);
+    return rows.slice(-Math.max(1,Number(limit)||8));
+  }
+
+  function commandTrend(history,cmd){
+    const series=commandHistorySeries(history,cmd,6);
+    if(!series.length)return{recent:null,previous:null,delta:null,count:0};
+    const split=Math.max(1,Math.ceil(series.length/2)),previousRows=series.slice(0,series.length-split),recentRows=series.slice(-split);
+    const avg=rows=>rows.length?rows.reduce((sum,x)=>sum+x.accuracy,0)/rows.length:null;
+    const recent=avg(recentRows),previous=avg(previousRows);
+    return{recent,previous,delta:previous===null?null:recent-previous,count:series.length};
+  }
+
+  function sessionAccuracy(item){
+    let score=0,total=0;
+    for(const result of Object.values(item?.results||{})){score+=Number(result?.score)||0;total+=Number(result?.total)||0}
+    return total?score/total:null;
+  }
+
+  function evolutionSummary(commands,{history=[],progress={},stateScore={},now=Date.now()}={}){
+    const recentSessions=days=>history.filter(item=>{const t=Date.parse(item?.at||'');return Number.isFinite(t)&&t<=now&&now-t<days*DAY_MS});
+    const last7=recentSessions(7),last30=recentSessions(30),prev7=history.filter(item=>{const t=Date.parse(item?.at||'');return Number.isFinite(t)&&t<=now-7*DAY_MS&&t>now-14*DAY_MS});
+    const accuracy=sessions=>{
+      let score=0,total=0;
+      for(const item of sessions)for(const result of Object.values(item?.results||{})){score+=Number(result?.score)||0;total+=Number(result?.total)||0}
+      return total?score/total:null;
+    };
+    const active=new Set(),contexts=new Set();
+    for(const item of last30){
+      Object.keys(item?.results||{}).forEach(cmd=>active.add(cmd));
+      if(item?.context)contexts.add(contextSignature(item.context));
+    }
+    const trends=(commands||[]).map(command=>({command,trend:commandTrend(history,command.cmd)})).filter(x=>x.trend.recent!==null);
+    const improving=trends.filter(x=>x.trend.delta!==null&&x.trend.delta>0).sort((a,b)=>b.trend.delta-a.trend.delta)[0]||null;
+    const attention=trends.filter(x=>x.trend.count>=2).sort((a,b)=>a.trend.recent-b.trend.recent)[0]||null;
+    const states={};
+    for(const state of Object.keys(stateScore||{}))states[state]=0;
+    for(const command of commands||[]){const state=progress[command.cmd]||'No iniciado';states[state]=(states[state]||0)+1}
+    return{
+      sessions7:last7.length,sessions30:last30.length,accuracy7:accuracy(last7),previousAccuracy7:accuracy(prev7),
+      activeCommands30:active.size,contexts30:contexts.size,improving,attention,states
+    };
+  }
+
+  function dailyPlan(commands,currentLevel,{dayType='Todo el día',trials={},history=[],progress={},stateScore={},profile=null,now=Date.now()}={}){
+    const focus=focusForLevel(commands,currentLevel,{dayType,trials,history,progress,stateScore,profile,now});
+    const stage=ageStage(profile,now),minutesPerCommand=stage.key==='young-puppy'?3:4;
+    const items=focus.map(command=>{
+      const details=priorityDetails(command,currentLevel,{trials,history,progress,stateScore,profile,now});
+      const state=progress[command.cmd]||'No iniciado',level=Number(stateScore[state]||0);
+      const objective=level<2?'Construir una respuesta clara':level===2?'Generalizar sin perder precisión':level===3?'Consolidar bajo más dificultad':'Repaso para mantenerlo sólido';
+      return{command,attempts:5,minutes:minutesPerCommand,state,objective,reason:details.reasons[0],context:details.recommendation};
+    });
+    return{
+      title:dayType==='Solo noche'?'Plan compacto de hoy':'Plan inteligente de hoy',
+      totalMinutes:items.length*minutesPerCommand,
+      stage:stage.label,
+      items
+    };
+  }
+
   function microPlan(commands,currentLevel,{dayType='Todo el día',progress={},stateScore={},focus=[]}={}){
     const known=commands.filter(c=>c.level<currentLevel&&(stateScore[progress[c.cmd]||'No iniciado']||0)>=2).slice(-2);
     if(dayType==='Solo noche')return[
@@ -233,6 +302,6 @@
   globalThis.PatrickTrainingEngine=Object.freeze({
     CONTEXT_ENVIRONMENTS,CONTEXT_DISTRACTIONS,normalizeContext,contextSignature,contextDifficulty,contextLabel,
     effectiveAgeMonths,ageStage,safetyForCommand,lastPracticeMs,recentAverage,commandContextEvidence,nextProgressState,
-    recommendedContext,priorityDetails,adaptivePriority,focusForLevel,microPlan,ageGuidance
+    recommendedContext,priorityDetails,adaptivePriority,focusForLevel,commandHistorySeries,commandTrend,evolutionSummary,dailyPlan,microPlan,ageGuidance
   });
 })();
