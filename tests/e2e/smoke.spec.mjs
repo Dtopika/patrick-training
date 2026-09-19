@@ -2,16 +2,30 @@ import {test,expect} from '@playwright/test';
 
 async function onboard(page){
   await page.goto('/');
-  const profile=page.locator('#profileDialog');
-  await expect(profile).toBeVisible();
-  await page.locator('#dogNameInput').fill('Patrick');
-  await page.locator('#dogAgeInput').fill('4');
-  await page.locator('#saveProfileBtn').click();
-  await expect(profile).not.toBeVisible();
-  const guide=page.locator('#teachingGuideDialog');
-  await expect(guide).toBeVisible({timeout:2000});
-  await page.locator('#finishTeachingGuideBtn').click();
-  await expect(guide).not.toBeVisible();
+  const wizard=page.locator('#setupWizardDialog');
+  await expect(wizard).toBeVisible();
+  await expect(page.locator('#setupWizardCounter')).toHaveText('1 / 4');
+
+  await page.locator('[data-setup-theme="dark"]').click();
+  await expect(page.locator('body')).toHaveClass(/dark/);
+  await page.locator('#setupNextBtn').click();
+
+  await expect(page.locator('#setupWizardCounter')).toHaveText('2 / 4');
+  await page.locator('#setupDogName').fill('Patrick');
+  await page.locator('#setupDogAge').fill('4');
+  await expect(page.locator('#setupDogAgePreview')).toContainText('4 meses');
+  await page.locator('#setupNextBtn').click();
+
+  await expect(page.locator('#setupWizardCounter')).toHaveText('3 / 4');
+  await expect(page.locator('[data-setup-step="2"]')).toContainText('Sesiones cortas');
+  await page.locator('#setupNextBtn').click();
+
+  await expect(page.locator('#setupWizardCounter')).toHaveText('4 / 4');
+  await expect(page.locator('#setupSummaryName')).toHaveText('Patrick');
+  await expect(page.locator('#setupSummaryTheme')).toHaveText('Oscuro');
+  await page.locator('#setupNextBtn').click();
+
+  await expect(wizard).not.toBeVisible();
   await expect(page.locator('#dailyMission')).toBeVisible();
   await expect(page.locator('#dailyMissionTitle')).not.toHaveText('Preparando tu sesión');
 }
