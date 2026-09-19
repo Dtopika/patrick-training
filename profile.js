@@ -2,7 +2,8 @@ const SYSTEM_THEME=window.matchMedia('(prefers-color-scheme: dark)');
 const THEME_KEY='patrickTheme';
 const REMINDER_KEY='patrickNotifications';
 const REMINDER_TAG='patrick-daily-reminder';
-let profileUiInitialized=false,reminderLoaded=false,reminderTimer=null,reminderStorageMode='indexeddb',settingsReturnFocus=null;
+const TEACHING_GUIDE_VERSION=1;
+let profileUiInitialized=false,reminderLoaded=false,reminderTimer=null,reminderStorageMode='indexeddb',settingsReturnFocus=null,teachingOnboardingVersion=0;
 let reminderSettings={enabled:false,time:'19:00',lastNotifiedDate:null},themePreference='system';
 
 function currentDogAgeMonths(){return ENGINE.effectiveAgeMonths(dogProfile)}
@@ -53,10 +54,12 @@ function openDogProfileEditor(firstRun=false,ageOnly=false){
   setTimeout(()=>$(firstRun?'#dogNameInput':ageOnly?'#dogAgeInput':'#dogNameInput')?.focus(),80);
 }
 function saveDogProfile(){
+  const firstRun=$('#profileDialog')?.dataset.firstRun==='1';
   const name=$('#dogNameInput').value.trim().replace(/\s+/g,' ').slice(0,24);if(!name){toast('Escribe el nombre de tu perro');$('#dogNameInput').focus();return}
   const ageValue=Number($('#dogAgeInput').value||0),unit=$('#dogAgeUnit').value;if(!Number.isFinite(ageValue)||ageValue<=0){toast('Indica la edad de tu perro');$('#dogAgeInput').focus();return}
   const ageMonths=Math.max(1,Math.round(unit==='years'?ageValue*12:ageValue));dogProfile={...dogProfile,name,breed:'Pastor Alemán',ageMonths,ageUpdatedAt:new Date().toISOString()};
   store.set('patrickDogProfile',dogProfile);$('#profileDialog').close();renderAll();renderCommands();syncSettingsDrawer();toast(`Perfil de ${name} guardado`);
+  if(firstRun&&teachingOnboardingVersion<TEACHING_GUIDE_VERSION)setTimeout(()=>openTeachingGuide(),220);
 }
 
 function downloadJson(filename,payload){
