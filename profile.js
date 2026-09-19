@@ -54,7 +54,7 @@ function saveDogProfile(){
 }
 
 function exportProgress(){
-  const payload={schemaVersion:CONFIG.BACKUP_SCHEMA_VERSION,appVersion:CONFIG.APP_VERSION,exportedAt:new Date().toISOString(),profile:dogProfile,storage:storageMode,progress,trials,history,currentLevel,dayType,notifications:reminderSettings};
+  const payload={schemaVersion:CONFIG.BACKUP_SCHEMA_VERSION,appVersion:CONFIG.APP_VERSION,exportedAt:new Date().toISOString(),profile:dogProfile,storage:storageMode,progress,trials,history,currentLevel,dayType,trainingContext,notifications:reminderSettings};
   const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`patrick-training-${dogName().toLowerCase().replace(/[^a-z0-9]+/gi,'-')||'backup'}.json`;a.click();URL.revokeObjectURL(a.href);toast('Respaldo descargado');
 }
 
@@ -62,15 +62,15 @@ async function importProgressFile(file){
   if(!file)return;
   if(file.size>CONFIG.BACKUP_MAX_BYTES){toast('El respaldo es demasiado grande');return}
   let data,normalized;
-  try{data=JSON.parse(await file.text());normalized=BACKUP_SCHEMA.normalize(data,{commands:COMMANDS,states:STATES,currentProfile:dogProfile,maxSchemaVersion:CONFIG.BACKUP_SCHEMA_VERSION})}
+  try{data=JSON.parse(await file.text());normalized=BACKUP_SCHEMA.normalize(data,{commands:COMMANDS,states:STATES,currentProfile:dogProfile,currentTrainingContext:trainingContext,maxSchemaVersion:CONFIG.BACKUP_SCHEMA_VERSION})}
   catch(e){console.warn('Respaldo rechazado',e);toast('El respaldo no tiene un formato compatible');return}
   if(!confirm('¿Restaurar este respaldo validado? Reemplazará el progreso actual de Patrick Training.'))return;
   const coreValues={
     patrickProgress:normalized.progress,patrickTrials:normalized.trials,patrickHistory:normalized.history,
-    patrickCurrentLevel:normalized.currentLevel,patrickDayType:normalized.dayType,patrickDogProfile:normalized.profile
+    patrickCurrentLevel:normalized.currentLevel,patrickDayType:normalized.dayType,patrickDogProfile:normalized.profile,patrickTrainingContext:normalized.trainingContext
   };
   await store.setMany(coreValues);
-  progress=normalized.progress;trials=normalized.trials;history=normalized.history;currentLevel=normalized.currentLevel;dayType=normalized.dayType;dogProfile=normalized.profile;
+  progress=normalized.progress;trials=normalized.trials;history=normalized.history;currentLevel=normalized.currentLevel;dayType=normalized.dayType;dogProfile=normalized.profile;trainingContext=normalized.trainingContext;
   if(normalized.notifications){
     reminderSettings={...reminderSettings,...normalized.notifications,lastNotifiedDate:null};
     await saveReminderSettings();scheduleForegroundReminder();
