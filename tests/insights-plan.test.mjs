@@ -92,4 +92,9 @@ test('v6.2 UI exposes smart plan, evolution dashboard and command insight dialog
   assert.match(sessionSource,/function startSession\(cmds=focusForLevel\(currentLevel\),options=\{\}\)/);
   assert.match(sessionSource,/ENGINE\.normalizeContext\(options\.context\|\|trainingContext\)/);
   assert.match(profile,/ENGINE\.ageStage/);
+  const styles=read('styles-insights.css');
+  assert.match(insights,/icon\('chart'\)/);
+  assert.match(insights,/commandSeriesRail/);
+  assert.match(insights,/Más antiguo ← desliza → más reciente/);
+  assert.match(styles,/commandSeriesRail\{[^}]*overflow-x:auto/);
 });
