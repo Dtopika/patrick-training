@@ -31,6 +31,21 @@ function applyTheme(){
 function setThemePreference(value){
   themePreference=normalizeTheme(value);store.set(THEME_KEY,themePreference);applyTheme();syncManagementDialogs();toast(`Tema: ${themePreferenceLabel()}`);
 }
+function germanVoiceOptions(){
+  const voices=typeof germanVoices==='function'?germanVoices():[];
+  return[{value:'auto',label:'Automática · prioriza alemán de Alemania'},...voices.map(v=>({value:v.voiceURI||v.name,label:germanVoiceLabel(v)}))];
+}
+function syncGermanVoiceUI(){
+  const select=$('#germanVoiceSelect'),current=$('#germanVoiceCurrent');if(!select)return;
+  const options=germanVoiceOptions(),selected=options.some(x=>x.value===germanVoicePreference)?germanVoicePreference:'auto';
+  select.innerHTML=options.map(x=>`<option value="${escapeHtml(x.value)}">${escapeHtml(x.label)}</option>`).join('');
+  select.value=selected;select.disabled=options.length===1;
+  if(current)current.textContent=selected==='auto'?'Automática':options.find(x=>x.value===selected)?.label||'Automática';
+}
+function setGermanVoicePreference(value){
+  const options=germanVoiceOptions(),valid=options.some(x=>x.value===value)?value:'auto';
+  germanVoicePreference=valid;store.set('patrickGermanVoice',germanVoicePreference);syncGermanVoiceUI();toast(valid==='auto'?'Voz alemana automática':'Voz alemana guardada');
+}
 
 function populateDogProfileEditor(){
   const months=currentDogAgeMonths();
@@ -66,7 +81,7 @@ function downloadJson(filename,payload){
   const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename;a.click();URL.revokeObjectURL(a.href);
 }
 function exportProgress(){
-  const payload={schemaVersion:CONFIG.BACKUP_SCHEMA_VERSION,appVersion:CONFIG.APP_VERSION,exportedAt:new Date().toISOString(),profile:dogProfile,storage:storageMode,progress,trials,history,historyArchive,currentLevel,dayType,trainingContext,theme:themePreference,teachingGuideVersion:teachingOnboardingVersion,notifications:reminderSettings};
+  const payload={schemaVersion:CONFIG.BACKUP_SCHEMA_VERSION,appVersion:CONFIG.APP_VERSION,exportedAt:new Date().toISOString(),profile:dogProfile,storage:storageMode,progress,trials,history,historyArchive,currentLevel,dayType,trainingContext,theme:themePreference,germanVoice:germanVoicePreference,teachingGuideVersion:teachingOnboardingVersion,notifications:reminderSettings};
   downloadJson(`patrick-training-${dogName().toLowerCase().replace(/[^a-z0-9]+/gi,'-')||'backup'}.json`,payload);toast('Respaldo descargado');
 }
 function exportDiagnostic(){
@@ -90,10 +105,10 @@ async function importProgressFile(file){
   if(!confirm('¿Restaurar este respaldo validado? Reemplazará el progreso actual de Patrick Training.'))return;
   const coreValues={
     patrickProgress:normalized.progress,patrickTrials:normalized.trials,patrickHistory:normalized.history,
-    patrickCurrentLevel:normalized.currentLevel,patrickDayType:normalized.dayType,patrickDogProfile:normalized.profile,patrickTrainingContext:normalized.trainingContext,patrickTheme:normalized.theme,patrickHistoryArchive:normalized.historyArchive,patrickTeachingOnboardingVersion:normalized.teachingGuideVersion
+    patrickCurrentLevel:normalized.currentLevel,patrickDayType:normalized.dayType,patrickDogProfile:normalized.profile,patrickTrainingContext:normalized.trainingContext,patrickTheme:normalized.theme,patrickGermanVoice:normalized.germanVoice,patrickHistoryArchive:normalized.historyArchive,patrickTeachingOnboardingVersion:normalized.teachingGuideVersion
   };
   await store.setMany(coreValues);
-  progress=normalized.progress;trials=normalized.trials;history=normalized.history;historyArchive=normalizeHistoryArchive(normalized.historyArchive);currentLevel=normalized.currentLevel;dayType=normalized.dayType;dogProfile=normalized.profile;trainingContext=normalized.trainingContext;themePreference=normalized.theme;teachingOnboardingVersion=normalized.teachingGuideVersion;applyTheme();
+  progress=normalized.progress;trials=normalized.trials;history=normalized.history;historyArchive=normalizeHistoryArchive(normalized.historyArchive);currentLevel=normalized.currentLevel;dayType=normalized.dayType;dogProfile=normalized.profile;trainingContext=normalized.trainingContext;themePreference=normalized.theme;germanVoicePreference=normalized.germanVoice;teachingOnboardingVersion=normalized.teachingGuideVersion;applyTheme();syncGermanVoiceUI();
   if(normalized.notifications){
     reminderSettings={...reminderSettings,...normalized.notifications,lastNotifiedDate:null};
     await saveReminderSettings();scheduleForegroundReminder();
@@ -194,7 +209,7 @@ function ensureManagementDialogs(){
   document.body.insertAdjacentHTML('beforeend',`
     <dialog id="appSettingsDialog" class="managementDialog" aria-labelledby="appSettingsTitle"><section class="managementCard">
       <header class="managementHeader"><div><p class="kicker">APLICACIÓN</p><h2 id="appSettingsTitle">Configuración</h2><p class="muted">Apariencia, almacenamiento y respaldos.</p></div><button id="closeAppSettingsBtn" class="roundBtn" type="button" aria-label="Cerrar configuración">${icon('x')}</button></header>
-      <section class="managementSection"><div class="managementSectionTitle"><span class="managementIcon">${icon('palette')}</span><div><strong>Apariencia</strong><small id="themeCurrentValue">Sistema</small></div></div><label class="managementControl"><span>Tema</span><select id="themeSelect" aria-label="Tema de la aplicación"><option value="system">Usar sistema</option><option value="light">Claro</option><option value="dark">Oscuro</option></select></label></section>
+      <section class="managementSection"><div class="managementSectionTitle"><span class="managementIcon">${icon('palette')}</span><div><strong>Apariencia</strong><small id="themeCurrentValue">Sistema</small></div></div><label class="managementControl"><span>Tema</span><select id="themeSelect" aria-label="Tema de la aplicación"><option value="system">Usar sistema</option><option value="light">Claro</option><option value="dark">Oscuro</option></select></label></section><section class="managementSection"><div class="managementSectionTitle"><span class="managementIcon">${icon('volume')}</span><div><strong>Pronunciación alemana</strong><small id="germanVoiceCurrent">Automática</small></div></div><label class="managementControl"><span>Voz</span><select id="germanVoiceSelect" aria-label="Voz alemana"></select></label><button id="testGermanVoiceBtn" class="managementAction" type="button"><span>${icon('volume')}</span><div><strong>Probar voz</strong><small>Reproduce “Sitz” con la voz seleccionada.</small></div><i>${icon('chevron')}</i></button><small class="settingsNote">Usa las voces instaladas en tu dispositivo. Si la voz elegida deja de existir, la app vuelve automáticamente a una voz alemana disponible.</small></section>
       <section class="managementSection"><div class="managementSectionTitle"><span class="managementIcon">${icon('database')}</span><div><strong>Datos y almacenamiento</strong><small>Tu información permanece en este dispositivo.</small></div></div><div class="managementMeta"><span>Motor de almacenamiento</span><strong id="storageModeLabel" class="storageBadge">IndexedDB</strong></div><div class="managementMeta"><span>Estado técnico</span><strong id="diagnosticSummary">v${escapeHtml(CONFIG.APP_VERSION)} · schema ${CONFIG.BACKUP_SCHEMA_VERSION}</strong></div><button id="exportBtn" class="managementAction" type="button"><span>${icon('download')}</span><div><strong>Exportar respaldo</strong><small>Descarga perfil, progreso, sesiones y preferencias.</small></div><i>${icon('chevron')}</i></button><button id="importBtn" class="managementAction" type="button"><span>${icon('upload')}</span><div><strong>Restaurar respaldo</strong><small>Importa un respaldo validado de Patrick Training.</small></div><i>${icon('chevron')}</i></button><button id="exportDiagnosticBtn" class="managementAction" type="button"><span>${icon('info')}</span><div><strong>Exportar diagnóstico</strong><small>Versión, almacenamiento, ruta y estado técnico; sin historial detallado.</small></div><i>${icon('chevron')}</i></button><input id="importFileInput" type="file" accept="application/json,.json" hidden></section>
     </section></dialog>
     <dialog id="aboutDialog" class="managementDialog" aria-labelledby="aboutTitle"><section class="managementCard aboutCard">
@@ -219,7 +234,7 @@ function syncManagementDialogs(){
   if(!$('#appSettingsDialog'))return;
   const theme=$('#themeSelect');if(theme)theme.value=normalizeTheme(themePreference);
   const storage=$('#storageModeLabel');if(storage)storage.textContent=storageMode==='indexeddb'?'IndexedDB':'Almacenamiento local';
-  applyTheme();
+  applyTheme();syncGermanVoiceUI();
 }
 function openAppSettingsDialog(){ensureManagementDialogs();syncManagementDialogs();closeSettingsDrawer();setTimeout(()=>{const d=$('#appSettingsDialog');if(!d.open)d.showModal()},180)}
 function openAboutDialog(){ensureManagementDialogs();closeSettingsDrawer();setTimeout(()=>{const d=$('#aboutDialog');if(!d.open)d.showModal()},180)}
@@ -263,7 +278,7 @@ function bindProfileUI(){
   $('#settingsAvatarBtn').onclick=openSettingsDrawer;$('#settingsCloseBtn').onclick=closeSettingsDrawer;$('#settingsBackdrop').onclick=closeSettingsDrawer;$('#editDogBtn').onclick=()=>{closeSettingsDrawer();setTimeout(()=>openDogProfileEditor(false),180)};
   $('#openTeachingGuideBtn').onclick=openTeachingGuide;$('#openAppSettingsBtn').onclick=openAppSettingsDialog;$('#openAboutBtn').onclick=openAboutDialog;
   $('#settingsDayType').onchange=e=>{dayType=e.target.value;store.set('patrickDayType',dayType);$('#dayType').value=dayType;renderToday();syncSettingsDrawer()};
-  $('#themeSelect').onchange=e=>setThemePreference(e.target.value);$('#closeAppSettingsBtn').onclick=()=>$('#appSettingsDialog').close();$('#closeAboutBtn').onclick=()=>$('#aboutDialog').close();$('#closeTeachingGuideBtn').onclick=closeTeachingGuide;$('#finishTeachingGuideBtn').onclick=closeTeachingGuide;
+  $('#themeSelect').onchange=e=>setThemePreference(e.target.value);$('#germanVoiceSelect').onchange=e=>setGermanVoicePreference(e.target.value);$('#testGermanVoiceBtn').onclick=()=>speak(commandBy('Sitz'));$('#closeAppSettingsBtn').onclick=()=>$('#appSettingsDialog').close();$('#closeAboutBtn').onclick=()=>$('#aboutDialog').close();$('#closeTeachingGuideBtn').onclick=closeTeachingGuide;$('#finishTeachingGuideBtn').onclick=closeTeachingGuide;
   $('#exportBtn').onclick=exportProgress;$('#exportDiagnosticBtn').onclick=exportDiagnostic;$('#importBtn').onclick=()=>$('#importFileInput').click();$('#importFileInput').onchange=async e=>{const file=e.target.files?.[0];e.target.value='';await importProgressFile(file)};
   $('#appSettingsDialog').addEventListener('click',e=>{if(e.target===$('#appSettingsDialog'))$('#appSettingsDialog').close()});$('#aboutDialog').addEventListener('click',e=>{if(e.target===$('#aboutDialog'))$('#aboutDialog').close()});$('#teachingGuideDialog').addEventListener('cancel',e=>{e.preventDefault();closeTeachingGuide()});$('#teachingGuideDialog').addEventListener('click',e=>{if(e.target===$('#teachingGuideDialog'))closeTeachingGuide()});
   $('#notificationToggle').onclick=toggleDailyReminders;$('#notificationTime').onchange=async e=>{reminderSettings.time=e.target.value||'19:00';reminderSettings.lastNotifiedDate=null;await saveReminderSettings();scheduleForegroundReminder();syncReminderUI();toast(`Recordatorio: ${reminderSettings.time}`)};
@@ -273,7 +288,7 @@ function bindProfileUI(){
 }
 function initProfileUI(){
   if(profileUiInitialized)return;profileUiInitialized=true;try{store.remove('patrickDark');localStorage.removeItem('patrickDark')}catch{}
-  themePreference=normalizeTheme(store.get(THEME_KEY,'system'));teachingOnboardingVersion=Number(store.get('patrickTeachingOnboardingVersion',0))||0;applyTheme();SYSTEM_THEME.addEventListener?.('change',()=>{if(themePreference==='system')applyTheme()});ensureSettingsDrawer();ensureManagementDialogs();bindProfileUI();syncSettingsDrawer();syncManagementDialogs();loadReminderSettings().then(async()=>{if(reminderSettings.enabled&&Notification.permission==='granted')await periodicReminderRegistration(true);await showDailyReminder()});
+  themePreference=normalizeTheme(store.get(THEME_KEY,'system'));teachingOnboardingVersion=Number(store.get('patrickTeachingOnboardingVersion',0))||0;applyTheme();SYSTEM_THEME.addEventListener?.('change',()=>{if(themePreference==='system')applyTheme()});window.speechSynthesis?.addEventListener?.('voiceschanged',syncGermanVoiceUI);ensureSettingsDrawer();ensureManagementDialogs();bindProfileUI();syncSettingsDrawer();syncManagementDialogs();loadReminderSettings().then(async()=>{if(reminderSettings.enabled&&Notification.permission==='granted')await periodicReminderRegistration(true);await showDailyReminder()});
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)showDailyReminder()});window.addEventListener('focus',()=>showDailyReminder());
   const hasName=String(dogProfile?.name||'').trim(),hasAge=currentDogAgeMonths()>0;if(!hasName)setTimeout(()=>openDogProfileEditor(true),80);else if(!hasAge)setTimeout(()=>openDogProfileEditor(false,true),300);else if(teachingOnboardingVersion<TEACHING_GUIDE_VERSION)setTimeout(()=>openTeachingGuide(),520);
 }
