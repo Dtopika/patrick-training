@@ -32,8 +32,28 @@ test('v6.2 daily plan uses adaptive focus and puppy-safe short sessions',()=>{
   assert.equal(plan.title,'Plan compacto de hoy');
   assert.equal(plan.items.length,2);
   assert.equal(plan.totalMinutes,6);
-  assert.ok(plan.items.every(x=>x.minutes===3&&x.attempts===5));
+  assert.ok(plan.items.every(x=>x.minutes===3&&x.attempts>=3&&x.attempts<=4));
   assert.ok(plan.items.every(x=>x.context&&x.reason&&x.objective));
+});
+
+test('adaptive v3 differentiates response timing, duration and evidence confidence',()=>{
+  const e=engine(),stateScore={'No iniciado':0,'En práctica':1,'Consistente':2,'Generalizando':3,'Dominado':4};
+  assert.equal(e.skillFamily({cmd:'Sitz',category:'Posiciones'}).key,'position');
+  assert.equal(e.skillFamily({cmd:'Bleib',category:'Autocontrol'}).timingMode,'duration');
+  assert.equal(e.skillFamily({cmd:'Hier',category:'Seguridad'}).key,'recall');
+  assert.match(e.difficultyTarget({cmd:'Bleib'},'Consistente',{stateScore}).target,/6–8 s/);
+  assert.equal(e.timingTarget({cmd:'Sitz'},'Consistente',{stateScore}).mode,'response');
+
+  const history=[
+    {...session('2026-09-19T10:00:00Z','Sitz',5,5),timingMode:'cue-to-rating',results:{Sitz:{achieved:5,assisted:0,missed:0,total:5,score:5,avgSeconds:3.4}}},
+    {...session('2026-09-18T10:00:00Z','Sitz',5,5),timingMode:'cue-to-rating',results:{Sitz:{achieved:5,assisted:0,missed:0,total:5,score:5,avgSeconds:3.0}}},
+    {...session('2026-09-17T10:00:00Z','Sitz',5,5),results:{Sitz:{achieved:5,assisted:0,missed:0,total:5,score:5,avgSeconds:99}}}
+  ];
+  const timing=e.commandTimingEvidence(history,{cmd:'Sitz'},'Consistente',{stateScore});
+  assert.equal(timing.count,2);
+  assert.equal(timing.medianSeconds,3.2);
+  const confidence=e.evidenceConfidence(history,{Sitz:[1,1,1,1,1,1,1,1,1,1]},{cmd:'Sitz'});
+  assert.ok(['Media','Alta'].includes(confidence.level));
 });
 
 test('evolution summary compares recent performance and finds signals',()=>{
