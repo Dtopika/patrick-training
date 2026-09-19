@@ -344,7 +344,12 @@ function bindProfileUI(){
 }
 function initProfileUI(){
   if(profileUiInitialized)return;profileUiInitialized=true;try{store.remove('patrickDark');localStorage.removeItem('patrickDark')}catch{}
-  themePreference=normalizeTheme(store.get(THEME_KEY,'system'));teachingOnboardingVersion=Number(store.get('patrickTeachingOnboardingVersion',0))||0;applyTheme();SYSTEM_THEME.addEventListener?.('change',()=>{if(themePreference==='system')applyTheme()});window.speechSynthesis?.addEventListener?.('voiceschanged',syncGermanVoiceUI);ensureSettingsDrawer();ensureManagementDialogs();bindProfileUI();syncSettingsDrawer();syncManagementDialogs();loadReminderSettings().then(async()=>{if(reminderSettings.enabled&&Notification.permission==='granted')await periodicReminderRegistration(true);await showDailyReminder()});
+  themePreference=normalizeTheme(store.get(THEME_KEY,'system'));teachingOnboardingVersion=Number(store.get('patrickTeachingOnboardingVersion',0))||0;setupWizardVersion=Number(store.get('patrickSetupWizardVersion',0))||0;applyTheme();SYSTEM_THEME.addEventListener?.('change',()=>{if(themePreference==='system')applyTheme()});window.speechSynthesis?.addEventListener?.('voiceschanged',syncGermanVoiceUI);ensureSettingsDrawer();ensureManagementDialogs();bindProfileUI();bindSetupWizard();syncSettingsDrawer();syncManagementDialogs();loadReminderSettings().then(async()=>{if(reminderSettings.enabled&&Notification.permission==='granted')await periodicReminderRegistration(true);await showDailyReminder()});
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)showDailyReminder()});window.addEventListener('focus',()=>showDailyReminder());
-  const hasName=String(dogProfile?.name||'').trim(),hasAge=currentDogAgeMonths()>0;if(!hasName)setTimeout(()=>openDogProfileEditor(true),80);else if(!hasAge)setTimeout(()=>openDogProfileEditor(false,true),300);else if(teachingOnboardingVersion<TEACHING_GUIDE_VERSION)setTimeout(()=>openTeachingGuide(),520);
+  const hasName=String(dogProfile?.name||'').trim(),hasAge=currentDogAgeMonths()>0,completeProfile=!!hasName&&hasAge;
+  if(completeProfile&&setupWizardVersion<SETUP_WIZARD_VERSION){setupWizardVersion=SETUP_WIZARD_VERSION;store.set('patrickSetupWizardVersion',setupWizardVersion)}
+  if(currentLevel===0&&!completeProfile)setTimeout(openSetupWizard,80);
+  else if(!hasName)setTimeout(()=>openDogProfileEditor(true),80);
+  else if(!hasAge)setTimeout(()=>openDogProfileEditor(false,true),300);
+  else if(teachingOnboardingVersion<TEACHING_GUIDE_VERSION)setTimeout(()=>openTeachingGuide(),520);
 }
