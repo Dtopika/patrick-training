@@ -115,6 +115,18 @@ test('schema 9 preserves cue-to-rating timing metadata and rejects unknown timin
   assert.throws(()=>schema.normalize({...base,history:[{...base.history[0],timingMode:'legacy-auto'}]},{commands,states,currentProfile:{name:'Patrick'},maxSchemaVersion:9}));
 });
 
+test('schema 10 preserves monthly archive and teaching onboarding state',()=>{
+  const ctx=vm.createContext({console});vm.runInContext(read('backup-schema.js'),ctx,{filename:'backup-schema.js'});
+  const schema=ctx.PatrickBackupSchema,commands=[{cmd:'Sitz'}],states=['No iniciado','En práctica','Consistente','Generalizando','Dominado'];
+  const archive={version:1,totalSessions:3,months:{'2026-08':{sessions:3,score:10,total:12,contexts:{'Casa · distracción baja':3},commands:{Sitz:{sessions:3,score:10,total:12,timedSessions:2,seconds:4.2}}}}};
+  const normalized=schema.normalize({
+    schemaVersion:10,currentLevel:1,dayType:'Todo el día',historyArchive:archive,teachingGuideVersion:1
+  },{commands,states,currentProfile:{name:'Patrick'},maxSchemaVersion:10});
+  assert.equal(normalized.historyArchive.totalSessions,3);
+  assert.equal(normalized.historyArchive.months['2026-08'].commands.Sitz.timedSessions,2);
+  assert.equal(normalized.teachingGuideVersion,1);
+});
+
 test('session flow persists context only with the completed transaction',()=>{
   const session=read('app-session.js'),core=read('app-core.js'),profile=read('profile.js');
   assert.match(core,/patrickTrainingContext:\{environment:'Casa',distraction:'Baja'\}/);
