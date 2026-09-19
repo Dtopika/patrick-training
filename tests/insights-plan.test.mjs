@@ -80,7 +80,7 @@ test('level zero is clearly named Bases de comunicación',()=>{
   assert.doesNotMatch(levels,/Idioma común/);
 });
 
-test('v6.2 UI exposes smart plan, evolution dashboard and command insight dialog',()=>{
+test('v6.3 UI exposes smart plan, evolution dashboard and command insight dialog',()=>{
   const index=read('index.html'),insights=read('app-insights.js'),sessionSource=read('app-session.js'),profile=read('profile.js');
   assert.match(index,/id="smartDailyPlan"/);
   assert.match(index,/id="evolutionDashboard"/);
