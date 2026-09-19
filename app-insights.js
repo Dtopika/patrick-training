@@ -98,7 +98,7 @@ document.addEventListener('click',e=>{
 $('#closeCommandInsightBtn')?.addEventListener('click',closeCommandInsight);
 $('#commandInsightDialog')?.addEventListener('cancel',e=>{e.preventDefault();closeCommandInsight()});
 $('#commandInsightDialog')?.addEventListener('click',e=>{if(e.target===$('#commandInsightDialog'))closeCommandInsight()});
-$('#commandInsightPracticeBtn')?.addEventListener('click',()=>{if(!activeInsightCommand)return;const command=activeInsightCommand,context=recommendedTrainingContext(command);closeCommandInsight();startSession([command],{context})});
+$('#commandInsightPracticeBtn')?.addEventListener('click',()=>{if(!activeInsightCommand)return;const command=activeInsightCommand;closeCommandInsight();openStartChoice([command],{label:displayCommand(command)})});
 $('#commandInsightDemoBtn')?.addEventListener('click',()=>{if(activeInsightCommand)openDemo(activeInsightCommand)});
 
 const insightCommandList=$('#commandList');
