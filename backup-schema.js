@@ -73,6 +73,9 @@
   function normalizeTheme(value,current='system'){
     const theme=String(value??current??'system');return['system','light','dark'].includes(theme)?theme:'system';
   }
+  function normalizeGermanVoice(value,current='auto'){
+    const voice=String(value??current??'auto').trim();return voice&&voice.length<=256?voice:'auto';
+  }
   function normalizeHistoryArchive(value,commands){
     if(value==null)return{version:1,totalSessions:0,months:{}};
     if(!plainObject(value))fail('Archivo histórico inválido');
@@ -93,7 +96,7 @@
     }
     return{version:1,totalSessions,months};
   }
-  function normalize(data,{commands=[],states=[],currentProfile=null,currentTrainingContext={environment:'Casa',distraction:'Baja'},currentTheme='system',maxSchemaVersion=10}={}){
+  function normalize(data,{commands=[],states=[],currentProfile=null,currentTrainingContext={environment:'Casa',distraction:'Baja'},currentTheme='system',currentGermanVoice='auto',maxSchemaVersion=11}={}){
     if(!plainObject(data))fail('Formato de respaldo inválido');
     const schema=Number(data.schemaVersion??data.version??5);
     if(!Number.isFinite(schema)||schema<5||schema>maxSchemaVersion)fail('Versión de respaldo no compatible');
@@ -107,6 +110,7 @@
       profile:normalizeProfile(data.profile,currentProfile),
       trainingContext:normalizeTrainingContext(data.trainingContext,currentTrainingContext),
       theme:normalizeTheme(data.theme,currentTheme),
+      germanVoice:normalizeGermanVoice(data.germanVoice,currentGermanVoice),
       historyArchive:normalizeHistoryArchive(data.historyArchive,commands),
       teachingGuideVersion:Math.max(0,Math.min(100,Number.isInteger(Number(data.teachingGuideVersion))?Number(data.teachingGuideVersion):0)),
       notifications:normalizeNotifications(data.notifications)
