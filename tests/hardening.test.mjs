@@ -318,6 +318,18 @@ test('v7.3 first-run wizard configures theme profile tutorial and level zero bef
   assert.match(backup,/setupWizardVersion/);
 });
 
+test('v7.3.1 full reset requires two confirmations and resets only managed data',()=>{
+  const profile=read('profile.js');
+  const fn=profile.match(/async function resetAllTrainingData\(\)\{[\s\S]*?\n\}/)?.[0]||'';
+  assert.match(profile,/id="resetAllDataBtn"/);
+  assert.equal((fn.match(/confirm\(/g)||[]).length,2);
+  assert.match(fn,/store\.setMany\(fresh\)/);
+  assert.match(fn,/PatrickDB\?\.del\?\.\(REMINDER_KEY\)/);
+  assert.match(fn,/setTimeout\(openSetupWizard,180\)/);
+  assert.doesNotMatch(fn,/clearAll\(|deleteDatabase\(/);
+  assert.match(profile,/ÚLTIMA CONFIRMACIÓN/);
+});
+
 test('adaptive focus always returns command objects, never score wrappers',async()=>{
   const env=await loadCore(baseContext());
   const result=vm.runInContext("focusForLevel(0)",env.ctx);
