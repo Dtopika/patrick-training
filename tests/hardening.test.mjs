@@ -81,10 +81,10 @@ test('v6 bootstraps its dependencies when an older HTML shell loads newer JavaSc
   const env=baseContext();
   vm.runInContext(read('app-core.js'),env.ctx,{filename:'app-core.js'});
   await env.ctx.PATRICK_READY;
-  assert.equal(vm.runInContext("CONFIG.APP_VERSION",env.ctx),'6.0.0');
+  assert.equal(vm.runInContext("CONFIG.APP_VERSION",env.ctx),'6.1.0');
   assert.equal(vm.runInContext("typeof ENGINE.focusForLevel",env.ctx),'function');
   assert.equal(vm.runInContext("typeof BACKUP_SCHEMA.normalize",env.ctx),'function');
-  assert.deepEqual(env.scripts.map(s=>s.src),['config.js?v600-r2','training-engine.js?v600-r2','backup-schema.js?v600-r2']);
+  assert.deepEqual(env.scripts.map(s=>s.src),['config.js?v610-r1','training-engine.js?v610-r1','backup-schema.js?v610-r1']);
 });
 
 test('navigation and settings click wiring remain collection-safe',()=>{
@@ -99,12 +99,12 @@ test('navigation and settings click wiring remain collection-safe',()=>{
   }
 });
 
-test('v6 configuration centralizes public and schema versions',()=>{
+test('v6.1 configuration centralizes public and schema versions',()=>{
   const env=baseContext();loadArchitecture(env.ctx);
-  assert.equal(env.ctx.PATRICK_CONFIG.APP_VERSION,'6.0.0');
-  assert.equal(env.ctx.PATRICK_CONFIG.BACKUP_SCHEMA_VERSION,6);
-  assert.equal(env.ctx.PATRICK_CONFIG.SESSION_SCHEMA_VERSION,6);
-  assert.equal(env.ctx.PATRICK_CONFIG.CACHE_NAME,'patrick-training-v6.0.0-r2');
+  assert.equal(env.ctx.PATRICK_CONFIG.APP_VERSION,'6.1.0');
+  assert.equal(env.ctx.PATRICK_CONFIG.BACKUP_SCHEMA_VERSION,7);
+  assert.equal(env.ctx.PATRICK_CONFIG.SESSION_SCHEMA_VERSION,7);
+  assert.equal(env.ctx.PATRICK_CONFIG.CACHE_NAME,'patrick-training-v6.1.0-r1');
 });
 
 test('storage reconciliation prefers newer local mirror and repairs IndexedDB',async()=>{
@@ -135,15 +135,15 @@ test('storage reconciliation prefers IndexedDB over legacy local data without fr
 
 test('backup schema accepts 5.x backups, v6 schema, and rejects malformed nested data',()=>{
   const env=baseContext();loadArchitecture(env.ctx);
-  const schema=env.ctx.PatrickBackupSchema,opts={commands:env.ctx.PATRICK_COMMANDS,states:['No iniciado','En práctica','Consistente','Generalizando','Dominado'],currentProfile:{name:'Patrick'},maxSchemaVersion:6};
+  const schema=env.ctx.PatrickBackupSchema,opts={commands:env.ctx.PATRICK_COMMANDS,states:['No iniciado','En práctica','Consistente','Generalizando','Dominado'],currentProfile:{name:'Patrick'},maxSchemaVersion:7};
   const legacy=schema.normalize({version:5.1,currentLevel:1,dayType:'Todo el día',progress:{Sitz:'En práctica'},trials:{Sitz:[1,.5,0]},history:[],profile:{name:'Patrick',ageMonths:4},notifications:{enabled:false,time:'19:00'}},opts);
   assert.equal(legacy.profile.name,'Patrick');
   assert.deepEqual(Array.from(legacy.trials.Sitz),[1,.5,0]);
-  const current=schema.normalize({schemaVersion:6,appVersion:'6.0.0',currentLevel:0,dayType:'Solo noche',history:[]},opts);
+  const current=schema.normalize({schemaVersion:7,appVersion:'6.1.0',currentLevel:0,dayType:'Solo noche',history:[]},opts);
   assert.equal(current.dayType,'Solo noche');
-  assert.throws(()=>schema.normalize({schemaVersion:6,currentLevel:0,dayType:'Todo el día',trials:{Sitz:['boom']}},opts));
-  assert.throws(()=>schema.normalize({schemaVersion:6,currentLevel:0,dayType:'Todo el día',history:[null]},opts));
-  assert.throws(()=>schema.normalize({schemaVersion:7,currentLevel:0,dayType:'Todo el día'},opts));
+  assert.throws(()=>schema.normalize({schemaVersion:7,currentLevel:0,dayType:'Todo el día',trials:{Sitz:['boom']}},opts));
+  assert.throws(()=>schema.normalize({schemaVersion:7,currentLevel:0,dayType:'Todo el día',history:[null]},opts));
+  assert.throws(()=>schema.normalize({schemaVersion:8,currentLevel:0,dayType:'Todo el día'},opts));
 });
 
 test('age-aware engine defers Hopp from adaptive sessions for a young puppy',()=>{
@@ -193,9 +193,9 @@ test('all 41 commands map one-to-one to levels and curated videos',()=>{
   assert.deepEqual(new Set(videoCommands),new Set(commands));
 });
 
-test('v6 upgrade contract cache-busts every critical browser asset from v5.6.3',()=>{
+test('v6.1 upgrade contract cache-busts every critical browser asset',()=>{
   const index=read('index.html'),styles=read('styles.css'),pwa=read('pwa.js'),sw=read('sw.js');
-  const tag='v600-r2';
+  const tag='v610-r1';
   const scriptSrc=[...index.matchAll(/<script src="([^"]+\.js\?[^"]+)"><\/script>/g)].map(m=>m[1]);
   assert.ok(scriptSrc.length>=10,'expected versioned script URLs');
   assert.ok(scriptSrc.every(src=>src.endsWith('?'+tag)));
