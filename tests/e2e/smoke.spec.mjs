@@ -29,6 +29,12 @@ test('mobile navigation, chooser and undo work end to end',async({page})=>{
   await page.locator('.bottomNav [data-view="commands"]').click();
   const card=page.locator('.commandCard[data-command="Patrick"]');
   await expect(card).toBeVisible();
+  await expect(card.locator('.demoBtn')).toBeVisible();
+  await card.locator('.demoBtn').click();
+  await expect(page.locator('#demoDialog')).toBeVisible();
+  await expect(page.locator('#demoFlow .demoFlowStep')).toHaveCount(4);
+  await expect(page.locator('#demoFlow')).toContainText('Ja!');
+  await page.locator('#closeDemoBtn').click();
   await card.locator('.practiceBtn').click();
   await expect(page.locator('#startChoiceDialog')).toBeVisible();
   await page.locator('#confirmStartChoiceBtn').click();
@@ -42,6 +48,29 @@ test('mobile navigation, chooser and undo work end to end',async({page})=>{
   await page.locator('#undoExecutionBtn').click();
   await expect(page.locator('#executionLabel')).toContainText('EJECUCIÓN 1 DE 4');
   await expect(page.locator('#undoExecutionBtn')).toBeHidden();
+});
+
+test('German voice settings and long-term evolution are available on mobile',async({page})=>{
+  await onboard(page);
+
+  await page.locator('#settingsAvatarBtn').click();
+  await page.locator('#openAppSettingsBtn').click();
+  await expect(page.locator('#appSettingsDialog')).toBeVisible();
+  await expect(page.locator('#germanVoiceSelect')).toBeVisible();
+  await expect(page.locator('#testGermanVoiceBtn')).toBeVisible();
+  await page.locator('#closeAppSettingsBtn').click();
+
+  await page.evaluate(()=>{
+    historyArchive={
+      version:1,totalSessions:5,months:{
+        '2026-07':{sessions:2,score:7,total:8,contexts:{'Casa · distracción baja':2},commands:{Patrick:{sessions:2,score:7,total:8,timedSessions:0,seconds:0}}},
+        '2026-08':{sessions:3,score:11,total:12,contexts:{'Casa · distracción baja':2,'Exterior tranquilo · distracción baja':1},commands:{Patrick:{sessions:3,score:11,total:12,timedSessions:0,seconds:0}}}
+      }
+    };
+    setView('progress');renderProgress();
+  });
+  await expect(page.locator('#longTermEvolution')).toBeVisible();
+  await expect(page.locator('#longTermEvolution .longTermMonth')).toHaveCount(2);
 });
 
 test('completed session can be corrected from history',async({page})=>{
