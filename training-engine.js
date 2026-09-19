@@ -1,6 +1,10 @@
 (()=>{'use strict';
   const DAY_MS=86400000;
   const MONTH_MS=30.4375*DAY_MS;
+  const CONTEXT_ENVIRONMENTS=Object.freeze(['Casa','Exterior tranquilo','Calle','Parque']);
+  const CONTEXT_DISTRACTIONS=Object.freeze(['Baja','Media','Alta']);
+  const ENVIRONMENT_WEIGHT=Object.freeze({'Casa':0,'Exterior tranquilo':1,'Calle':2,'Parque':2});
+  const DISTRACTION_WEIGHT=Object.freeze({'Baja':0,'Media':1,'Alta':2});
 
   /** @param {object|null|undefined} profile */
   function effectiveAgeMonths(profile,now=Date.now()){
@@ -51,6 +55,27 @@
     return{...policy,cmd,months,deferFromAdaptive:defer,caution};
   }
 
+  function normalizeContext(value){
+    const environment=CONTEXT_ENVIRONMENTS.includes(value?.environment)?value.environment:'Casa';
+    const distraction=CONTEXT_DISTRACTIONS.includes(value?.distraction)?value.distraction:'Baja';
+    return{environment,distraction};
+  }
+
+  function contextSignature(value){
+    const context=normalizeContext(value);
+    return context.environment+'|'+context.distraction;
+  }
+
+  function contextDifficulty(value){
+    const context=normalizeContext(value);
+    return (ENVIRONMENT_WEIGHT[context.environment]||0)+(DISTRACTION_WEIGHT[context.distraction]||0);
+  }
+
+  function contextLabel(value){
+    const context=normalizeContext(value);
+    return context.environment+' · distracción '+context.distraction.toLowerCase();
+  }
+
   function lastPracticeMs(history,cmd){
     let latest=0;
     for(const item of Array.isArray(history)?history:[]){
@@ -65,26 +90,112 @@
     return arr.length?arr.reduce((a,b)=>a+b,0)/arr.length:null;
   }
 
-  function adaptivePriority(command,currentLevel,{trials={},history=[],progress={},stateScore={},profile=null,now=Date.now()}={}){
+  function commandContextEvidence(history,cmd){
+    const successful=[];
+    for(const item of Array.isArray(history)?history:[]){
+      const result=item?.results?.[cmd];if(!result)continue;
+      const total=Number(result.total)||0,score=Number(result.score)||0;
+      if(total<=0||score/total<.8)continue;
+      const at=Date.parse(item.at||'');
+      const context=normalizeContext(item.context);
+      successful.push({at:Number.isFinite(at)?at:0,context,difficulty:contextDifficulty(context),accuracy:score/total});
+    }
+    const signatures=new Set(successful.map(x=>contextSignature(x.context)));
+    const environments=new Set(successful.map(x=>x.context.environment));
+    const distractions=new Set(successful.map(x=>x.context.distraction));
+    const challenging=successful.filter(x=>x.difficulty>=2).length;
+    const mediumPlus=successful.filter(x=>x.context.distraction!=='Baja').length;
+    const times=successful.map(x=>x.at).filter(Boolean).sort((a,b)=>a-b);
+    const spanDays=times.length>1?(times.at(-1)-times[0])/DAY_MS:0;
+    return{
+      successfulSessions:successful.length,
+      contextCount:signatures.size,
+      environmentCount:environments.size,
+      distractionCount:distractions.size,
+      challengingSessions:challenging,
+      mediumPlusSessions:mediumPlus,
+      maxDifficulty:successful.reduce((m,x)=>Math.max(m,x.difficulty),0),
+      spanDays,
+      signatures:[...signatures]
+    };
+  }
+
+  function nextProgressState(cmd,currentState,{trials={},history=[],stateScore={}}={}){
+    const scoreOf=state=>Number(stateScore[state]||0);
+    let state=currentState||'No iniciado';
+    const arr=Array.isArray(trials?.[cmd])?trials[cmd].map(Number).filter(Number.isFinite):[];
+    if(arr.length&&scoreOf(state)<1)state='En práctica';
+    const points=arr.reduce((a,b)=>a+b,0);
+    if(arr.length>=10&&points>=8&&scoreOf(state)<2)state='Consistente';
+
+    const recent=recentAverage(trials,cmd),evidence=commandContextEvidence(history,cmd);
+    if(scoreOf(state)>=2&&scoreOf(state)<3&&recent!==null&&recent>=.8&&
+      evidence.successfulSessions>=3&&evidence.contextCount>=2&&evidence.challengingSessions>=1){
+      state='Generalizando';
+    }
+    if(scoreOf(state)>=3&&scoreOf(state)<4&&recent!==null&&recent>=.9&&
+      evidence.successfulSessions>=6&&evidence.contextCount>=3&&evidence.challengingSessions>=3&&
+      evidence.mediumPlusSessions>=2&&evidence.spanDays>=7){
+      state='Dominado';
+    }
+    return state;
+  }
+
+  function recommendedContext(command,{progress={},history=[],stateScore={}}={}){
+    const cmd=typeof command==='string'?command:command?.cmd;
+    const state=progress[cmd]||'No iniciado',level=Number(stateScore[state]||0);
+    const evidence=commandContextEvidence(history,cmd);
+    const tried=new Set(evidence.signatures);
+    const candidates=level<2
+      ?[{environment:'Casa',distraction:'Baja'}]
+      :level===2
+        ?[{environment:'Casa',distraction:'Media'},{environment:'Exterior tranquilo',distraction:'Baja'},{environment:'Calle',distraction:'Media'}]
+        :level===3
+          ?[{environment:'Exterior tranquilo',distraction:'Media'},{environment:'Parque',distraction:'Media'},{environment:'Calle',distraction:'Alta'}]
+          :[{environment:'Casa',distraction:'Media'},{environment:'Exterior tranquilo',distraction:'Media'},{environment:'Parque',distraction:'Media'}];
+    const choice=candidates.find(x=>!tried.has(contextSignature(x)))||candidates[0];
+    return{...choice,label:contextLabel(choice)};
+  }
+
+  function priorityDetails(command,currentLevel,{trials={},history=[],progress={},stateScore={},profile=null,now=Date.now()}={}){
     const avg=recentAverage(trials,command.cmd),last=lastPracticeMs(history,command.cmd);
-    const days=last?Math.max(0,(now-last)/DAY_MS):30,state=stateScore[progress[command.cmd]||'No iniciado']||0;
+    const days=last?Math.max(0,(now-last)/DAY_MS):30,state=Number(stateScore[progress[command.cmd]||'No iniciado']||0);
+    const evidence=commandContextEvidence(history,command.cmd);
     let score=command.level===currentLevel?110:38;
     score+=avg===null?34:(1-avg)*72;
     score+=Math.min(days,30)*1.7;
     if(state<2)score+=26;
-    if(state>=2&&avg!==null&&avg>=.9&&days<5)score-=34;
+    if(state===2&&evidence.contextCount<3)score+=30;
+    if(state===3&&evidence.contextCount<3)score+=18;
+    if(avg!==null&&avg<.7)score+=24;
+    if(state>=2&&avg!==null&&avg>=.9&&days<5&&evidence.contextCount>=3)score-=34;
+
+    const reasons=[];
+    if(command.level===currentLevel)reasons.push('Es parte del nivel actual');
+    if(avg===null)reasons.push('Aún necesita evidencia reciente');
+    else if(avg<.7)reasons.push('El rendimiento reciente bajó a '+Math.round(avg*100)+'%');
+    else if(state<2)reasons.push('Todavía está construyendo consistencia');
+    else if(state===2&&evidence.contextCount<2)reasons.push('Falta probarlo en otro contexto');
+    else if(state===2)reasons.push('Conviene seguir generalizándolo');
+    else if(state===3)reasons.push('Necesita más evidencia para considerarlo dominado');
+    if(days>=7)reasons.push('Lleva '+Math.floor(days)+' días sin practicarse');
+    if(!reasons.length)reasons.push('Repaso espaciado para conservar la respuesta');
+
     const safety=safetyForCommand(command,profile,now);
     if(safety?.deferFromAdaptive)score-=1000;
-    return score;
+    return{score,reasons,evidence,recommendation:recommendedContext(command,{progress,history,stateScore}),safety};
+  }
+
+  function adaptivePriority(command,currentLevel,options={}){
+    return priorityDetails(command,currentLevel,options).score;
   }
 
   function focusForLevel(commands,currentLevel,{dayType='Todo el día',trials={},history=[],progress={},stateScore={},profile=null,now=Date.now()}={}){
     const count=dayType==='Solo noche'?2:3;
-    const ranked=commands.filter(c=>c.level<=currentLevel).map(c=>({
-      c,
-      safety:safetyForCommand(c,profile,now),
-      score:adaptivePriority(c,currentLevel,{trials,history,progress,stateScore,profile,now})
-    })).sort((a,b)=>b.score-a.score||b.c.level-a.c.level);
+    const ranked=commands.filter(c=>c.level<=currentLevel).map(c=>{
+      const details=priorityDetails(c,currentLevel,{trials,history,progress,stateScore,profile,now});
+      return{c,...details};
+    }).sort((a,b)=>b.score-a.score||b.c.level-a.c.level);
     const safe=ranked.filter(x=>!x.safety?.deferFromAdaptive),pool=safe.length?safe:ranked;
     const current=pool.filter(x=>x.c.level===currentLevel),review=pool.filter(x=>x.c.level<currentLevel);
     const chosen=[];
@@ -120,6 +231,8 @@
   }
 
   globalThis.PatrickTrainingEngine=Object.freeze({
-    effectiveAgeMonths,ageStage,safetyForCommand,lastPracticeMs,recentAverage,adaptivePriority,focusForLevel,microPlan,ageGuidance
+    CONTEXT_ENVIRONMENTS,CONTEXT_DISTRACTIONS,normalizeContext,contextSignature,contextDifficulty,contextLabel,
+    effectiveAgeMonths,ageStage,safetyForCommand,lastPracticeMs,recentAverage,commandContextEvidence,nextProgressState,
+    recommendedContext,priorityDetails,adaptivePriority,focusForLevel,microPlan,ageGuidance
   });
 })();
