@@ -35,7 +35,7 @@ function baseContext({records={},local={}}={}){
     },
     head:{appendChild(node){
       scripts.push(node);
-      try{vm.runInContext(read(node.src),ctx,{filename:node.src});node.onload?.();node._listeners?.load?.()}
+      try{const file=String(node.src).split('?')[0];vm.runInContext(read(file),ctx,{filename:file});node.onload?.();node._listeners?.load?.()}
       catch(e){node.onerror?.(e);node._listeners?.error?.(e)}
       return node;
     }},
@@ -84,7 +84,14 @@ test('v6 bootstraps its dependencies when an older HTML shell loads newer JavaSc
   assert.equal(vm.runInContext("CONFIG.APP_VERSION",env.ctx),'6.0.0');
   assert.equal(vm.runInContext("typeof ENGINE.focusForLevel",env.ctx),'function');
   assert.equal(vm.runInContext("typeof BACKUP_SCHEMA.normalize",env.ctx),'function');
-  assert.deepEqual(env.scripts.map(s=>s.src),['config.js','training-engine.js','backup-schema.js']);
+  assert.deepEqual(env.scripts.map(s=>s.src),['config.js?v600-r2','training-engine.js?v600-r2','backup-schema.js?v600-r2']);
+});
+
+test('navigation uses querySelectorAll for view and bottom-nav collections',()=>{
+  const core=read('app-core.js');
+  assert.match(core,/function setView\(id\)\{\$\$\('\.view'\)/);
+  assert.match(core,/\$\$\('\.bottomNav button'\)/);
+  assert.doesNotMatch(core,/function setView\(id\)\{\$\('\.view'\)/);
 });
 
 test('v6 configuration centralizes public and schema versions',()=>{

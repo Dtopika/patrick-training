@@ -3,17 +3,18 @@ const LEVELS=window.PATRICK_LEVELS;
 let CONFIG=window.PATRICK_CONFIG||null;
 let ENGINE=window.PatrickTrainingEngine||null;
 let BACKUP_SCHEMA=window.PatrickBackupSchema||null;
+const V6_ASSET_TAG='v600-r2';
 
 function loadPatrickDependency(src,isReady){
   if(isReady())return Promise.resolve();
   return new Promise((resolve,reject)=>{
-    const existing=[...document.scripts].find(s=>s.src&&s.src.endsWith('/'+src));
+    const existing=[...document.scripts].find(s=>{const clean=String(s.src||'').split('?')[0];return clean===src||clean.endsWith('/'+src)});
     if(existing){
       existing.addEventListener('load',()=>isReady()?resolve():reject(new Error(src+' loaded without expected global')),{once:true});
       existing.addEventListener('error',()=>reject(new Error('Could not load '+src)),{once:true});
       return;
     }
-    const script=document.createElement('script');script.src=src;script.async=false;
+    const script=document.createElement('script');script.src=src+'?'+V6_ASSET_TAG;script.async=false;
     script.onload=()=>isReady()?resolve():reject(new Error(src+' loaded without expected global'));
     script.onerror=()=>reject(new Error('Could not load '+src));
     document.head.appendChild(script);
