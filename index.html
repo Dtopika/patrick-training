@@ -21,7 +21,7 @@
 </head>
 <body>
   <div class="appSplash" aria-hidden="true"><div class="appSplashInner"><img class="appSplashIcon" src="icons/icon-192.webp" alt="" width="112" height="112"><strong class="appSplashName">Patrick</strong><span class="appSplashTag">Training</span><span class="appSplashPaw">🐾</span></div></div>
-  <script>(()=>{const splash=document.querySelector('.appSplash');if(!splash)return;setTimeout(()=>splash.classList.add('is-done'),1380);setTimeout(()=>splash.remove(),1800)})();</script>
+  <script>(()=>{const splash=document.querySelector('.appSplash');if(!splash)return;const started=performance.now(),MIN=700,MAX=4500;let done=false;const finish=()=>{if(done)return;done=true;const wait=Math.max(0,MIN-(performance.now()-started));setTimeout(()=>{splash.classList.add('is-done');setTimeout(()=>splash.remove(),460)},wait)};document.addEventListener('patrick:ready',finish,{once:true});setTimeout(finish,MAX)})();</script>
 
   <header class="appHeader">
     <div class="brandGroup">

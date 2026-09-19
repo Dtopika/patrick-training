@@ -19,6 +19,7 @@ function icon(name,cls='uiIcon'){
     steps:'<path d="M6 7h13M6 12h13M6 17h13"/><circle cx="3" cy="7" r=".8" fill="currentColor" stroke="none"/><circle cx="3" cy="12" r=".8" fill="currentColor" stroke="none"/><circle cx="3" cy="17" r=".8" fill="currentColor" stroke="none"/>',
     reward:'<path d="m12 3 2.7 5.5 6 .9-4.3 4.2 1 6-5.4-2.9-5.4 2.9 1-6-4.3-4.2 6-.9z"/>',
     download:'<path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 20h16"/>',
+    upload:'<path d="M12 21V9"/><path d="m7 14 5-5 5 5"/><path d="M4 4h16"/>',
     dog:'<path d="M7 9 4 5v7c0 5 3 8 8 8s8-3 8-8V5l-3 4"/><path d="M9 13h.01M15 13h.01"/><path d="M10 16c1 .7 3 .7 4 0"/>',
     clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
     chevron:'<path d="m9 6 6 6-6 6"/>',
@@ -57,7 +58,7 @@ const store={
     }
   },
   get(k,d){return Object.prototype.hasOwnProperty.call(memoryStore,k)?memoryStore[k]:d},
-  set(k,v){memoryStore[k]=v;if(storageMode==='indexeddb')window.PatrickDB.set(k,v).catch(e=>{console.warn('IndexedDB write failed; mirroring to localStorage',e);try{localStorage.setItem(k,JSON.stringify(v))}catch{}});else try{localStorage.setItem(k,JSON.stringify(v))}catch{}},
+  set(k,v){memoryStore[k]=v;if(storageMode==='indexeddb')return window.PatrickDB.set(k,v).catch(e=>{console.warn('IndexedDB write failed; mirroring to localStorage',e);try{localStorage.setItem(k,JSON.stringify(v))}catch{};return false});try{localStorage.setItem(k,JSON.stringify(v))}catch{}return Promise.resolve(true)},
   remove(k){delete memoryStore[k];if(storageMode==='indexeddb')window.PatrickDB.del(k).catch(console.warn);try{localStorage.removeItem(k)}catch{}}
 };
 

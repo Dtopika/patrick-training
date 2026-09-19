@@ -2,7 +2,7 @@ const SYSTEM_THEME=window.matchMedia('(prefers-color-scheme: dark)');
 const DOG_MONTH_MS=30.4375*24*60*60*1000;
 const REMINDER_KEY='patrickNotifications';
 const REMINDER_TAG='patrick-daily-reminder';
-let profileUiInitialized=false,reminderLoaded=false,reminderTimer=null;
+let profileUiInitialized=false,reminderLoaded=false,reminderTimer=null,reminderStorageMode='indexeddb';
 let reminderSettings={enabled:false,time:'19:00',lastNotifiedDate:null};
 
 function currentDogAgeMonths(){
@@ -62,8 +62,37 @@ function saveDogProfile(){
 }
 
 function exportProgress(){
-  const payload={version:5.1,exportedAt:new Date().toISOString(),profile:dogProfile,storage:storageMode,progress,trials,history,currentLevel,dayType,notifications:reminderSettings};
+  const payload={version:5.6,exportedAt:new Date().toISOString(),profile:dogProfile,storage:storageMode,progress,trials,history,currentLevel,dayType,notifications:reminderSettings};
   const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`patrick-training-${dogName().toLowerCase().replace(/[^a-z0-9]+/gi,'-')||'backup'}.json`;a.click();URL.revokeObjectURL(a.href);toast('Respaldo descargado');
+}
+
+function validBackupObject(data){
+  if(!data||typeof data!=='object'||Array.isArray(data))return false;
+  if(data.progress!==undefined&&(typeof data.progress!=='object'||Array.isArray(data.progress)))return false;
+  if(data.trials!==undefined&&(typeof data.trials!=='object'||Array.isArray(data.trials)))return false;
+  if(data.history!==undefined&&!Array.isArray(data.history))return false;
+  if(data.currentLevel!==undefined&&(!Number.isInteger(Number(data.currentLevel))||Number(data.currentLevel)<0||Number(data.currentLevel)>10))return false;
+  if(data.dayType!==undefined&&!['Todo el día','Solo noche'].includes(data.dayType))return false;
+  return true;
+}
+async function importProgressFile(file){
+  if(!file)return;
+  let data;
+  try{data=JSON.parse(await file.text())}catch{toast('Ese archivo no es un respaldo JSON válido');return}
+  if(!validBackupObject(data)){toast('El respaldo no tiene un formato compatible');return}
+  if(!confirm('¿Restaurar este respaldo? Reemplazará el progreso actual de Patrick Training.'))return;
+  const nextProgress=data.progress||{},nextTrials=data.trials||{},nextHistory=Array.isArray(data.history)?data.history.slice(0,200):[],nextLevel=Number(data.currentLevel)||0,nextDay=['Todo el día','Solo noche'].includes(data.dayType)?data.dayType:'Todo el día';
+  const nextProfile=data.profile&&typeof data.profile==='object'?data.profile:dogProfile;
+  await Promise.all([
+    store.set('patrickProgress',nextProgress),store.set('patrickTrials',nextTrials),store.set('patrickHistory',nextHistory),
+    store.set('patrickCurrentLevel',nextLevel),store.set('patrickDayType',nextDay),store.set('patrickDogProfile',nextProfile)
+  ]);
+  progress=nextProgress;trials=nextTrials;history=nextHistory;currentLevel=nextLevel;dayType=nextDay;dogProfile=nextProfile;
+  if(data.notifications&&typeof data.notifications==='object'){
+    reminderSettings={...reminderSettings,...data.notifications,lastNotifiedDate:null};
+    await saveReminderSettings();
+  }
+  renderCommands();renderAll();syncSettingsDrawer();closeSettingsDrawer();toast('Respaldo restaurado');
 }
 
 function localReminderDateKey(date=new Date()){const y=date.getFullYear(),m=String(date.getMonth()+1).padStart(2,'0'),d=String(date.getDate()).padStart(2,'0');return`${y}-${m}-${d}`}
@@ -71,18 +100,25 @@ function trainedToday(){const today=localReminderDateKey();return history.some(i
 function reminderTimePassed(){const [h,m]=String(reminderSettings.time||'19:00').split(':').map(Number),now=new Date();return now.getHours()>h||(now.getHours()===h&&now.getMinutes()>=m)}
 function notificationSupported(){return 'Notification'in window&&'serviceWorker'in navigator}
 async function loadReminderSettings(){
-  let saved;
-  try{saved=await window.PatrickDB?.get?.(REMINDER_KEY)}catch(e){console.warn('No pude leer recordatorios desde IndexedDB',e)}
-  if(saved===undefined){try{saved=JSON.parse(localStorage.getItem(REMINDER_KEY)||'null')}catch{}}
+  let saved,localSaved=null;reminderStorageMode='indexeddb';
+  try{saved=await window.PatrickDB?.get?.(REMINDER_KEY)}catch(e){reminderStorageMode='localStorage';console.warn('No pude leer recordatorios desde IndexedDB',e)}
+  try{localSaved=JSON.parse(localStorage.getItem(REMINDER_KEY)||'null')}catch{}
+  if(saved===undefined&&localSaved&&reminderStorageMode==='indexeddb'){
+    try{await window.PatrickDB.set(REMINDER_KEY,localSaved);localStorage.removeItem(REMINDER_KEY);saved=localSaved}catch{reminderStorageMode='localStorage';saved=localSaved}
+  }else if(saved===undefined&&localSaved)saved=localSaved;
   if(saved&&typeof saved==='object')reminderSettings={...reminderSettings,...saved};
   reminderSettings.time=/^([01]\d|2[0-3]):[0-5]\d$/.test(reminderSettings.time||'')?reminderSettings.time:'19:00';
   reminderLoaded=true;syncReminderUI();scheduleForegroundReminder();
 }
 async function saveReminderSettings(){
-  try{await window.PatrickDB?.set?.(REMINDER_KEY,reminderSettings)}catch(e){console.warn('No pude guardar recordatorios en IndexedDB',e);try{localStorage.setItem(REMINDER_KEY,JSON.stringify(reminderSettings))}catch{}}
+  if(storageMode!=='indexeddb'||reminderStorageMode==='localStorage'){
+    reminderStorageMode='localStorage';try{localStorage.setItem(REMINDER_KEY,JSON.stringify(reminderSettings))}catch{}return false;
+  }
+  try{await window.PatrickDB.set(REMINDER_KEY,reminderSettings);reminderStorageMode='indexeddb';return true}catch(e){reminderStorageMode='localStorage';console.warn('No pude guardar recordatorios en IndexedDB',e);try{localStorage.setItem(REMINDER_KEY,JSON.stringify(reminderSettings))}catch{}return false}
 }
 async function periodicReminderRegistration(enable){
   if(!('serviceWorker'in navigator))return false;
+  if(enable&&(storageMode!=='indexeddb'||reminderStorageMode!=='indexeddb'))return false;
   try{
     const reg=await navigator.serviceWorker.ready;if(!reg.periodicSync)return false;
     if(enable)await reg.periodicSync.register(REMINDER_TAG,{minInterval:12*60*60*1000});else await reg.periodicSync.unregister(REMINDER_TAG);
@@ -114,7 +150,7 @@ async function toggleDailyReminders(){
   if(!notificationSupported()){toast('Este navegador no admite notificaciones PWA.');return}
   if(reminderSettings.enabled){reminderSettings.enabled=false;await saveReminderSettings();await periodicReminderRegistration(false);scheduleForegroundReminder();syncReminderUI();toast('Recordatorios desactivados');return}
   let permission=Notification.permission;if(permission==='default')permission=await Notification.requestPermission();
-  if(permission!=='granted'){reminderSettings.enabled=false;await saveReminderSettings();syncReminderUI();toast('Activa las notificaciones de Patrick Training en Android.');return}
+  if(permission!=='granted'){reminderSettings.enabled=false;await saveReminderSettings();syncReminderUI();toast('Activa las notificaciones de Patrick Training en los ajustes del navegador.');return}
   reminderSettings.enabled=true;reminderSettings.lastNotifiedDate=null;await saveReminderSettings();const background=await periodicReminderRegistration(true);scheduleForegroundReminder();syncReminderUI();
   toast(background?'Recordatorios activados':'Recordatorios activados; se comprobarán al usar la app');
 }
@@ -124,7 +160,7 @@ function syncReminderUI(){
   button.disabled=!supported;button.setAttribute('aria-pressed',String(!!reminderSettings.enabled));
   if(value)value.textContent=!supported?'No disponible':permission==='denied'?'Bloqueadas':reminderSettings.enabled?'Activadas':'Desactivadas';
   if(time){time.value=reminderSettings.time||'19:00';time.disabled=!reminderSettings.enabled}
-  if(note)note.textContent=permission==='denied'?'Android tiene bloqueadas las notificaciones para esta app.':reminderSettings.enabled?'No se enviará nada si ya entrenaste hoy. Android puede decidir el momento exacto del chequeo en segundo plano.':'Actívalas para recibir un recordatorio diario si aún no has entrenado.';
+  if(note)note.textContent=permission==='denied'?'El navegador tiene bloqueadas las notificaciones para esta app.':reminderSettings.enabled&&(storageMode!=='indexeddb'||reminderStorageMode!=='indexeddb')?'El recordatorio funciona mientras usas la app; este almacenamiento no permite comprobarlo en segundo plano.':reminderSettings.enabled?'No se enviará nada si ya entrenaste hoy. El sistema puede decidir el momento exacto del chequeo en segundo plano.':'Actívalas para recibir un recordatorio diario si aún no has entrenado.';
 }
 
 function ensureSettingsDrawer(){
@@ -138,9 +174,9 @@ function ensureSettingsDrawer(){
         <section class="settingsGroup"><div class="settingsGroupTitle">Entrenamiento</div><div class="settingsField"><label><span class="settingsRowIcon">${icon('clock')}</span><span class="settingsRowCopy"><strong>Disponibilidad</strong><small>Define cuántas micro-sesiones te proponemos.</small></span></label><select id="settingsDayType" aria-label="Disponibilidad de entrenamiento"><option value="Todo el día">Durante el día</option><option value="Solo noche">Solo noche</option></select></div></section>
         <section class="settingsGroup"><div class="settingsGroupTitle">Recordatorios</div><button id="notificationToggle" class="settingsRow reminderToggle" type="button" aria-pressed="false"><span class="settingsRowIcon">${icon('clock')}</span><span class="settingsRowCopy"><strong>Recordatorio diario</strong><small>Solo si todavía no entrenaste ese día.</small></span><span id="notificationStatus" class="settingsValue">Desactivadas</span></button><div class="settingsField reminderTimeField"><label for="notificationTime"><span class="settingsRowCopy"><strong>Hora preferida</strong><small>Hora local del teléfono.</small></span></label><input id="notificationTime" class="settingsTimeInput" type="time" value="19:00" aria-label="Hora del recordatorio"></div><small id="notificationSupportText" class="settingsNote"></small></section>
         <section class="settingsGroup"><div class="settingsGroupTitle">Apariencia</div><div class="settingsMeta"><strong>Tema</strong><span id="systemThemeValue" class="settingsValue">Sistema</span></div></section>
-        <section class="settingsGroup"><div class="settingsGroupTitle">Datos</div><div class="settingsMeta"><strong>Almacenamiento</strong><span id="storageModeLabel" class="storageBadge">IndexedDB</span></div><button id="exportBtn" class="settingsRow" type="button"><span class="settingsRowIcon">${icon('download')}</span><span class="settingsRowCopy"><strong>Exportar respaldo</strong><small>Descarga perfil, progreso y sesiones.</small></span><span class="settingsChevron">${icon('chevron')}</span></button></section>
+        <section class="settingsGroup"><div class="settingsGroupTitle">Datos</div><div class="settingsMeta"><strong>Almacenamiento</strong><span id="storageModeLabel" class="storageBadge">IndexedDB</span></div><button id="exportBtn" class="settingsRow" type="button"><span class="settingsRowIcon">${icon('download')}</span><span class="settingsRowCopy"><strong>Exportar respaldo</strong><small>Descarga perfil, progreso y sesiones.</small></span><span class="settingsChevron">${icon('chevron')}</span></button><button id="importBtn" class="settingsRow" type="button"><span class="settingsRowIcon">${icon('upload')}</span><span class="settingsRowCopy"><strong>Restaurar respaldo</strong><small>Importa un JSON de Patrick Training.</small></span><span class="settingsChevron">${icon('chevron')}</span></button><input id="importFileInput" type="file" accept="application/json,.json" hidden></section>
       </div>
-      <footer class="settingsDrawerFoot"><strong>Patrick Training</strong><span>v5.1</span></footer>
+      <footer class="settingsDrawerFoot"><strong>Patrick Training</strong><span>v5.6</span></footer>
     </aside>`);
 }
 function syncSettingsDrawer(){
@@ -151,7 +187,7 @@ function openSettingsDrawer(){ensureSettingsDrawer();syncSettingsDrawer();const 
 function closeSettingsDrawer(){const drawer=$('#settingsDrawer'),backdrop=$('#settingsBackdrop');if(!drawer)return;drawer.classList.remove('open');backdrop.classList.remove('open');drawer.setAttribute('aria-hidden','true');document.body.classList.remove('settingsOpen');setTimeout(()=>{if(!backdrop.classList.contains('open'))backdrop.hidden=true},280)}
 function bindProfileUI(){
   $('#settingsAvatarBtn').onclick=openSettingsDrawer;$('#settingsCloseBtn').onclick=closeSettingsDrawer;$('#settingsBackdrop').onclick=closeSettingsDrawer;$('#editDogBtn').onclick=()=>{closeSettingsDrawer();setTimeout(()=>openDogProfileEditor(false),180)};
-  $('#settingsDayType').onchange=e=>{dayType=e.target.value;store.set('patrickDayType',dayType);$('#dayType').value=dayType;renderToday();syncSettingsDrawer()};$('#exportBtn').onclick=exportProgress;
+  $('#settingsDayType').onchange=e=>{dayType=e.target.value;store.set('patrickDayType',dayType);$('#dayType').value=dayType;renderToday();syncSettingsDrawer()};$('#exportBtn').onclick=exportProgress;$('#importBtn').onclick=()=>$('#importFileInput').click();$('#importFileInput').onchange=async e=>{const file=e.target.files?.[0];e.target.value='';await importProgressFile(file)};
   $('#notificationToggle').onclick=toggleDailyReminders;$('#notificationTime').onchange=async e=>{reminderSettings.time=e.target.value||'19:00';reminderSettings.lastNotifiedDate=null;await saveReminderSettings();scheduleForegroundReminder();syncReminderUI();toast(`Recordatorio: ${reminderSettings.time}`)};
   $('#saveProfileBtn').onclick=saveDogProfile;$('#profileCancelBtn').onclick=()=>$('#profileDialog').close();$('#dogNameInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();saveDogProfile()}});$('#dogAgeInput').addEventListener('input',updateDogAgePreview);
   $('#dogAgeUnit').addEventListener('change',()=>{const input=$('#dogAgeInput'),unit=$('#dogAgeUnit'),previous=unit.dataset.previous||'months',value=Number(input.value||0);if(value>0){const months=previous==='years'?value*12:value;input.value=unit.value==='years'?String(Math.round((months/12)*10)/10):String(Math.max(1,Math.round(months)))}unit.dataset.previous=unit.value;input.step=unit.value==='years'?'0.1':'1';updateDogAgePreview()});

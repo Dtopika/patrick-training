@@ -77,6 +77,6 @@ function init(){
   $('#closeSessionBtn').onclick=()=>{if(confirm('¿Salir de la sesión actual?')){stopExecutionTimer();$('#sessionDialog').close()}};
   $('#missedBtn').onclick=()=>rateExecution('missed');$('#assistedBtn').onclick=()=>rateExecution('assisted');$('#correctBtn').onclick=()=>rateExecution('achieved');
   $('#finishBtn').onclick=()=>{$('#finishDialog').close();setView('today')};
-  renderCommands();renderAll();
+  renderCommands();renderAll();document.dispatchEvent(new Event('patrick:ready'));
 }
 window.PATRICK_READY.then(init).catch(e=>{console.error('Patrick Training bootstrap failed',e);init()});
