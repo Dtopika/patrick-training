@@ -1,10 +1,14 @@
 const VIDEO_LIBRARY=window.PATRICK_VIDEOS||{};
 
+function teachingFlow(c){return[
+  ['signal','Señal',c.signal],
+  ['target','Respuesta',c.action],
+  ['check','Ja!','Marca el instante correcto con Ja!'],
+  ['reward','Premio',c.reward]
+]}
 function demoSteps(c){return[
-  ['signal','Señal / gesto',c.signal],
-  ['target','Qué debe hacer',c.action],
   ['steps','Cómo enseñarlo',c.how],
-  ['reward','Dónde premiar',c.reward]
+  ['target','Criterio de éxito',c.action]
 ]}
 
 function videoUrls(meta){
@@ -16,7 +20,9 @@ function videoUrls(meta){
 function openDemo(c){
   if(!c)return;const meta=VIDEO_LIBRARY[c.cmd],urls=videoUrls(meta);
   $('#demoCommand').textContent=displayCommand(c);$('#demoPron').textContent=displayPron(c);$('#demoMeaning').textContent=c.meaning;
+  $('#demoFlow').innerHTML=teachingFlow(c).map(([ico,t,x],i)=>`<article class="demoFlowStep"><span class="demoFlowNumber">${i+1}</span><span class="coachIcon">${icon(ico)}</span><div><strong>${escapeHtml(t)}</strong><p>${escapeHtml(x)}</p></div></article>`).join('');
   $('#demoSteps').innerHTML=demoSteps(c).map(([ico,t,x])=>`<article class="demoStep"><span class="coachIcon">${icon(ico)}</span><div><strong>${escapeHtml(t)}</strong><p>${escapeHtml(x)}</p></div></article>`).join('');
+  $('#demoAudioBtn').onclick=()=>speak(c);
   const frame=$('#demoFrame'),empty=$('#demoEmpty'),external=$('#demoExternal');external.textContent='Abrir tutorial completo ↗';
   if(meta&&urls){frame.hidden=false;empty.hidden=true;frame.src=urls.embed;$('#demoVideoTitle').textContent=meta.title;$('#demoVideoSource').textContent=meta.source;external.hidden=false;external.href=urls.external}
   else{frame.hidden=true;frame.removeAttribute('src');empty.hidden=false;$('#demoVideoTitle').textContent='Guía visual';$('#demoVideoSource').textContent='Todavía no hay un tutorial curado para este comando.';external.hidden=false;external.href=`https://www.youtube.com/results?search_query=${encodeURIComponent('dog training '+c.meaning+' positive reinforcement')}`;external.textContent='Buscar tutorial en YouTube ↗'}
