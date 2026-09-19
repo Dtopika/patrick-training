@@ -115,7 +115,7 @@ function init(){
   $$('.bottomNav button').forEach(b=>b.onclick=()=>setView(b.dataset.view));$$('[data-go]').forEach(b=>b.onclick=()=>setView(b.dataset.go));
   $('#dayType').onchange=e=>{dayType=e.target.value;store.set('patrickDayType',dayType);renderToday();syncSettingsDrawer()};
   $('#startSessionBtn').onclick=()=>startSession();$('#firstSessionBtn').onclick=()=>startSession();
-  $('#advanceBtn').onclick=()=>{if(currentLevel<10){currentLevel++;store.set('patrickCurrentLevel',currentLevel);renderAll();toast(`Nivel ${currentLevel} activado`)}};
+  $('#advanceBtn').onclick=()=>{if(currentLevel<10)activateLevel(currentLevel+1)};
   $('#search').oninput=renderCommands;
   $('#closeSessionBtn').onclick=requestExitSession;$('#sessionDialog').addEventListener('cancel',e=>{e.preventDefault();requestExitSession()});
   $('#missedBtn').onclick=()=>rateExecution('missed');$('#assistedBtn').onclick=()=>rateExecution('assisted');$('#correctBtn').onclick=()=>rateExecution('achieved');
