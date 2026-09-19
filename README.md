@@ -3,8 +3,8 @@
 PWA móvil, local-first, para entrenar a Patrick con comandos en alemán, sesiones guiadas y progresión adaptativa.
 
 ## Estado
-- Release estable publicada: v6.4.0.
-- Línea actual: corrección de evidencia, sesiones semánticamente seguras y Quality Gate con navegador real.
+- Release estable publicada: v7.0.0.
+- Línea actual: Adaptive Engine v3 con dificultad por habilidad, tiempo preciso, confianza y repeticiones adaptativas.
 - Sin backend ni cuentas: los datos permanecen en el dispositivo salvo exportación manual.
 
 ## Funciones
@@ -28,6 +28,12 @@ PWA móvil, local-first, para entrenar a Patrick con comandos en alemán, sesion
 - Exportación de diagnóstico técnico sin historial detallado.
 - Quality Gate con Playwright móvil además de tests unitarios.
 - Script único de preparación de releases para versión, cache y asset tags.
+- Adaptive Engine v3: combina precisión, ayuda, contexto, antigüedad, confianza y tiempo preciso.
+- Perfiles de habilidad: posición, duración, llamada, paseo, búsqueda, objetos, control, movimiento y hogar.
+- Dificultad objetivo distinta por familia de comando.
+- Repeticiones adaptativas de 3 a 5 según rendimiento, estado y etapa del perro.
+- Cronometraje cue-to-rating: el tiempo empieza cuando el guía inicia realmente la ejecución; tiempos antiguos no se usan como latencia.
+- Ficha inteligente y plan diario muestran confianza, objetivo específico y timing cuando ya hay evidencia v7.
 - Historial, racha y evidencia reciente por comando.
 - Perfil del perro con edad y recomendaciones de seguridad.
 - Videos curados y pronunciación mediante la voz alemana del dispositivo.
