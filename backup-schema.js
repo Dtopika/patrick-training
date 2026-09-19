@@ -73,7 +73,27 @@
   function normalizeTheme(value,current='system'){
     const theme=String(value??current??'system');return['system','light','dark'].includes(theme)?theme:'system';
   }
-  function normalize(data,{commands=[],states=[],currentProfile=null,currentTrainingContext={environment:'Casa',distraction:'Baja'},currentTheme='system',maxSchemaVersion=9}={}){
+  function normalizeHistoryArchive(value,commands){
+    if(value==null)return{version:1,totalSessions:0,months:{}};
+    if(!plainObject(value))fail('Archivo histórico inválido');
+    const known=commandSet(commands),months={};let totalSessions=0;
+    for(const [key,month] of Object.entries(value.months||{})){
+      if(!/^\d{4}-\d{2}$/.test(key)||!plainObject(month))fail('Mes de archivo inválido');
+      const sessions=Number(month.sessions),score=Number(month.score||0),total=Number(month.total||0);
+      if(!Number.isInteger(sessions)||sessions<0||sessions>100000||!Number.isFinite(score)||score<0||!Number.isFinite(total)||total<0)fail('Resumen mensual inválido');
+      const contexts={};for(const [label,count] of Object.entries(month.contexts||{})){const n=Number(count);if(!Number.isInteger(n)||n<0)fail('Contexto archivado inválido');contexts[String(label).slice(0,80)]=n}
+      const archivedCommands={};
+      for(const [cmd,data] of Object.entries(month.commands||{})){
+        if(!known.has(cmd)||!plainObject(data))fail('Comando archivado inválido');
+        const item={sessions:Number(data.sessions),score:Number(data.score||0),total:Number(data.total||0),timedSessions:Number(data.timedSessions||0),seconds:Number(data.seconds||0)};
+        if(!Number.isInteger(item.sessions)||item.sessions<0||!Number.isFinite(item.score)||item.score<0||!Number.isFinite(item.total)||item.total<0||!Number.isInteger(item.timedSessions)||item.timedSessions<0||!Number.isFinite(item.seconds)||item.seconds<0)fail('Resumen de comando archivado inválido');
+        archivedCommands[cmd]=item;
+      }
+      months[key]={sessions,score,total,contexts,commands:archivedCommands};totalSessions+=sessions;
+    }
+    return{version:1,totalSessions,months};
+  }
+  function normalize(data,{commands=[],states=[],currentProfile=null,currentTrainingContext={environment:'Casa',distraction:'Baja'},currentTheme='system',maxSchemaVersion=10}={}){
     if(!plainObject(data))fail('Formato de respaldo inválido');
     const schema=Number(data.schemaVersion??data.version??5);
     if(!Number.isFinite(schema)||schema<5||schema>maxSchemaVersion)fail('Versión de respaldo no compatible');
@@ -87,6 +107,8 @@
       profile:normalizeProfile(data.profile,currentProfile),
       trainingContext:normalizeTrainingContext(data.trainingContext,currentTrainingContext),
       theme:normalizeTheme(data.theme,currentTheme),
+      historyArchive:normalizeHistoryArchive(data.historyArchive,commands),
+      teachingGuideVersion:Math.max(0,Math.min(100,Number.isInteger(Number(data.teachingGuideVersion))?Number(data.teachingGuideVersion):0)),
       notifications:normalizeNotifications(data.notifications)
     };
   }
