@@ -74,7 +74,8 @@ const STORAGE_DEFAULTS={
   patrickTrainingContext:{environment:'Casa',distraction:'Baja'},
   patrickTheme:'system',
   patrickHistoryArchive:{version:1,totalSessions:0,months:{}},
-  patrickTeachingOnboardingVersion:0
+  patrickTeachingOnboardingVersion:0,
+  patrickGermanVoice:'auto'
 };
 const STORAGE_META_KEY='patrickStorageMetaV2';
 const memoryStore={};
@@ -150,7 +151,7 @@ const store={
 
 let progress={},trials={},history=[],historyArchive={version:1,totalSessions:0,months:{}},currentLevel=0,dayType='Todo el día',filter='Todos';
 let dogProfile={name:'',breed:'Pastor Alemán'};
-let trainingContext={environment:'Casa',distraction:'Baja'};
+let trainingContext={environment:'Casa',distraction:'Baja'},germanVoicePreference='auto';
 let session=null,toastTimer=null;
 
 function emptyHistoryArchive(){return{version:1,totalSessions:0,months:{}}}
@@ -189,7 +190,23 @@ function commandBy(name){return COMMANDS.find(c=>c.cmd===name)||(name===dogName(
 function levelBy(n){return LEVELS.find(l=>l.n===n)}
 function escapeHtml(s=''){return String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]))}
 function toast(msg){const el=$('#toast');if(!el)return;el.textContent=msg;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),1800)}
-function localGermanSpeech(text){return new Promise((resolve,reject)=>{if(!('speechSynthesis'in window)){reject(new Error('speechSynthesis unavailable'));return}try{const synth=window.speechSynthesis;synth.cancel();synth.resume();const voices=synth.getVoices();const de=voices.find(v=>v.lang?.toLowerCase().startsWith('de'));const u=new SpeechSynthesisUtterance(text);u.lang=de?.lang||'de-DE';u.rate=.72;u.pitch=1;if(de)u.voice=de;u.onend=()=>resolve();u.onerror=e=>reject(e);synth.speak(u)}catch(e){reject(e)}})}
+function germanVoices(){
+  if(!('speechSynthesis'in window))return[];
+  return window.speechSynthesis.getVoices().filter(v=>String(v.lang||'').toLowerCase().startsWith('de')).sort((a,b)=>{
+    const aDE=String(a.lang||'').toLowerCase()==='de-de'?0:1,bDE=String(b.lang||'').toLowerCase()==='de-de'?0:1;
+    return aDE-bDE||String(a.name||'').localeCompare(String(b.name||''));
+  });
+}
+function selectedGermanVoice(){
+  const voices=germanVoices();
+  if(germanVoicePreference&&germanVoicePreference!=='auto'){
+    const selected=voices.find(v=>v.voiceURI===germanVoicePreference||v.name===germanVoicePreference);
+    if(selected)return selected;
+  }
+  return voices.find(v=>String(v.lang||'').toLowerCase()==='de-de')||voices[0]||null;
+}
+function germanVoiceLabel(voice){return voice?(String(voice.name||'Voz alemana')+' · '+String(voice.lang||'de-DE')):'Voz alemana del sistema'}
+function localGermanSpeech(text){return new Promise((resolve,reject)=>{if(!('speechSynthesis'in window)){reject(new Error('speechSynthesis unavailable'));return}try{const synth=window.speechSynthesis;synth.cancel();synth.resume();const de=selectedGermanVoice();const u=new SpeechSynthesisUtterance(text);u.lang=de?.lang||'de-DE';u.rate=.72;u.pitch=1;if(de)u.voice=de;u.onend=()=>resolve();u.onerror=e=>reject(e);synth.speak(u)}catch(e){reject(e)}})}
 async function speak(c){const text=displayCommand(c).replace(/!/g,'').trim();if(!text)return;try{await localGermanSpeech(text)}catch(e){console.warn('Local German TTS failed',e);toast('No pude reproducir el audio. Instala o activa una voz alemana en el teléfono.')}}
 function levelProgressFrom(n,source=progress){const level=levelBy(n),cmds=level?.commands||[];if(!cmds.length)return 0;return Math.round(cmds.reduce((a,x)=>a+STATE_SCORE[source[x]||'No iniciado']/4,0)/cmds.length*100)}
 function levelProgress(n){return levelProgressFrom(n,progress)}
@@ -278,7 +295,7 @@ function renderCommands(){const q=$('#search').value.trim().toLowerCase();$('#fi
 
 window.PATRICK_READY=(async()=>{
   await ensureV6Dependencies();
-  await store.hydrate();progress=store.get('patrickProgress',{})||{};trials=store.get('patrickTrials',{})||{};history=store.get('patrickHistory',[])||[];historyArchive=normalizeHistoryArchive(store.get('patrickHistoryArchive',emptyHistoryArchive()));currentLevel=Number(store.get('patrickCurrentLevel',0))||0;dayType=store.get('patrickDayType','Todo el día')||'Todo el día';dogProfile=store.get('patrickDogProfile',null)||{name:'',breed:'Pastor Alemán'};trainingContext=ENGINE.normalizeContext(store.get('patrickTrainingContext',trainingContext));
+  await store.hydrate();progress=store.get('patrickProgress',{})||{};trials=store.get('patrickTrials',{})||{};history=store.get('patrickHistory',[])||[];historyArchive=normalizeHistoryArchive(store.get('patrickHistoryArchive',emptyHistoryArchive()));currentLevel=Number(store.get('patrickCurrentLevel',0))||0;dayType=store.get('patrickDayType','Todo el día')||'Todo el día';dogProfile=store.get('patrickDogProfile',null)||{name:'',breed:'Pastor Alemán'};trainingContext=ENGINE.normalizeContext(store.get('patrickTrainingContext',trainingContext));germanVoicePreference=String(store.get('patrickGermanVoice','auto')||'auto');
   if(repairCurrentLevel({persist:false}))await store.set('patrickCurrentLevel',currentLevel)
   const hasExistingData=Object.keys(progress).length>0||Object.keys(trials).length>0||history.length>0||currentLevel>0;
   if(!String(dogProfile?.name||'').trim()&&hasExistingData){dogProfile={...dogProfile,name:'Patrick',breed:'Pastor Alemán'};store.set('patrickDogProfile',dogProfile)}
