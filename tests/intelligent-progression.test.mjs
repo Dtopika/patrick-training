@@ -66,17 +66,17 @@ test('adaptive v2 explains why a command is selected and recommends the next con
   assert.equal(details.evidence.contextCount,1);
 });
 
-test('backup schema 8 preserves context theme and legacy compatibility',()=>{
+test('backup schema 9 preserves precise timing context theme and legacy compatibility',()=>{
   const ctx=vm.createContext({console});
   vm.runInContext(read('backup-schema.js'),ctx,{filename:'backup-schema.js'});
   const schema=ctx.PatrickBackupSchema;
   const commands=[{cmd:'Sitz'}],states=['No iniciado','En práctica','Consistente','Generalizando','Dominado'];
   const current=schema.normalize({
-    schemaVersion:8,currentLevel:1,dayType:'Todo el día',
+    schemaVersion:9,currentLevel:1,dayType:'Todo el día',
     theme:'dark',
     trainingContext:{environment:'Parque',distraction:'Media'},
     history:[successful('2026-09-19T12:00:00Z',{environment:'Calle',distraction:'Alta'})]
-  },{commands,states,currentProfile:{name:'Patrick'},currentTheme:'system',maxSchemaVersion:8});
+  },{commands,states,currentProfile:{name:'Patrick'},currentTheme:'system',maxSchemaVersion:9});
   assert.deepEqual({...current.trainingContext},{environment:'Parque',distraction:'Media'});
   assert.deepEqual({...current.history[0].context},{environment:'Calle',distraction:'Alta'});
   assert.equal(current.theme,'dark');
@@ -95,14 +95,24 @@ test('schema 8 accepts detailed outcomes but does not require them from legacy s
   const ctx=vm.createContext({console});vm.runInContext(read('backup-schema.js'),ctx,{filename:'backup-schema.js'});
   const schema=ctx.PatrickBackupSchema,commands=[{cmd:'Sitz'}],states=['No iniciado','En práctica','Consistente','Generalizando','Dominado'];
   const normalized=schema.normalize({
-    schemaVersion:8,currentLevel:1,dayType:'Todo el día',
-    history:[{version:8,at:'2026-09-19T12:00:00Z',level:1,dogName:'Patrick',context:{environment:'Casa',distraction:'Baja'},results:{Sitz:{achieved:4,assisted:1,missed:0,total:5,score:4.5,avgSeconds:1,outcomes:['achieved','achieved','achieved','achieved','assisted']}},timings:{Sitz:[1,1,1,1,1]}}]
+    schemaVersion:9,currentLevel:1,dayType:'Todo el día',
+    history:[{version:9,at:'2026-09-19T12:00:00Z',level:1,dogName:'Patrick',context:{environment:'Casa',distraction:'Baja'},results:{Sitz:{achieved:4,assisted:1,missed:0,total:5,score:4.5,avgSeconds:1,outcomes:['achieved','achieved','achieved','achieved','assisted']}},timings:{Sitz:[1,1,1,1,1]}}]
   },{commands,states,currentProfile:{name:'Patrick'},maxSchemaVersion:8});
   assert.deepEqual(Array.from(normalized.history[0].results.Sitz.outcomes),['achieved','achieved','achieved','achieved','assisted']);
+  assert.equal(normalized.history[0].timingMode,undefined);
   assert.throws(()=>schema.normalize({
     schemaVersion:8,currentLevel:1,dayType:'Todo el día',
     history:[{version:8,at:'2026-09-19T12:00:00Z',level:1,dogName:'Patrick',results:{Sitz:{achieved:5,assisted:0,missed:0,total:5,score:5,avgSeconds:1,outcomes:['achieved']}}}]
   },{commands,states,currentProfile:{name:'Patrick'},maxSchemaVersion:8}));
+});
+
+test('schema 9 preserves cue-to-rating timing metadata and rejects unknown timing modes',()=>{
+  const ctx=vm.createContext({console});vm.runInContext(read('backup-schema.js'),ctx,{filename:'backup-schema.js'});
+  const schema=ctx.PatrickBackupSchema,commands=[{cmd:'Sitz'}],states=['No iniciado','En práctica','Consistente','Generalizando','Dominado'];
+  const base={schemaVersion:9,currentLevel:1,dayType:'Todo el día',history:[{version:9,at:'2026-09-19T12:00:00Z',level:1,dogName:'Patrick',timingMode:'cue-to-rating',results:{Sitz:{achieved:4,assisted:0,missed:0,total:4,score:4,avgSeconds:1.8,outcomes:['achieved','achieved','achieved','achieved']}},timings:{Sitz:[1800,1700,1900,1800]}}]};
+  const normalized=schema.normalize(base,{commands,states,currentProfile:{name:'Patrick'},maxSchemaVersion:9});
+  assert.equal(normalized.history[0].timingMode,'cue-to-rating');
+  assert.throws(()=>schema.normalize({...base,history:[{...base.history[0],timingMode:'legacy-auto'}]},{commands,states,currentProfile:{name:'Patrick'},maxSchemaVersion:9}));
 });
 
 test('session flow persists context only with the completed transaction',()=>{
