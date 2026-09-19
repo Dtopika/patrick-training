@@ -81,10 +81,10 @@ test('v6 bootstraps its dependencies when an older HTML shell loads newer JavaSc
   const env=baseContext();
   vm.runInContext(read('app-core.js'),env.ctx,{filename:'app-core.js'});
   await env.ctx.PATRICK_READY;
-  assert.equal(vm.runInContext("CONFIG.APP_VERSION",env.ctx),'7.1.0');
+  assert.equal(vm.runInContext("CONFIG.APP_VERSION",env.ctx),'7.2.0');
   assert.equal(vm.runInContext("typeof ENGINE.focusForLevel",env.ctx),'function');
   assert.equal(vm.runInContext("typeof BACKUP_SCHEMA.normalize",env.ctx),'function');
-  assert.deepEqual(env.scripts.map(s=>s.src),['config.js?v710-r1','training-engine.js?v710-r1','backup-schema.js?v710-r1']);
+  assert.deepEqual(env.scripts.map(s=>s.src),['config.js?v720-r1','training-engine.js?v720-r1','backup-schema.js?v720-r1']);
 });
 
 test('navigation and settings click wiring remain collection-safe',()=>{
@@ -100,13 +100,13 @@ test('navigation and settings click wiring remain collection-safe',()=>{
   }
 });
 
-test('v7.1 configuration centralizes public and schema versions',()=>{
+test('v7.2 configuration centralizes public and schema versions',()=>{
   const env=baseContext();loadArchitecture(env.ctx);
-  assert.equal(env.ctx.PATRICK_CONFIG.APP_VERSION,'7.1.0');
-  assert.equal(env.ctx.PATRICK_CONFIG.BACKUP_SCHEMA_VERSION,10);
+  assert.equal(env.ctx.PATRICK_CONFIG.APP_VERSION,'7.2.0');
+  assert.equal(env.ctx.PATRICK_CONFIG.BACKUP_SCHEMA_VERSION,11);
   assert.equal(env.ctx.PATRICK_CONFIG.SESSION_SCHEMA_VERSION,9);
-  assert.equal(env.ctx.PATRICK_CONFIG.CACHE_NAME,'patrick-training-v7.1.0-r1');
-  assert.equal(JSON.parse(read('package.json')).version,'7.1.0');
+  assert.equal(env.ctx.PATRICK_CONFIG.CACHE_NAME,'patrick-training-v7.2.0-r1');
+  assert.equal(JSON.parse(read('package.json')).version,'7.2.0');
 });
 
 test('storage reconciliation prefers newer local mirror and repairs IndexedDB',async()=>{
@@ -141,7 +141,7 @@ test('backup schema accepts 5.x backups, v6 schema, and rejects malformed nested
   const legacy=schema.normalize({version:5.1,currentLevel:1,dayType:'Todo el día',progress:{Sitz:'En práctica'},trials:{Sitz:[1,.5,0]},history:[],profile:{name:'Patrick',ageMonths:4},notifications:{enabled:false,time:'19:00'}},opts);
   assert.equal(legacy.profile.name,'Patrick');
   assert.deepEqual(Array.from(legacy.trials.Sitz),[1,.5,0]);
-  const current=schema.normalize({schemaVersion:9,appVersion:'7.1.0',currentLevel:0,dayType:'Solo noche',history:[]},opts);
+  const current=schema.normalize({schemaVersion:9,appVersion:'7.2.0',currentLevel:0,dayType:'Solo noche',history:[]},opts);
   assert.equal(current.dayType,'Solo noche');
   assert.throws(()=>schema.normalize({schemaVersion:7,currentLevel:0,dayType:'Todo el día',trials:{Sitz:['boom']}},opts));
   assert.throws(()=>schema.normalize({schemaVersion:7,currentLevel:0,dayType:'Todo el día',history:[null]},opts));
@@ -275,6 +275,32 @@ test('v7.1 archives overflow sessions and exposes a single teaching mission',asy
   assert.match(progressSource,/function renderHistoryArchive/);
 });
 
+test('v7.2 teaches visually, preserves German voice and charts long-term evolution',()=>{
+  const core=read('app-core.js'),profile=read('profile.js'),media=read('app-media.js'),progressSource=read('progress.js'),index=read('index.html'),backup=read('backup-schema.js');
+  assert.match(core,/function germanVoices/);
+  assert.match(core,/function selectedGermanVoice/);
+  assert.match(core,/patrickGermanVoice:'auto'/);
+  assert.match(profile,/id="germanVoiceSelect"/);
+  assert.match(profile,/function setGermanVoicePreference/);
+  assert.match(profile,/currentGermanVoice:germanVoicePreference/);
+  assert.match(backup,/function normalizeGermanVoice/);
+  assert.match(index,/id="demoFlow"/);
+  assert.match(media,/function teachingFlow/);
+  assert.match(media,/\['check','Ja!'/);
+  assert.match(index,/id="longTermEvolution"/);
+  assert.match(progressSource,/function longTermEvolutionRows/);
+  assert.match(progressSource,/function renderLongTermEvolution/);
+});
+
+test('video catalog still covers every training command exactly once',()=>{
+  const commandFiles=['commands-1.js','commands-2.js','commands-3.js','commands-4.js'];
+  const commands=commandFiles.flatMap(path=>[...read(path).matchAll(/"cmd":\s*"([^"]+)"/g)].map(x=>x[1]));
+  const videos=[...read('videos.js').matchAll(/"([^"]+)":\s*\{/g)].map(x=>x[1]);
+  assert.equal(commands.length,41);
+  assert.equal(videos.length,41);
+  assert.deepEqual(new Set(videos),new Set(commands));
+});
+
 test('adaptive focus always returns command objects, never score wrappers',async()=>{
   const env=await loadCore(baseContext());
   const result=vm.runInContext("focusForLevel(0)",env.ctx);
@@ -309,9 +335,9 @@ test('all 41 commands map one-to-one to levels and curated videos',()=>{
   assert.deepEqual(new Set(videoCommands),new Set(commands));
 });
 
-test('v7.1 upgrade contract cache-busts every critical browser asset',()=>{
+test('v7.2 upgrade contract cache-busts every critical browser asset',()=>{
   const index=read('index.html'),styles=read('styles.css'),pwa=read('pwa.js'),sw=read('sw.js');
-  const tag='v710-r1';
+  const tag='v720-r1';
   const scriptSrc=[...index.matchAll(/<script src="([^"]+\.js\?[^"]+)"><\/script>/g)].map(m=>m[1]);
   assert.ok(scriptSrc.length>=10,'expected versioned script URLs');
   assert.ok(scriptSrc.every(src=>src.endsWith('?'+tag)));
