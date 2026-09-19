@@ -55,10 +55,10 @@ function updateExecutionUI(){
   updateExecutionDots();
   $('#executionHint').textContent=`Haz la ejecución con ${dogName()} y califica cómo salió. La app avanza sola.`;
 }
-function startSession(cmds=focusForLevel(currentLevel)){
+function startSession(cmds=focusForLevel(currentLevel),options={}){
   const safeCommands=(Array.isArray(cmds)?cmds:[]).filter(c=>c&&typeof c.cmd==='string');if(!safeCommands.length)return;
   clearSessionAdvanceTimer();stopExecutionTimer();sessionAdvancing=false;
-  session={commands:safeCommands,index:0,trial:0,results:{},timings:{},context:ENGINE.normalizeContext(trainingContext)};
+  session={commands:safeCommands,index:0,trial:0,results:{},timings:{},context:ENGINE.normalizeContext(options.context||trainingContext)};
   safeCommands.forEach(c=>{session.results[c.cmd]=[];session.timings[c.cmd]=[]});
   $('#sessionDialog').showModal();renderSessionStep();
 }
