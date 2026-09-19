@@ -7,7 +7,7 @@ Mini app estática para entrenar a Patrick con comandos en alemán, progresión 
 - Niveles 0 → 10.
 - Diccionario de comandos en alemán.
 - Síntesis de voz alemana con Web Speech API.
-- Progreso guardado en `localStorage`.
+- Progreso local-first en IndexedDB con respaldo local reconciliado.
 - Sección de control defensivo seguro.
 - Responsive y sin backend.
 
@@ -20,3 +20,13 @@ URL esperada:
 
 ## Seguridad
 La app no incluye instrucciones de mordida o ataque a personas. El trabajo de protección deportiva/IGP debe hacerse con un club, entrenador y figurante cualificados.
+
+## Desarrollo
+
+Quality Gate local:
+
+```bash
+npm test
+```
+
+La persistencia principal usa IndexedDB con espejo local reconciliado por timestamp. Los cambios de progreso de una sesión se confirman al finalizarla.
