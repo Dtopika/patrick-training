@@ -81,10 +81,10 @@ test('v6 bootstraps its dependencies when an older HTML shell loads newer JavaSc
   const env=baseContext();
   vm.runInContext(read('app-core.js'),env.ctx,{filename:'app-core.js'});
   await env.ctx.PATRICK_READY;
-  assert.equal(vm.runInContext("CONFIG.APP_VERSION",env.ctx),'6.2.0');
+  assert.equal(vm.runInContext("CONFIG.APP_VERSION",env.ctx),'6.2.1');
   assert.equal(vm.runInContext("typeof ENGINE.focusForLevel",env.ctx),'function');
   assert.equal(vm.runInContext("typeof BACKUP_SCHEMA.normalize",env.ctx),'function');
-  assert.deepEqual(env.scripts.map(s=>s.src),['config.js?v620-r1','training-engine.js?v620-r1','backup-schema.js?v620-r1']);
+  assert.deepEqual(env.scripts.map(s=>s.src),['config.js?v621-r1','training-engine.js?v621-r1','backup-schema.js?v621-r1']);
 });
 
 test('navigation and settings click wiring remain collection-safe',()=>{
@@ -101,11 +101,11 @@ test('navigation and settings click wiring remain collection-safe',()=>{
 
 test('v6.2 configuration centralizes public and schema versions',()=>{
   const env=baseContext();loadArchitecture(env.ctx);
-  assert.equal(env.ctx.PATRICK_CONFIG.APP_VERSION,'6.2.0');
+  assert.equal(env.ctx.PATRICK_CONFIG.APP_VERSION,'6.2.1');
   assert.equal(env.ctx.PATRICK_CONFIG.BACKUP_SCHEMA_VERSION,7);
   assert.equal(env.ctx.PATRICK_CONFIG.SESSION_SCHEMA_VERSION,7);
-  assert.equal(env.ctx.PATRICK_CONFIG.CACHE_NAME,'patrick-training-v6.2.0-r1');
-  assert.equal(JSON.parse(read('package.json')).version,'6.2.0');
+  assert.equal(env.ctx.PATRICK_CONFIG.CACHE_NAME,'patrick-training-v6.2.1-r1');
+  assert.equal(JSON.parse(read('package.json')).version,'6.2.1');
 });
 
 test('storage reconciliation prefers newer local mirror and repairs IndexedDB',async()=>{
@@ -140,7 +140,7 @@ test('backup schema accepts 5.x backups, v6 schema, and rejects malformed nested
   const legacy=schema.normalize({version:5.1,currentLevel:1,dayType:'Todo el día',progress:{Sitz:'En práctica'},trials:{Sitz:[1,.5,0]},history:[],profile:{name:'Patrick',ageMonths:4},notifications:{enabled:false,time:'19:00'}},opts);
   assert.equal(legacy.profile.name,'Patrick');
   assert.deepEqual(Array.from(legacy.trials.Sitz),[1,.5,0]);
-  const current=schema.normalize({schemaVersion:7,appVersion:'6.2.0',currentLevel:0,dayType:'Solo noche',history:[]},opts);
+  const current=schema.normalize({schemaVersion:7,appVersion:'6.2.1',currentLevel:0,dayType:'Solo noche',history:[]},opts);
   assert.equal(current.dayType,'Solo noche');
   assert.throws(()=>schema.normalize({schemaVersion:7,currentLevel:0,dayType:'Todo el día',trials:{Sitz:['boom']}},opts));
   assert.throws(()=>schema.normalize({schemaVersion:7,currentLevel:0,dayType:'Todo el día',history:[null]},opts));
@@ -158,6 +158,24 @@ test('age-aware engine defers Hopp from adaptive sessions for a young puppy',()=
   );
   assert.equal(focus.some(c=>c.cmd==='Hopp'),false);
   assert.equal(focus[0].cmd,'Hinter');
+});
+
+test('future levels stay locked and an invalid saved active level repairs to the unlocked frontier',async()=>{
+  const stamp='2026-09-19T14:00:00.000Z';
+  const env=baseContext({records:{
+    patrickProgress:{key:'patrickProgress',value:{Patrick:'Consistente','Ja!':'Consistente',Frei:'Consistente'},updatedAt:stamp},
+    patrickCurrentLevel:{key:'patrickCurrentLevel',value:9,updatedAt:stamp}
+  }});
+  await loadCore(env);
+  assert.equal(vm.runInContext('maxUnlockedLevel()',env.ctx),1);
+  assert.equal(vm.runInContext('currentLevel',env.ctx),1);
+  assert.equal(vm.runInContext('canActivateLevel(9)',env.ctx),false);
+  assert.equal(vm.runInContext('canActivateLevel(1)',env.ctx),true);
+  assert.equal(env.records.patrickCurrentLevel.value,1);
+  const core=read('app-core.js'),session=read('app-session.js');
+  assert.match(core,/lockedLevel/);
+  assert.match(core,/Completa el nivel anterior para desbloquear este nivel/);
+  assert.match(session,/advanceBtn'\)\.onclick=.*activateLevel\(currentLevel\+1\)/);
 });
 
 test('adaptive focus always returns command objects, never score wrappers',async()=>{
@@ -196,7 +214,7 @@ test('all 41 commands map one-to-one to levels and curated videos',()=>{
 
 test('v6.2 upgrade contract cache-busts every critical browser asset',()=>{
   const index=read('index.html'),styles=read('styles.css'),pwa=read('pwa.js'),sw=read('sw.js');
-  const tag='v620-r1';
+  const tag='v621-r1';
   const scriptSrc=[...index.matchAll(/<script src="([^"]+\.js\?[^"]+)"><\/script>/g)].map(m=>m[1]);
   assert.ok(scriptSrc.length>=10,'expected versioned script URLs');
   assert.ok(scriptSrc.every(src=>src.endsWith('?'+tag)));
