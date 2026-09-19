@@ -8,6 +8,12 @@ async function onboard(page){
   await page.locator('#dogAgeInput').fill('4');
   await page.locator('#saveProfileBtn').click();
   await expect(profile).not.toBeVisible();
+  const guide=page.locator('#teachingGuideDialog');
+  await expect(guide).toBeVisible({timeout:2000});
+  await page.locator('#finishTeachingGuideBtn').click();
+  await expect(guide).not.toBeVisible();
+  await expect(page.locator('#dailyMission')).toBeVisible();
+  await expect(page.locator('#dailyMissionTitle')).not.toHaveText('Preparando tu sesión');
 }
 
 test('mobile navigation, chooser and undo work end to end',async({page})=>{
