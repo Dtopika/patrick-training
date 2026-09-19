@@ -28,10 +28,13 @@ test('mobile navigation, chooser and undo work end to end',async({page})=>{
   await page.locator('#confirmStartChoiceBtn').click();
   await expect(page.locator('#sessionDialog')).toBeVisible();
 
+  await expect(page.locator('#correctBtn')).toBeDisabled();
+  await page.locator('#startExecutionBtn').click();
+  await expect(page.locator('#correctBtn')).toBeEnabled();
   await page.locator('#correctBtn').click();
   await expect(page.locator('#undoExecutionBtn')).toBeVisible();
   await page.locator('#undoExecutionBtn').click();
-  await expect(page.locator('#executionLabel')).toContainText('EJECUCIÓN 1 DE 5');
+  await expect(page.locator('#executionLabel')).toContainText('EJECUCIÓN 1 DE 4');
   await expect(page.locator('#undoExecutionBtn')).toBeHidden();
 });
 
@@ -42,9 +45,10 @@ test('completed session can be corrected from history',async({page})=>{
   await card.locator('.practiceBtn').click();
   await page.locator('#confirmStartChoiceBtn').click();
 
-  for(let i=0;i<5;i++){
+  for(let i=0;i<4;i++){
+    await page.locator('#startExecutionBtn').click();
     await page.locator('#correctBtn').click();
-    if(i<4)await expect(page.locator('#correctBtn')).toBeEnabled({timeout:4000});
+    if(i<3)await expect(page.locator('#startExecutionBtn')).toBeVisible({timeout:4000});
   }
 
   await expect(page.locator('#finishDialog')).toBeVisible({timeout:5000});
@@ -54,10 +58,10 @@ test('completed session can be corrected from history',async({page})=>{
   await expect(page.locator('#historyEditDialog')).toBeVisible();
 
   const row=page.locator('.historyEditRow').first();
-  await row.locator('[data-history-field="achieved"]').fill('4');
+  await row.locator('[data-history-field="achieved"]').fill('3');
   await row.locator('[data-history-field="assisted"]').fill('1');
   await row.locator('[data-history-field="missed"]').fill('0');
   await page.locator('#saveHistoryEditBtn').click();
   await expect(page.locator('#historyEditDialog')).not.toBeVisible();
-  await expect(page.locator('.historyCard').first()).toContainText('4✓ · 1~ · 0×');
+  await expect(page.locator('.historyCard').first()).toContainText('3✓ · 1~ · 0×');
 });
