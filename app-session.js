@@ -181,7 +181,8 @@ async function finishSession(){
   Object.entries(activeSession.results).forEach(([cmd,arr])=>{const times=activeSession.timings[cmd]||[],counts={achieved:arr.filter(x=>x==='achieved').length,assisted:arr.filter(x=>x==='assisted').length,missed:arr.filter(x=>x==='missed').length};stamp.results[cmd]={...counts,total:arr.length,score:arr.reduce((a,x)=>a+OUTCOME_SCORE[x],0),avgSeconds:times.length?Math.round(times.reduce((a,b)=>a+b,0)/times.length/100)/10:0,outcomes:[...arr]}});
   const nextHistory=[stamp,...history].slice(0,200);
   for(const cmd of Object.keys(activeSession.results))nextProgress[cmd]=ENGINE.nextProgressState(cmd,nextProgress[cmd],{trials:nextTrials,history:nextHistory,stateScore:STATE_SCORE});
-  const advanced=finishedLevel===currentLevel&&levelReadyWithProgress(finishedLevel,nextProgress)&&finishedLevel<10,nextLevel=advanced?finishedLevel+1:currentLevel;
+  const routeFrontierBefore=maxUnlockedLevelFrom(progress);
+  const advanced=finishedLevel===currentLevel&&finishedLevel===routeFrontierBefore&&levelReadyWithProgress(finishedLevel,nextProgress)&&finishedLevel<10,nextLevel=advanced?finishedLevel+1:currentLevel;
   const nextTrainingContext=stamp.context;
   await store.setMany({patrickTrials:nextTrials,patrickProgress:nextProgress,patrickHistory:nextHistory,patrickCurrentLevel:nextLevel,patrickTrainingContext:nextTrainingContext});
   trials=nextTrials;progress=nextProgress;history=nextHistory;currentLevel=nextLevel;trainingContext=nextTrainingContext;session=null;$('#sessionDialog').close();
