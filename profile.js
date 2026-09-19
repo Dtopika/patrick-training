@@ -89,7 +89,7 @@ function exportDiagnostic(){
   const payload={
     generatedAt:new Date().toISOString(),appVersion:CONFIG.APP_VERSION,backupSchemaVersion:CONFIG.BACKUP_SCHEMA_VERSION,
     sessionSchemaVersion:CONFIG.SESSION_SCHEMA_VERSION,cacheName:CONFIG.CACHE_NAME,storageMode,reminderStorageMode,
-    theme:themePreference,focusLevel:currentLevel,unlockedLevel:maxUnlockedLevel(),recentSessionCount:history.length,archivedSessionCount:archivedSessionCount(),totalSessionCount:allSessionCount(),states,
+    theme:themePreference,germanVoice:germanVoicePreference,focusLevel:currentLevel,unlockedLevel:maxUnlockedLevel(),recentSessionCount:history.length,archivedSessionCount:archivedSessionCount(),totalSessionCount:allSessionCount(),states,
     serviceWorker:{supported:'serviceWorker'in navigator,controlled:!!navigator.serviceWorker?.controller},
     network:{online:navigator.onLine},browser:{userAgent:navigator.userAgent}
   };
@@ -100,7 +100,7 @@ async function importProgressFile(file){
   if(!file)return;
   if(file.size>CONFIG.BACKUP_MAX_BYTES){toast('El respaldo es demasiado grande');return}
   let data,normalized;
-  try{data=JSON.parse(await file.text());normalized=BACKUP_SCHEMA.normalize(data,{commands:COMMANDS,states:STATES,currentProfile:dogProfile,currentTrainingContext:trainingContext,currentTheme:themePreference,maxSchemaVersion:CONFIG.BACKUP_SCHEMA_VERSION})}
+  try{data=JSON.parse(await file.text());normalized=BACKUP_SCHEMA.normalize(data,{commands:COMMANDS,states:STATES,currentProfile:dogProfile,currentTrainingContext:trainingContext,currentTheme:themePreference,currentGermanVoice:germanVoicePreference,maxSchemaVersion:CONFIG.BACKUP_SCHEMA_VERSION})}
   catch(e){console.warn('Respaldo rechazado',e);toast('El respaldo no tiene un formato compatible');return}
   if(!confirm('¿Restaurar este respaldo validado? Reemplazará el progreso actual de Patrick Training.'))return;
   const coreValues={
