@@ -44,13 +44,15 @@ test('evolution summary compares recent performance and finds signals',()=>{
     session('2026-09-18T10:00:00Z','Sitz',5,5,{environment:'Casa',distraction:'Media'}),
     session('2026-09-17T10:00:00Z','Nein',3,5,{environment:'Casa',distraction:'Baja'}),
     session('2026-09-16T10:00:00Z','Nein',2,5,{environment:'Exterior tranquilo',distraction:'Baja'}),
+    session('2026-09-15T10:00:00Z','Nein',2,5,{environment:'Casa',distraction:'Media'}),
+    session('2026-09-14T10:00:00Z','Nein',2,5,{environment:'Calle',distraction:'Baja'}),
     session('2026-09-12T10:00:00Z','Sitz',3,5,{environment:'Casa',distraction:'Baja'}),
     session('2026-09-11T10:00:00Z','Sitz',2,5,{environment:'Casa',distraction:'Baja'})
   ];
   const stateScore={'No iniciado':0,'En práctica':1,'Consistente':2,'Generalizando':3,'Dominado':4};
   const summary=e.evolutionSummary(commands,{history,progress:{Sitz:'Consistente',Nein:'En práctica'},stateScore,now});
-  assert.equal(summary.sessions7,4);
-  assert.equal(summary.sessions30,6);
+  assert.equal(summary.sessions7,6);
+  assert.equal(summary.sessions30,8);
   assert.equal(summary.activeCommands30,2);
   assert.ok(summary.contexts30>=3);
   assert.ok(summary.accuracy7>summary.previousAccuracy7);
@@ -80,7 +82,7 @@ test('level zero is clearly named Bases de comunicación',()=>{
   assert.doesNotMatch(levels,/Idioma común/);
 });
 
-test('v6.3.1 UI exposes smart plan, evolution dashboard and command insight dialog',()=>{
+test('v6.4 UI exposes smart plan, evolution dashboard and command insight dialog',()=>{
   const index=read('index.html'),insights=read('app-insights.js'),sessionSource=read('app-session.js'),profile=read('profile.js');
   assert.match(index,/id="smartDailyPlan"/);
   assert.match(index,/id="evolutionDashboard"/);
