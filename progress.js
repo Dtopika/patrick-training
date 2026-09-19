@@ -59,8 +59,9 @@ async function saveHistoryCorrection(){
   const original=history[historyEditIndex],results={...original.results},affected=[];
   for(const row of $$('.historyEditRow')){
     const cmd=row.dataset.historyCommand,total=Number(row.dataset.historyTotal)||5;
-    const read=field=>Math.max(0,Math.min(total,Number(row.querySelector(`[data-history-field="${field}"]`)?.value)||0));
-    const achieved=read('achieved'),assisted=read('assisted'),missed=read('missed');
+    const read=field=>Number(row.querySelector(`[data-history-field="${field}"]`)?.value);
+    const achieved=read('achieved'),assisted=read('assisted'),missed=read('missed'),values=[achieved,assisted,missed];
+    if(values.some(value=>!Number.isInteger(value)||value<0||value>total)){toast('Usa números enteros entre 0 y '+total);return}
     if(achieved+assisted+missed!==total){toast(`${displayCommand(commandBy(cmd)||cmd)} debe sumar ${total} ejecuciones`);return}
     const prev=results[cmd]||{},outcomes=[...Array(achieved).fill('achieved'),...Array(assisted).fill('assisted'),...Array(missed).fill('missed')];
     results[cmd]={...prev,achieved,assisted,missed,total,score:achieved+assisted*.5,outcomes};affected.push(cmd);
