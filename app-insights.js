@@ -79,7 +79,7 @@ function closeCommandInsight(){
 function decorateInsightButtons(){
   $$('.commandCard').forEach(card=>{
     const actions=card.querySelector('.commandActions');if(!actions||actions.querySelector('.insightBtn'))return;
-    const button=document.createElement('button');button.className='insightBtn';button.type='button';button.dataset.commandInsight=card.dataset.command;button.title='Ver ficha inteligente';button.setAttribute('aria-label','Ver ficha inteligente de '+displayCommand(commandBy(card.dataset.command)||card.dataset.command));button.innerHTML=icon('chart');
+    const button=document.createElement('button');button.className='audioBtn insightBtn';button.type='button';button.dataset.commandInsight=card.dataset.command;button.title='Ver ficha inteligente';button.setAttribute('aria-label','Ver ficha inteligente de '+displayCommand(commandBy(card.dataset.command)||card.dataset.command));button.innerHTML=icon('chart');
     actions.prepend(button);
   });
 }
