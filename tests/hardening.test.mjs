@@ -460,6 +460,38 @@ test('v6 privacy, CSP, accessibility and PWA regressions stay closed',()=>{
   assert.equal(manifest.background_color,'#2da8f5');
 });
 
+test('v7.6 reliability contracts centralize age, database, dependencies and recovery',()=>{
+  const env=baseContext();loadArchitecture(env.ctx);
+  const config=env.ctx.PATRICK_CONFIG,index=read('index.html'),profile=readProfile(),backup=read('backup-schema.js'),db=read('db.js'),sw=read('sw.js'),workflow=read('.github/workflows/quality.yml'),session=read('app-session.js'),core=read('app-core.js');
+  assert.equal(config.MAX_DOG_AGE_MONTHS,240);
+  assert.match(index,/id="setupDogAge"[^>]+max="240"/);
+  assert.match(index,/id="dogAgeInput"[^>]+max="240"/);
+  assert.match(profile,/function dogAgeValueValid/);
+  const schema=env.ctx.PatrickBackupSchema,opts={commands:env.ctx.PATRICK_COMMANDS,states:['No iniciado','En práctica','Consistente','Generalizando','Dominado'],currentProfile:{name:'Patrick'},maxSchemaVersion:13};
+  assert.equal(schema.normalize({schemaVersion:13,currentLevel:0,dayType:'Todo el día',profile:{name:'Patrick',ageMonths:240}},opts).profile.ageMonths,240);
+  assert.throws(()=>schema.normalize({schemaVersion:13,currentLevel:0,dayType:'Todo el día',profile:{name:'Patrick',ageMonths:241}},opts));
+  assert.match(backup,/PATRICK_CONFIG\?\.MAX_DOG_AGE_MONTHS/);
+  assert.match(db,/PATRICK_CONFIG\?\.DB_VERSION/);
+  assert.match(sw,/PATRICK_CONFIG\.DB_VERSION/);
+  assert.match(workflow,/npm ci --ignore-scripts/);
+  const lock=JSON.parse(read('package-lock.json'));assert.equal(lock.lockfileVersion,3);assert.equal(lock.packages['node_modules/@playwright/test'].version,'1.63.0');
+  assert.match(core,/async function bootstrapPatrick/);
+  assert.match(session,/function showBootstrapFailure/);
+  assert.match(session,/bootstrapPatrick\(\)/);
+  assert.doesNotMatch(session,/catch\([^\n]+=>\{[^\n]*init\(\)/);
+});
+
+test('v7.6 splits high-change UI data without changing browser contracts',()=>{
+  const index=read('index.html'),sw=read('sw.js'),runtime=read('i18n.js'),data=read('i18n-data.js');
+  for(const file of PROFILE_FILES){assert.match(index,new RegExp(file.replace('.','\\.')+'\\?'));assert.match(sw,new RegExp(file.replace('.','\\.')+'\\?'))}
+  assert.match(index,/i18n-data\.js\?[^"]+"><\/script><script src="i18n\.js\?/);
+  assert.match(sw,/i18n-data\.js\?/);
+  assert.match(data,/PatrickI18nData/);assert.match(runtime,/PatrickI18nData/);assert.match(runtime,/PatrickI18n=Object\.freeze/);
+  assert.equal(fs.existsSync(new URL('../styles-v56.css',import.meta.url)),false);
+  assert.equal(fs.existsSync(new URL('../styles-v6.css',import.meta.url)),false);
+  assert.doesNotMatch(read('styles.css'),/styles-v56|styles-v6/);
+});
+
 test('production JavaScript parses and CSS override debt stays bounded',()=>{
   const files=['config.js','i18n-data.js','i18n.js','training-engine.js','backup-schema.js','db.js','app-core.js',...PROFILE_FILES,'progress.js','app-media.js','app-insights.js','app-session.js','pwa.js','sw.js','commands-1.js','commands-2.js','commands-3.js','commands-4.js','levels.js','videos.js','splash.js'];
   for(const file of files)assert.doesNotThrow(()=>new Function(read(file)),file);
