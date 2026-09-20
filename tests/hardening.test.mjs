@@ -286,7 +286,7 @@ test('v7.2 teaches visually, preserves German voice and charts long-term evoluti
   assert.match(backup,/function normalizeGermanVoice/);
   assert.match(index,/id="demoFlow"/);
   assert.match(media,/function teachingFlow/);
-  assert.match(media,/\['check','Ja!'/);
+  assert.match(media,/const marker=displayCommand\(commandBy\('Ja!'\)\)/);
   assert.match(index,/id="longTermEvolution"/);
   assert.match(progressSource,/function longTermEvolutionRows/);
   assert.match(progressSource,/function renderLongTermEvolution/);
