@@ -10,16 +10,20 @@ let reminderSettings={enabled:false,time:'19:00',lastNotifiedDate:null},themePre
 function currentDogAgeMonths(){return ENGINE.effectiveAgeMonths(dogProfile)}
 function dogAgeLabel(){
   const months=currentDogAgeMonths();
-  if(!months)return 'Edad sin configurar';
-  if(months<12)return `${months} ${months===1?'mes':'meses'}`;
+  if(!months)return appLanguage==='en'?'Age not set':appLanguage==='de'?'Alter nicht festgelegt':'Edad sin configurar';
+  if(months<12)return `${months} ${appLanguage==='en'?(months===1?'month':'months'):appLanguage==='de'?(months===1?'Monat':'Monate'):(months===1?'mes':'meses')}`;
   const years=Math.round((months/12)*10)/10;
-  const shown=Number.isInteger(years)?String(years):String(years).replace('.',',');
-  return `${shown} ${years===1?'año':'años'}`;
+  const shown=Number.isInteger(years)?String(years):String(years).replace('.',appLanguage==='en'?'.':',');
+  return `${shown} ${appLanguage==='en'?(years===1?'year':'years'):appLanguage==='de'?(years===1?'Jahr':'Jahre'):(years===1?'año':'años')}`;
 }
-function dogStageLabel(){const stage=ENGINE.ageStage(dogProfile);return stage.key==='unknown'?'':stage.label}
+function dogStageLabel(){
+  const stage=ENGINE.ageStage(dogProfile);if(stage.key==='unknown')return'';
+  const labels={es:{'young-puppy':'Cachorro joven',puppy:'Cachorro',adolescent:'Adolescente',adult:'Adulto'},en:{'young-puppy':'Young puppy',puppy:'Puppy',adolescent:'Adolescent',adult:'Adult'},de:{'young-puppy':'Junger Welpe',puppy:'Welpe',adolescent:'Junghund',adult:'Erwachsen'}};
+  return labels[appLanguage]?.[stage.key]||stage.label;
+}
 
 function normalizeTheme(value){return['system','light','dark'].includes(value)?value:'system'}
-function themePreferenceLabel(value=themePreference){return value==='dark'?'Oscuro':value==='light'?'Claro':'Sistema'}
+function themePreferenceLabel(value=themePreference){return value==='dark'?t('dark'):value==='light'?t('light'):t('system')}
 function applyTheme(){
   const mode=normalizeTheme(themePreference),dark=mode==='dark'||(mode==='system'&&SYSTEM_THEME.matches);
   document.body.classList.toggle('dark',dark);
@@ -48,6 +52,30 @@ function setGermanVoicePreference(value){
   germanVoicePreference=valid;store.set('patrickGermanVoice',germanVoicePreference);syncGermanVoiceUI();toast(valid==='auto'?'Voz alemana automática':'Voz alemana guardada');
 }
 
+function setAppLanguage(value,{persist=true,rerender=true}={}){
+  appLanguage=I18N?.normalizeLanguage?.(value)||'es';document.documentElement.lang=appLanguage;
+  if(persist)store.set('patrickAppLanguage',appLanguage);
+  if(rerender){applyStaticAppLanguage();renderSetupWizard();renderCommands();renderAll();syncSettingsDrawer();syncManagementDialogs()}
+}
+function setCommandLanguage(value,{persist=true,rerender=true}={}){
+  commandLanguage=I18N?.normalizeLanguage?.(value,'de')||'de';
+  if(persist)store.set('patrickCommandLanguage',commandLanguage);
+  if(rerender){renderSetupWizard();renderCommands();renderAll();syncManagementDialogs()}
+}
+function applySetupLanguageText(){
+  const set=(selector,key,vars)=>{const el=$(selector);if(el)el.textContent=t(key,vars)};
+  set('.setupWizardBrand small','setup');set('[data-setup-step="0"] .kicker','welcome');set('[data-setup-step="0"] h2','makeYours');set('[data-setup-step="0"]>.setupLead','setupLead');
+  set('#setupAppLanguageLabel','appLanguage');set('#setupAppLanguageHelp','appLanguageHelp');set('#setupCommandLanguageLabel','commandLanguage');set('#setupCommandLanguageHelp','commandLanguageHelp');set('#setupAppearanceLabel','appearance');
+  set('[data-setup-theme="system"] strong','system');set('[data-setup-theme="system"] small','systemHelp');set('[data-setup-theme="light"] strong','light');set('[data-setup-theme="light"] small','lightHelp');set('[data-setup-theme="dark"] strong','dark');set('[data-setup-theme="dark"] small','darkHelp');
+  set('[data-setup-step="1"] .kicker','yourDog');set('[data-setup-step="1"] h2','whoTrain');set('[data-setup-step="1"]>.setupLead','dogLead');
+  set('[data-setup-step="1"] .profileField>span','dogName');const ageLabels=$('[data-setup-step="1"] .profileAgeGrid .profileField>span');if(ageLabels[0])ageLabels[0].textContent=t('age');if(ageLabels[1])ageLabels[1].textContent=t('unit');
+  const monthOpt=$('#setupDogAgeUnit option[value="months"]'),yearOpt=$('#setupDogAgeUnit option[value="years"]');if(monthOpt)monthOpt.textContent=t('months');if(yearOpt)yearOpt.textContent=t('years');
+  set('[data-setup-step="1"] .setupNameHint p','nameHint');
+  set('[data-setup-step="2"] .kicker','howWorks');set('[data-setup-step="2"] h2','shortSessions');set('[data-setup-step="2"]>.setupLead','howLead');
+  const teaching=$('[data-setup-step="2"] .setupTeachingGrid article');const keys=[['missionToday','missionTodayHelp'],['startExecution','startExecutionHelp'],['rateResult','rateResultHelp'],['adaptiveRoute','adaptiveRouteHelp']];teaching.forEach((article,i)=>{const strong=article.querySelector('strong'),p=article.querySelector('p');if(strong)strong.textContent=t(keys[i][0]);if(p)p.textContent=t(keys[i][1])});
+  set('[data-setup-step="3"] .kicker','allReady');set('[data-setup-step="3"]>.setupLead','readyLead');set('#setupSummaryDogLabel','dog');set('#setupSummaryStageLabel','stage');set('#setupSummaryAgeLabel','age');set('#setupSummaryThemeLabel','theme');set('#setupSummaryAppLabel','appLangShort');set('#setupSummaryCommandsLabel','commandsShort');
+  const readyRoute=$('.setupReadyRoute');if(readyRoute){const strong=readyRoute.querySelector('strong'),small=readyRoute.querySelector('small');if(strong)strong.textContent=t('communicationBases');if(small)small.textContent=t('communicationGoal')}
+}
 function setupAgePreviewText(){
   const value=Number($('#setupDogAge')?.value||0),unit=$('#setupDogAgeUnit')?.value||'months';
   if(!value)return'Indica la edad para adaptar volumen, seguridad y objetivos.';
@@ -67,9 +95,11 @@ function syncSetupThemeButtons(){
   $$('[data-setup-theme]').forEach(button=>{const selected=button.dataset.setupTheme===themePreference;button.classList.toggle('selected',selected);button.setAttribute('aria-pressed',String(selected))});
 }
 function syncSetupReadySummary(){
-  const draft=setupDogDraft(),stage=ENGINE.ageStage(draft);
-  const age=draft.ageMonths<12?`${draft.ageMonths} ${draft.ageMonths===1?'mes':'meses'}`:`${Math.round(draft.ageMonths/12*10)/10} años`;
-  $('#setupReadyName').textContent=draft.name||'Tu perro';$('#setupSummaryName').textContent=draft.name||'—';$('#setupSummaryStage').textContent=stage.label;$('#setupSummaryAge').textContent=draft.ageMonths?age:'—';$('#setupSummaryTheme').textContent=themePreferenceLabel();
+  const draft=setupDogDraft(),name=draft.name||(appLanguage==='en'?'Your dog':appLanguage==='de'?'Dein Hund':'Tu perro'),stage=ENGINE.ageStage(draft);
+  const stageLabel=(()=>{const map={es:{'young-puppy':'Cachorro joven',puppy:'Cachorro',adolescent:'Adolescente',adult:'Adulto'},en:{'young-puppy':'Young puppy',puppy:'Puppy',adolescent:'Adolescent',adult:'Adult'},de:{'young-puppy':'Junger Welpe',puppy:'Welpe',adolescent:'Junghund',adult:'Erwachsen'}};return map[appLanguage]?.[stage.key]||stage.label})();
+  const age=draft.ageMonths<12?`${draft.ageMonths} ${appLanguage==='en'?(draft.ageMonths===1?'month':'months'):appLanguage==='de'?(draft.ageMonths===1?'Monat':'Monate'):(draft.ageMonths===1?'mes':'meses')}`:`${Math.round(draft.ageMonths/12*10)/10} ${appLanguage==='en'?'years':appLanguage==='de'?'Jahre':'años'}`;
+  $('#setupReadyName').textContent=name;$('#setupReadyName').parentElement.innerHTML=t('startsLevel0',{name:escapeHtml(name)}).replace(escapeHtml(name),`<span id="setupReadyName">${escapeHtml(name)}</span>`);
+  $('#setupSummaryName').textContent=draft.name||'—';$('#setupSummaryStage').textContent=stageLabel;$('#setupSummaryAge').textContent=draft.ageMonths?age:'—';$('#setupSummaryTheme').textContent=themePreferenceLabel();$('#setupSummaryAppLanguage').textContent=languageName(appLanguage);$('#setupSummaryCommandLanguage').textContent=languageName(commandLanguage);
 }
 function setupStepCanContinue(){
   if(setupWizardStep!==1)return true;
@@ -83,8 +113,9 @@ function syncSetupNextState(){
 function renderSetupWizard(){
   const steps=$$('.setupWizardStep'),counter=$('#setupWizardCounter'),bar=$('#setupWizardProgressBar'),back=$('#setupBackBtn'),next=$('#setupNextBtn'),actions=$('.setupWizardActions'),body=$('#setupWizardBody');
   steps.forEach((step,index)=>step.hidden=index!==setupWizardStep);counter.textContent=`${setupWizardStep+1} / 4`;bar.style.width=`${(setupWizardStep+1)*25}%`;back.hidden=setupWizardStep===0;actions?.classList.toggle('singleAction',setupWizardStep===0);
-  next.textContent=setupWizardStep===2?'Ver resumen':setupWizardStep===3?'Empezar Nivel 0':'Continuar';
-  syncSetupThemeButtons();if(setupWizardStep===1)syncSetupAgePreview();if(setupWizardStep===3)syncSetupReadySummary();syncSetupNextState();
+  next.textContent=setupWizardStep===2?t('viewSummary'):setupWizardStep===3?t('startLevel0'):t('continue');back.textContent=t('back');
+  const appSelect=$('#setupAppLanguage'),commandSelect=$('#setupCommandLanguage');if(appSelect)appSelect.value=appLanguage;if(commandSelect)commandSelect.value=commandLanguage;
+  applySetupLanguageText();syncSetupThemeButtons();if(setupWizardStep===1)syncSetupAgePreview();if(setupWizardStep===3)syncSetupReadySummary();syncSetupNextState();
   if(body)body.scrollTop=0;
 }
 function populateSetupWizard(){
@@ -99,7 +130,7 @@ function validateSetupDog(){
 async function completeSetupWizard(){
   if(!validateSetupDog()){setupWizardStep=1;renderSetupWizard();return}
   setupWizardVersion=SETUP_WIZARD_VERSION;teachingOnboardingVersion=TEACHING_GUIDE_VERSION;
-  await store.setMany({patrickDogProfile:dogProfile,patrickTheme:themePreference,patrickSetupWizardVersion:setupWizardVersion,patrickTeachingOnboardingVersion:teachingOnboardingVersion});
+  await store.setMany({patrickDogProfile:dogProfile,patrickTheme:themePreference,patrickAppLanguage:appLanguage,patrickCommandLanguage:commandLanguage,patrickSetupWizardVersion:setupWizardVersion,patrickTeachingOnboardingVersion:teachingOnboardingVersion});
   const dialog=$('#setupWizardDialog');if(dialog?.open)dialog.close();renderCommands();renderAll();syncSettingsDrawer();syncManagementDialogs();toast(`Todo listo para entrenar con ${dogName()}`);setTimeout(()=>$('#dailyMissionStartBtn')?.focus(),120);
 }
 function setupWizardNext(){
@@ -114,6 +145,7 @@ function openSetupWizard(){
 }
 function bindSetupWizard(){
   $('#setupBackBtn').onclick=()=>{if(setupWizardStep>0){document.activeElement?.blur?.();setupWizardStep--;renderSetupWizard()}};$('#setupNextBtn').onclick=setupWizardNext;
+  $('#setupAppLanguage').onchange=e=>setAppLanguage(e.target.value,{persist:false,rerender:true});$('#setupCommandLanguage').onchange=e=>setCommandLanguage(e.target.value,{persist:false,rerender:true});
   $$('[data-setup-theme]').forEach(button=>button.onclick=()=>{themePreference=normalizeTheme(button.dataset.setupTheme);applyTheme();syncSetupThemeButtons()});
   $('#setupDogName').addEventListener('input',syncSetupNextState);
   $('#setupDogAge').addEventListener('input',()=>{syncSetupAgePreview();syncSetupNextState()});
