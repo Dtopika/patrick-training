@@ -5,6 +5,7 @@
     BACKUP_SCHEMA_VERSION:13,
     SESSION_SCHEMA_VERSION:9,
     DB_VERSION:1,
+    MAX_DOG_AGE_MONTHS:240,
     CACHE_PREFIX:'patrick-training-',
     CACHE_NAME:'patrick-training-v7.5.0-r3',
     BACKUP_MAX_BYTES:2*1024*1024
