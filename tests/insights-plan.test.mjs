@@ -103,7 +103,7 @@ test('level zero is clearly named Bases de comunicación',()=>{
 });
 
 test('v6.4 UI exposes smart plan, evolution dashboard and command insight dialog',()=>{
-  const index=read('index.html'),insights=read('app-insights.js'),sessionSource=read('app-session.js'),profile=read('profile.js');
+  const index=read('index.html'),insights=read('app-insights.js'),sessionSource=read('app-session.js'),profile=['profile.js','profile-setup.js','profile-data.js','profile-reminders.js','profile-settings.js'].map(read).join('\n');
   assert.match(index,/id="smartDailyPlan"/);
   assert.match(index,/id="evolutionDashboard"/);
   assert.match(index,/id="commandInsightDialog"/);
