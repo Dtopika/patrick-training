@@ -38,12 +38,12 @@
     }
     return out;
   }
-  function normalizeHistory(value,commands){
+  function normalizeHistory(value,commands,maxLevel=10){
     if(value==null)return[];if(!Array.isArray(value)||value.length>200)fail('Historial de sesiones inválido');
     const known=commandSet(commands);
     return value.map(item=>{
       if(!plainObject(item)||Number.isNaN(Date.parse(item.at||'')))fail('Sesión inválida');
-      const level=Number(item.level);if(!Number.isInteger(level)||level<0||level>10||!plainObject(item.results||{}))fail('Nivel o resultados de sesión inválidos');
+      const level=Number(item.level);if(!Number.isInteger(level)||level<0||level>maxLevel||!plainObject(item.results||{}))fail('Nivel o resultados de sesión inválidos');
       const results={},timings={};
       for(const [cmd,r] of Object.entries(item.results)){
         if(!known.has(cmd)||!plainObject(r))fail('Comando de sesión inválido');
@@ -100,12 +100,13 @@
     if(!plainObject(data))fail('Formato de respaldo inválido');
     const schema=Number(data.schemaVersion??data.version??5);
     if(!Number.isFinite(schema)||schema<5||schema>maxSchemaVersion)fail('Versión de respaldo no compatible');
-    const currentLevel=Number(data.currentLevel??0);if(!Number.isInteger(currentLevel)||currentLevel<0||currentLevel>10)fail('Nivel actual inválido');
+    const maxLevel=Math.max(10,...(commands||[]).map(c=>Number(c?.level)||0));
+    const currentLevel=Number(data.currentLevel??0);if(!Number.isInteger(currentLevel)||currentLevel<0||currentLevel>maxLevel)fail('Nivel actual inválido');
     const dayType=data.dayType??'Todo el día';if(!['Todo el día','Solo noche'].includes(dayType))fail('Disponibilidad inválida');
     return{
       progress:normalizeProgress(data.progress,commands,states),
       trials:normalizeTrials(data.trials,commands),
-      history:normalizeHistory(data.history,commands),
+      history:normalizeHistory(data.history,commands,maxLevel),
       currentLevel,dayType,
       profile:normalizeProfile(data.profile,currentProfile),
       trainingContext:normalizeTrainingContext(data.trainingContext,currentTrainingContext),
