@@ -286,10 +286,10 @@ async function periodicReminderRegistration(enable){
   }catch(e){console.info('Periodic Background Sync no disponible en este dispositivo',e);return false}
 }
 function reminderMessage(){
-  const day=new Intl.DateTimeFormat('es-CO',{weekday:'long'}).format(new Date());
+  const day=new Intl.DateTimeFormat(I18N?.locale?.(appLanguage)||'es-CO',{weekday:'long'}).format(new Date());
   const streak=typeof currentHealthyStreak==='function'?currentHealthyStreak():0;
-  const title=`Hoy es ${day} 🐾`;
-  const body=streak>0?`Tu racha va en ${streak} ${streak===1?'día':'días'}. Una micro-sesión con ${dogName()} la mantiene.`:`Una micro-sesión corta con ${dogName()} es suficiente para empezar la racha.`;
+  const title=appLanguage==='en'?`Today is ${day} 🐾`:appLanguage==='de'?`Heute ist ${day} 🐾`:`Hoy es ${day} 🐾`;
+  const body=streak>0?(appLanguage==='en'?`Your streak is ${streak} ${streak===1?'day':'days'}. One micro-session with ${dogName()} keeps it going.`:appLanguage==='de'?`Deine Serie steht bei ${streak} ${streak===1?'Tag':'Tagen'}. Eine Mikro-Einheit mit ${dogName()} hält sie am Laufen.`:`Tu racha va en ${streak} ${streak===1?'día':'días'}. Una micro-sesión con ${dogName()} la mantiene.`):(appLanguage==='en'?`One short micro-session with ${dogName()} is enough to start the streak.`:appLanguage==='de'?`Eine kurze Mikro-Einheit mit ${dogName()} reicht aus, um die Serie zu starten.`:`Una micro-sesión corta con ${dogName()} es suficiente para empezar la racha.`);
   return{title,body};
 }
 async function showDailyReminder(force=false){
@@ -307,20 +307,20 @@ function scheduleForegroundReminder(){
   reminderTimer=setTimeout(async()=>{await showDailyReminder();scheduleForegroundReminder()},Math.min(target-now,2147483647));
 }
 async function toggleDailyReminders(){
-  if(!notificationSupported()){toast('Este navegador no admite notificaciones PWA.');return}
-  if(reminderSettings.enabled){reminderSettings.enabled=false;await saveReminderSettings();await periodicReminderRegistration(false);scheduleForegroundReminder();syncReminderUI();toast('Recordatorios desactivados');return}
+  if(!notificationSupported()){toast(appLanguage==='en'?'This browser does not support PWA notifications.':appLanguage==='de'?'Dieser Browser unterstützt keine PWA-Benachrichtigungen.':'Este navegador no admite notificaciones PWA.');return}
+  if(reminderSettings.enabled){reminderSettings.enabled=false;await saveReminderSettings();await periodicReminderRegistration(false);scheduleForegroundReminder();syncReminderUI();toast(appLanguage==='en'?'Reminders disabled':appLanguage==='de'?'Erinnerungen deaktiviert':'Recordatorios desactivados');return}
   let permission=Notification.permission;if(permission==='default')permission=await Notification.requestPermission();
-  if(permission!=='granted'){reminderSettings.enabled=false;await saveReminderSettings();syncReminderUI();toast('Activa las notificaciones de Patrick Training en los ajustes del navegador.');return}
+  if(permission!=='granted'){reminderSettings.enabled=false;await saveReminderSettings();syncReminderUI();toast(appLanguage==='en'?'Enable Patrick Training notifications in your browser settings.':appLanguage==='de'?'Aktiviere Patrick-Training-Benachrichtigungen in den Browser-Einstellungen.':'Activa las notificaciones de Patrick Training en los ajustes del navegador.');return}
   reminderSettings.enabled=true;reminderSettings.lastNotifiedDate=null;await saveReminderSettings();const background=await periodicReminderRegistration(true);scheduleForegroundReminder();syncReminderUI();
-  toast(background?'Recordatorios activados':'Recordatorios activados; se comprobarán al usar la app');
+  toast(appLanguage==='en'?(background?'Reminders enabled':'Reminders enabled; they will be checked while using the app'):appLanguage==='de'?(background?'Erinnerungen aktiviert':'Erinnerungen aktiviert; sie werden bei Nutzung der App geprüft'):(background?'Recordatorios activados':'Recordatorios activados; se comprobarán al usar la app'));
 }
 function syncReminderUI(){
   const button=$('#notificationToggle'),value=$('#notificationStatus'),time=$('#notificationTime'),note=$('#notificationSupportText');if(!button)return;
   const supported=notificationSupported(),permission=supported?Notification.permission:'unsupported';
   button.disabled=!supported;button.setAttribute('aria-pressed',String(!!reminderSettings.enabled));
-  if(value)value.textContent=!supported?'No disponible':permission==='denied'?'Bloqueadas':reminderSettings.enabled?'Activadas':'Desactivadas';
+  if(value)value.textContent=!supported?(appLanguage==='en'?'Unavailable':appLanguage==='de'?'Nicht verfügbar':'No disponible'):permission==='denied'?(appLanguage==='en'?'Blocked':appLanguage==='de'?'Blockiert':'Bloqueadas'):reminderSettings.enabled?(appLanguage==='en'?'Enabled':appLanguage==='de'?'Aktiv':'Activadas'):(appLanguage==='en'?'Off':appLanguage==='de'?'Aus':'Desactivadas');
   if(time){time.value=reminderSettings.time||'19:00';time.disabled=!reminderSettings.enabled}
-  if(note)note.textContent=permission==='denied'?'El navegador tiene bloqueadas las notificaciones para esta app.':reminderSettings.enabled&&(storageMode!=='indexeddb'||reminderStorageMode!=='indexeddb')?'El recordatorio funciona mientras usas la app; este almacenamiento no permite comprobarlo en segundo plano.':reminderSettings.enabled?'No se enviará nada si ya entrenaste hoy. El sistema puede decidir el momento exacto del chequeo en segundo plano.':'Actívalas para recibir un recordatorio diario si aún no has entrenado.';
+  if(note)note.textContent=permission==='denied'?(appLanguage==='en'?'The browser has blocked notifications for this app.':appLanguage==='de'?'Der Browser hat Benachrichtigungen für diese App blockiert.':'El navegador tiene bloqueadas las notificaciones para esta app.'):reminderSettings.enabled&&(storageMode!=='indexeddb'||reminderStorageMode!=='indexeddb')?(appLanguage==='en'?'The reminder works while you use the app; this storage mode cannot check it in the background.':appLanguage==='de'?'Die Erinnerung funktioniert während der App-Nutzung; dieser Speichermodus kann sie nicht im Hintergrund prüfen.':'El recordatorio funciona mientras usas la app; este almacenamiento no permite comprobarlo en segundo plano.'):reminderSettings.enabled?(appLanguage==='en'?'Nothing is sent if you already trained today. The system may choose the exact background check time.':appLanguage==='de'?'Wenn du heute schon trainiert hast, wird nichts gesendet. Das System kann den genauen Zeitpunkt der Hintergrundprüfung bestimmen.':'No se enviará nada si ya entrenaste hoy. El sistema puede decidir el momento exacto del chequeo en segundo plano.'):(appLanguage==='en'?'Enable them to get a daily reminder if you have not trained yet.':appLanguage==='de'?'Aktiviere sie für eine tägliche Erinnerung, falls du noch nicht trainiert hast.':'Actívalas para recibir un recordatorio diario si aún no has entrenado.');
 }
 
 function ensureSettingsDrawer(){
