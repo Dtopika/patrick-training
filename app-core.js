@@ -348,10 +348,12 @@ function commandCard(c){
 }
 function renderCommands(){applyStaticAppLanguage();const q=$('#search').value.trim().toLowerCase();$('#filters').innerHTML=categories().map(x=>`<button class="filterBtn ${filter===x?'active':''}" data-filter="${escapeHtml(x)}">${escapeHtml(x==='Todos'?t('all'):displayCategory(x))}</button>`).join('');const arr=COMMANDS.filter(c=>(filter==='Todos'||c.category===filter)&&(`${displayCommand(c)} ${displayPron(c)} ${displayMeaning(c)} ${c.meaning} ${displayCategory(c.category)}`).toLowerCase().includes(q));const empty=appLanguage==='en'?'No commands match that filter.':appLanguage==='de'?'Keine Kommandos mit diesem Filter gefunden.':'No encontré comandos con ese filtro.';$('#commandList').innerHTML=arr.map(commandCard).join('')||`<p class="muted">${escapeHtml(empty)}</p>`;$$('[data-filter]').forEach(b=>b.onclick=()=>{filter=b.dataset.filter;renderCommands()});$$('[data-audio]').forEach(b=>b.onclick=()=>speak(commandBy(b.dataset.audio)));$$('[data-practice]').forEach(b=>b.onclick=()=>{const command=commandBy(b.dataset.practice);openStartChoice([command],{label:displayCommand(command)})});$$('[data-toggle]').forEach(b=>b.onclick=()=>{const card=b.closest('.commandCard');card.classList.toggle('open');b.setAttribute('aria-expanded',String(card.classList.contains('open')))})}
 
-window.PATRICK_READY=(async()=>{
+async function bootstrapPatrick(){
   await ensureV6Dependencies();
   await store.hydrate();progress=store.get('patrickProgress',{})||{};trials=store.get('patrickTrials',{})||{};history=store.get('patrickHistory',[])||[];historyArchive=normalizeHistoryArchive(store.get('patrickHistoryArchive',emptyHistoryArchive()));currentLevel=Number(store.get('patrickCurrentLevel',0))||0;dayType=store.get('patrickDayType','Todo el día')||'Todo el día';dogProfile=store.get('patrickDogProfile',null)||{name:'',breed:'Pastor Alemán'};trainingContext=ENGINE.normalizeContext(store.get('patrickTrainingContext',trainingContext));germanVoicePreference=String(store.get('patrickGermanVoice','auto')||'auto');appLanguage=I18N?.normalizeLanguage?.(store.get('patrickAppLanguage','es'))||'es';commandLanguage=I18N?.normalizeLanguage?.(store.get('patrickCommandLanguage','de'),'de')||'de';document.documentElement.lang=appLanguage;
-  if(repairCurrentLevel({persist:false}))await store.set('patrickCurrentLevel',currentLevel)
+  if(repairCurrentLevel({persist:false}))await store.set('patrickCurrentLevel',currentLevel);
   const hasExistingData=Object.keys(progress).length>0||Object.keys(trials).length>0||history.length>0||currentLevel>0;
-  if(!String(dogProfile?.name||'').trim()&&hasExistingData){dogProfile={...dogProfile,name:'Patrick',breed:'Pastor Alemán'};store.set('patrickDogProfile',dogProfile)}
-})();
+  if(!String(dogProfile?.name||'').trim()&&hasExistingData){dogProfile={...dogProfile,name:'Patrick',breed:'Pastor Alemán'};await store.set('patrickDogProfile',dogProfile)}
+  return true;
+}
+window.PATRICK_READY=bootstrapPatrick();
