@@ -31,25 +31,25 @@ function applyTheme(){
   const meta=document.querySelector('meta[name="theme-color"]');
   if(meta)meta.content=dark?'#0d111b':'#f6f7f9';
   const select=$('#themeSelect');if(select)select.value=mode;
-  const value=$('#themeCurrentValue');if(value)value.textContent=mode==='system'?`Sistema · ${dark?'Oscuro':'Claro'}`:themePreferenceLabel(mode);
+  const value=$('#themeCurrentValue');if(value)value.textContent=mode==='system'?`${t('system')} · ${dark?t('dark'):t('light')}`:themePreferenceLabel(mode);
 }
 function setThemePreference(value){
-  themePreference=normalizeTheme(value);store.set(THEME_KEY,themePreference);applyTheme();syncManagementDialogs();toast(`Tema: ${themePreferenceLabel()}`);
+  themePreference=normalizeTheme(value);store.set(THEME_KEY,themePreference);applyTheme();syncManagementDialogs();toast(appLanguage==='en'?`Theme: ${themePreferenceLabel()}`:appLanguage==='de'?`Design: ${themePreferenceLabel()}`:`Tema: ${themePreferenceLabel()}`);
 }
 function germanVoiceOptions(){
   const voices=typeof germanVoices==='function'?germanVoices():[];
-  return[{value:'auto',label:'Automática · prioriza alemán de Alemania'},...voices.map(v=>({value:v.voiceURI||v.name,label:germanVoiceLabel(v)}))];
+  return[{value:'auto',label:copyText('Automática · prioriza alemán de Alemania')},...voices.map(v=>({value:v.voiceURI||v.name,label:germanVoiceLabel(v)}))];
 }
 function syncGermanVoiceUI(){
   const select=$('#germanVoiceSelect'),current=$('#germanVoiceCurrent');if(!select)return;
   const options=germanVoiceOptions(),selected=options.some(x=>x.value===germanVoicePreference)?germanVoicePreference:'auto';
   select.innerHTML=options.map(x=>`<option value="${escapeHtml(x.value)}">${escapeHtml(x.label)}</option>`).join('');
   select.value=selected;select.disabled=options.length===1;
-  if(current)current.textContent=selected==='auto'?'Automática':options.find(x=>x.value===selected)?.label||'Automática';
+  if(current)current.textContent=selected==='auto'?copyText('Automática'):options.find(x=>x.value===selected)?.label||copyText('Automática');
 }
 function setGermanVoicePreference(value){
   const options=germanVoiceOptions(),valid=options.some(x=>x.value===value)?value:'auto';
-  germanVoicePreference=valid;store.set('patrickGermanVoice',germanVoicePreference);syncGermanVoiceUI();toast(valid==='auto'?'Voz alemana automática':'Voz alemana guardada');
+  germanVoicePreference=valid;store.set('patrickGermanVoice',germanVoicePreference);syncGermanVoiceUI();toast(appLanguage==='en'?(valid==='auto'?'Automatic German voice':'German voice saved'):appLanguage==='de'?(valid==='auto'?'Automatische deutsche Stimme':'Deutsche Stimme gespeichert'):(valid==='auto'?'Voz alemana automática':'Voz alemana guardada'));
 }
 
 function setAppLanguage(value,{persist=true,rerender=true}={}){
