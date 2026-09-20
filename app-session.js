@@ -196,7 +196,7 @@ async function finishSession(){
   const compacted=compactHistory([stamp,...history],historyArchive),nextHistory=compacted.history,nextArchive=compacted.archive;
   for(const cmd of Object.keys(activeSession.results))nextProgress[cmd]=ENGINE.nextProgressState(cmd,nextProgress[cmd],{trials:nextTrials,history:nextHistory,stateScore:STATE_SCORE});
   const routeFrontierBefore=maxUnlockedLevelFrom(progress);
-  const advanced=finishedLevel===currentLevel&&finishedLevel===routeFrontierBefore&&levelReadyWithProgress(finishedLevel,nextProgress)&&finishedLevel<10,nextLevel=advanced?finishedLevel+1:currentLevel;
+  const advanced=finishedLevel===currentLevel&&finishedLevel===routeFrontierBefore&&levelReadyWithProgress(finishedLevel,nextProgress)&&finishedLevel<maxRouteLevel(),nextLevel=advanced?finishedLevel+1:currentLevel;
   const nextTrainingContext=stamp.context;
   await store.setMany({patrickTrials:nextTrials,patrickProgress:nextProgress,patrickHistory:nextHistory,patrickHistoryArchive:nextArchive,patrickCurrentLevel:nextLevel,patrickTrainingContext:nextTrainingContext});
   trials=nextTrials;progress=nextProgress;history=nextHistory;historyArchive=nextArchive;currentLevel=nextLevel;trainingContext=nextTrainingContext;session=null;$('#sessionDialog').close();
@@ -212,7 +212,7 @@ function init(){
   $('#dayType').onchange=e=>{dayType=e.target.value;store.set('patrickDayType',dayType);renderToday();syncSettingsDrawer()};
   const startToday=()=>{const level=levelBy(currentLevel),commands=focusForLevel(currentLevel);openStartChoice(commands,{level:currentLevel,label:level?.title||'sesión de hoy'})};
   $('#startSessionBtn').onclick=startToday;$('#firstSessionBtn').onclick=startToday;
-  $('#advanceBtn').onclick=()=>{if(currentLevel<10)activateLevel(currentLevel+1)};
+  $('#advanceBtn').onclick=()=>{if(currentLevel<maxRouteLevel())activateLevel(currentLevel+1)};
   $$('[data-start-mode]').forEach(button=>button.onclick=()=>setStartChoiceMode(button.dataset.startMode));
   $('#cancelStartChoiceBtn').onclick=closeStartChoice;$('#closeStartChoiceBtn').onclick=closeStartChoice;$('#confirmStartChoiceBtn').onclick=confirmStartChoice;
   $('#startChoiceDialog').addEventListener('cancel',e=>{e.preventDefault();closeStartChoice()});$('#startChoiceDialog').addEventListener('click',e=>{if(e.target===$('#startChoiceDialog'))closeStartChoice()});
