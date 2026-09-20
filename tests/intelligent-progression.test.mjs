@@ -138,6 +138,16 @@ test('schema 12 preserves first-run wizard completion state',()=>{
   assert.equal(normalized.teachingGuideVersion,1);
 });
 
+test('backup schema accepts level 11 when the command catalog exposes that route',()=>{
+  const ctx=vm.createContext({console});vm.runInContext(read('backup-schema.js'),ctx,{filename:'backup-schema.js'});
+  const schema=ctx.PatrickBackupSchema,commands=[{cmd:'Sitz',level:1},{cmd:'Bei mir',level:11}],states=['No iniciado','En práctica','Consistente','Generalizando','Dominado'];
+  const normalized=schema.normalize({
+    schemaVersion:12,currentLevel:11,dayType:'Todo el día',history:[{version:9,at:'2026-09-19T12:00:00Z',level:11,dogName:'Patrick',results:{'Bei mir':{achieved:4,assisted:0,missed:0,total:4,score:4,avgSeconds:1.5,outcomes:['achieved','achieved','achieved','achieved']}},timings:{'Bei mir':[1500,1500,1500,1500]}}]
+  },{commands,states,currentProfile:{name:'Patrick'},maxSchemaVersion:12});
+  assert.equal(normalized.currentLevel,11);
+  assert.equal(normalized.history[0].level,11);
+  assert.throws(()=>schema.normalize({schemaVersion:12,currentLevel:12,dayType:'Todo el día'},{commands,states,currentProfile:{name:'Patrick'},maxSchemaVersion:12}));
+});
 test('session flow persists context only with the completed transaction',()=>{
   const session=read('app-session.js'),core=read('app-core.js'),profile=read('profile.js');
   assert.match(core,/patrickTrainingContext:\{environment:'Casa',distraction:'Baja'\}/);
