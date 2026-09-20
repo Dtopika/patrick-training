@@ -78,11 +78,11 @@ function applySetupLanguageText(){
 }
 function setupAgePreviewText(){
   const value=Number($('#setupDogAge')?.value||0),unit=$('#setupDogAgeUnit')?.value||'months';
-  if(!value)return'Indica la edad para adaptar volumen, seguridad y objetivos.';
-  const months=Math.max(1,Math.round(unit==='years'?value*12:value)),stage=ENGINE.ageStage({ageMonths:months,ageUpdatedAt:new Date().toISOString()});
-  if(months<12)return `${stage.label} · ${months} ${months===1?'mes':'meses'}`;
-  const years=Math.round(months/12*10)/10,shown=Number.isInteger(years)?String(years):String(years).replace('.',',');
-  return `${stage.label} · ${shown} ${years===1?'año':'años'}`;
+  if(!value)return t('ageHint');
+  const months=Math.max(1,Math.round(unit==='years'?value*12:value)),stage=ENGINE.ageStage({ageMonths:months,ageUpdatedAt:new Date().toISOString()}),map={es:{'young-puppy':'Cachorro joven',puppy:'Cachorro',adolescent:'Adolescente',adult:'Adulto'},en:{'young-puppy':'Young puppy',puppy:'Puppy',adolescent:'Adolescent',adult:'Adult'},de:{'young-puppy':'Junger Welpe',puppy:'Welpe',adolescent:'Junghund',adult:'Erwachsen'}},stageLabel=map[appLanguage]?.[stage.key]||stage.label;
+  if(months<12)return `${stageLabel} · ${months} ${appLanguage==='en'?(months===1?'month':'months'):appLanguage==='de'?(months===1?'Monat':'Monate'):(months===1?'mes':'meses')}`;
+  const years=Math.round(months/12*10)/10,shown=Number.isInteger(years)?String(years):String(years).replace('.',appLanguage==='en'?'.':',');
+  return `${stageLabel} · ${shown} ${appLanguage==='en'?(years===1?'year':'years'):appLanguage==='de'?(years===1?'Jahr':'Jahre'):(years===1?'año':'años')}`;
 }
 function syncSetupAgePreview(){const preview=$('#setupDogAgePreview');if(preview)preview.textContent=setupAgePreviewText()}
 function setupDogDraft(){
@@ -124,14 +124,14 @@ function populateSetupWizard(){
   syncSetupAgePreview();
 }
 function validateSetupDog(){
-  const draft=setupDogDraft();if(!draft.name){toast('Escribe el nombre de tu perro');$('#setupDogName')?.focus();return false}if(!draft.ageMonths){toast('Indica la edad de tu perro');$('#setupDogAge')?.focus();return false}
+  const draft=setupDogDraft();if(!draft.name){toast(appLanguage==='en'?'Enter your dog’s name':appLanguage==='de'?'Gib den Namen deines Hundes ein':'Escribe el nombre de tu perro');$('#setupDogName')?.focus();return false}if(!draft.ageMonths){toast(appLanguage==='en'?'Enter your dog’s age':appLanguage==='de'?'Gib das Alter deines Hundes ein':'Indica la edad de tu perro');$('#setupDogAge')?.focus();return false}
   dogProfile={...dogProfile,...draft};return true;
 }
 async function completeSetupWizard(){
   if(!validateSetupDog()){setupWizardStep=1;renderSetupWizard();return}
   setupWizardVersion=SETUP_WIZARD_VERSION;teachingOnboardingVersion=TEACHING_GUIDE_VERSION;
   await store.setMany({patrickDogProfile:dogProfile,patrickTheme:themePreference,patrickAppLanguage:appLanguage,patrickCommandLanguage:commandLanguage,patrickSetupWizardVersion:setupWizardVersion,patrickTeachingOnboardingVersion:teachingOnboardingVersion});
-  const dialog=$('#setupWizardDialog');if(dialog?.open)dialog.close();renderCommands();renderAll();syncSettingsDrawer();syncManagementDialogs();toast(`Todo listo para entrenar con ${dogName()}`);setTimeout(()=>$('#dailyMissionStartBtn')?.focus(),120);
+  const dialog=$('#setupWizardDialog');if(dialog?.open)dialog.close();renderCommands();renderAll();syncSettingsDrawer();syncManagementDialogs();toast(appLanguage==='en'?`All set to train with ${dogName()}`:appLanguage==='de'?`Alles bereit für das Training mit ${dogName()}`:`Todo listo para entrenar con ${dogName()}`);setTimeout(()=>$('#dailyMissionStartBtn')?.focus(),120);
 }
 function setupWizardNext(){
   if(!setupStepCanContinue())return;
@@ -393,9 +393,16 @@ function markTeachingGuideSeen(){
 function closeTeachingGuide(){markTeachingGuideSeen();const dialog=$('#teachingGuideDialog');if(dialog?.open)dialog.close()}
 function openTeachingGuide(){ensureManagementDialogs();closeSettingsDrawer();setTimeout(()=>{const d=$('#teachingGuideDialog');if(!d.open)d.showModal()},180)}
 
+function applySettingsDrawerLanguageText(){
+  const drawer=$('#settingsDrawer');if(!drawer)return;
+  const groupTitles=$$('.settingsGroupTitle');if(groupTitles[1])groupTitles[1].textContent=appLanguage==='en'?'Training':appLanguage==='de'?'Training':'Entrenamiento';if(groupTitles[2])groupTitles[2].textContent=t('reminders');if(groupTitles[3])groupTitles[3].textContent=appLanguage==='en'?'Application':appLanguage==='de'?'Anwendung':'Aplicación';
+  const set=(selector,key)=>{const el=$(selector);if(el)el.textContent=t(key)};
+  set('#editDogBtn strong','profileDog');set('#openTeachingGuideBtn strong','howItWorks');set('#openAppSettingsBtn strong','appSettings');set('#openAboutBtn strong','about');set('#notificationToggle strong','dailyReminder');
+  const dayOptions=$('#settingsDayType')?.options;if(dayOptions?.length>=2){dayOptions[0].text=t('duringDay');dayOptions[1].text=t('nightOnly')}
+}
 function syncSettingsDrawer(){
-  if(!$('#settingsDrawer'))return;renderDogIdentity();$('#settingsDayType').value=dayType;
-  const stage=dogStageLabel(),age=dogAgeLabel();$('#dogProfileMeta').textContent=`Pastor alemán${stage?` · ${stage}`:''} · ${age}`;syncReminderUI();
+  if(!$('#settingsDrawer'))return;renderDogIdentity();$('#settingsDayType').value=dayType;applySettingsDrawerLanguageText();
+  const stage=dogStageLabel(),age=dogAgeLabel(),breed=appLanguage==='en'?'German Shepherd':appLanguage==='de'?'Deutscher Schäferhund':'Pastor alemán';$('#dogProfileMeta').textContent=`${breed}${stage?` · ${stage}`:''} · ${age}`;syncReminderUI();
 }
 function settingsFocusables(){
   const drawer=$('#settingsDrawer');if(!drawer)return[];
