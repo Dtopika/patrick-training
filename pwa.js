@@ -14,7 +14,7 @@ function syncInstallUI(){
 }
 function syncNetworkUI(){
   const offline=!navigator.onLine;
-  if(networkStatus){networkStatus.hidden=!offline;networkStatus.textContent='Sin conexión'}
+  if(networkStatus){networkStatus.hidden=!offline;networkStatus.textContent=copyText('Sin conexión')}
   document.body.classList.toggle('isOffline',offline);
 }
 window.addEventListener('beforeinstallprompt',e=>{
@@ -29,22 +29,22 @@ async function install(){
 installBtn?.addEventListener('click',install);
 window.addEventListener('appinstalled',()=>{deferredPrompt=null;syncInstallUI();document.getElementById('iosInstallHint')?.remove()});
 ['standalone','fullscreen','minimal-ui'].forEach(mode=>window.matchMedia('(display-mode: '+mode+')').addEventListener?.('change',syncInstallUI));
-window.addEventListener('online',()=>{syncNetworkUI();toast('Conexión recuperada')});
-window.addEventListener('offline',()=>{syncNetworkUI();toast('Modo sin conexión')});
+window.addEventListener('online',()=>{syncNetworkUI();toast(copyText('Conexión recuperada'))});
+window.addEventListener('offline',()=>{syncNetworkUI();toast(copyText('Modo sin conexión'))});
 window.addEventListener('pageshow',()=>{syncInstallUI();syncNetworkUI()});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){syncInstallUI();serviceWorkerRegistration?.update?.().catch(()=>{})}});
 
 function maybeShowIosInstallHint(){
   if(!isIos()||standalone()||sessionStorage.getItem('patrickIosInstallHintDismissed'))return;
   const main=document.querySelector('.appMain');if(!main)return;
-  main.insertAdjacentHTML('beforebegin','<aside id="iosInstallHint" class="installHint" aria-label="Instalar Patrick Training"><div><strong>Instala Patrick Training</strong><p>En iPhone o iPad: toca Compartir y luego “Añadir a pantalla de inicio”.</p></div><button id="iosInstallDismiss" type="button" aria-label="Cerrar aviso">'+icon('x')+'</button></aside>');
+  main.insertAdjacentHTML('beforebegin','<aside id="iosInstallHint" class="installHint" aria-label="'+escapeHtml(copyText('Instala Patrick Training'))+'"><div><strong>'+escapeHtml(copyText('Instala Patrick Training'))+'</strong><p>'+escapeHtml(copyText('En iPhone o iPad: toca Compartir y luego “Añadir a pantalla de inicio”.'))+'</p></div><button id="iosInstallDismiss" type="button" aria-label="'+escapeHtml(copyText('Cerrar aviso'))+'">'+icon('x')+'</button></aside>');
   document.getElementById('iosInstallDismiss').onclick=()=>{sessionStorage.setItem('patrickIosInstallHintDismissed','1');document.getElementById('iosInstallHint')?.remove()};
 }
 
 if('serviceWorker' in navigator){
   let hadController=!!navigator.serviceWorker.controller;
   navigator.serviceWorker.addEventListener('controllerchange',()=>{
-    if(hadController)toast('Actualización instalada. Se aplicará al volver a abrir.');
+    if(hadController)toast(copyText('Actualización instalada. Se aplicará al volver a abrir.'));
     hadController=true;
   });
   window.addEventListener('load',async()=>{
