@@ -187,7 +187,7 @@ function downloadJson(filename,payload){
 }
 function exportProgress(){
   const payload={schemaVersion:CONFIG.BACKUP_SCHEMA_VERSION,appVersion:CONFIG.APP_VERSION,exportedAt:new Date().toISOString(),profile:dogProfile,storage:storageMode,progress,trials,history,historyArchive,currentLevel,dayType,trainingContext,theme:themePreference,appLanguage,commandLanguage,germanVoice:germanVoicePreference,teachingGuideVersion:teachingOnboardingVersion,setupWizardVersion,notifications:reminderSettings};
-  downloadJson(`patrick-training-${dogName().toLowerCase().replace(/[^a-z0-9]+/gi,'-')||'backup'}.json`,payload);toast('Respaldo descargado');
+  downloadJson(`patrick-training-${dogName().toLowerCase().replace(/[^a-z0-9]+/gi,'-')||'backup'}.json`,payload);toast(appLanguage==='en'?'Backup downloaded':appLanguage==='de'?'Backup heruntergeladen':'Respaldo descargado');
 }
 function exportDiagnostic(){
   const states=Object.fromEntries(STATES.map(state=>[state,COMMANDS.filter(c=>stateOf(c.cmd)===state).length]));
@@ -198,7 +198,7 @@ function exportDiagnostic(){
     serviceWorker:{supported:'serviceWorker'in navigator,controlled:!!navigator.serviceWorker?.controller},
     network:{online:navigator.onLine},browser:{userAgent:navigator.userAgent}
   };
-  downloadJson(`patrick-training-diagnostico-${new Date().toISOString().slice(0,10)}.json`,payload);toast('Diagnóstico exportado');
+  downloadJson(`patrick-training-diagnostico-${new Date().toISOString().slice(0,10)}.json`,payload);toast(appLanguage==='en'?'Diagnostics exported':appLanguage==='de'?'Diagnose exportiert':'Diagnóstico exportado');
 }
 
 function freshStorageValues(){
@@ -207,9 +207,9 @@ function freshStorageValues(){
   return values;
 }
 async function resetAllTrainingData(){
-  const first=confirm('¿Reiniciar todos los datos de Patrick Training en este dispositivo?\n\nSe borrarán perfil, progreso, sesiones, archivo histórico, preferencias y recordatorios.');
+  const first=confirm(appLanguage==='en'?'Reset all Patrick Training data on this device?\n\nProfile, progress, sessions, history archive, preferences and reminders will be deleted.':appLanguage==='de'?'Alle Patrick-Training-Daten auf diesem Gerät zurücksetzen?\n\nProfil, Fortschritt, Einheiten, Verlaufsarchiv, Einstellungen und Erinnerungen werden gelöscht.':'¿Reiniciar todos los datos de Patrick Training en este dispositivo?\n\nSe borrarán perfil, progreso, sesiones, archivo histórico, preferencias y recordatorios.');
   if(!first)return false;
-  const second=confirm('ÚLTIMA CONFIRMACIÓN\n\nEsto no se puede deshacer. ¿Borrar todo y volver a la configuración inicial?');
+  const second=confirm(appLanguage==='en'?'FINAL CONFIRMATION\n\nThis cannot be undone. Delete everything and return to initial setup?':appLanguage==='de'?'LETZTE BESTÄTIGUNG\n\nDies kann nicht rückgängig gemacht werden. Alles löschen und zur Ersteinrichtung zurückkehren?':'ÚLTIMA CONFIRMACIÓN\n\nEsto no se puede deshacer. ¿Borrar todo y volver a la configuración inicial?');
   if(!second)return false;
 
   clearTimeout(reminderTimer);reminderTimer=null;
@@ -229,18 +229,18 @@ async function resetAllTrainingData(){
   applyTheme();renderCommands();renderAll();syncSettingsDrawer();syncManagementDialogs();syncReminderUI();
   const settings=$('#appSettingsDialog');if(settings?.open)settings.close();closeSettingsDrawer();
   if(typeof setView==='function')setView('today');
-  toast('Datos reiniciados');
+  toast(appLanguage==='en'?'Data reset':appLanguage==='de'?'Daten zurückgesetzt':'Datos reiniciados');
   setTimeout(openSetupWizard,180);
   return true;
 }
 
 async function importProgressFile(file){
   if(!file)return;
-  if(file.size>CONFIG.BACKUP_MAX_BYTES){toast('El respaldo es demasiado grande');return}
+  if(file.size>CONFIG.BACKUP_MAX_BYTES){toast(appLanguage==='en'?'The backup is too large':appLanguage==='de'?'Das Backup ist zu groß':'El respaldo es demasiado grande');return}
   let data,normalized;
   try{data=JSON.parse(await file.text());normalized=BACKUP_SCHEMA.normalize(data,{commands:COMMANDS,states:STATES,currentProfile:dogProfile,currentTrainingContext:trainingContext,currentTheme:themePreference,currentAppLanguage:appLanguage,currentCommandLanguage:commandLanguage,currentGermanVoice:germanVoicePreference,maxSchemaVersion:CONFIG.BACKUP_SCHEMA_VERSION})}
-  catch(e){console.warn('Respaldo rechazado',e);toast('El respaldo no tiene un formato compatible');return}
-  if(!confirm('¿Restaurar este respaldo validado? Reemplazará el progreso actual de Patrick Training.'))return;
+  catch(e){console.warn('Respaldo rechazado',e);toast(appLanguage==='en'?'The backup format is not compatible':appLanguage==='de'?'Das Backup-Format ist nicht kompatibel':'El respaldo no tiene un formato compatible');return}
+  if(!confirm(appLanguage==='en'?'Restore this validated backup? It will replace the current Patrick Training progress.':appLanguage==='de'?'Dieses geprüfte Backup wiederherstellen? Es ersetzt den aktuellen Patrick-Training-Fortschritt.':'¿Restaurar este respaldo validado? Reemplazará el progreso actual de Patrick Training.'))return;
   const coreValues={
     patrickProgress:normalized.progress,patrickTrials:normalized.trials,patrickHistory:normalized.history,
     patrickCurrentLevel:normalized.currentLevel,patrickDayType:normalized.dayType,patrickDogProfile:normalized.profile,patrickTrainingContext:normalized.trainingContext,patrickTheme:normalized.theme,patrickAppLanguage:normalized.appLanguage,patrickCommandLanguage:normalized.commandLanguage,patrickGermanVoice:normalized.germanVoice,patrickHistoryArchive:normalized.historyArchive,patrickTeachingOnboardingVersion:normalized.teachingGuideVersion,patrickSetupWizardVersion:normalized.setupWizardVersion
@@ -252,7 +252,7 @@ async function importProgressFile(file){
     await saveReminderSettings();scheduleForegroundReminder();
     if(reminderSettings.enabled&&notificationSupported()&&Notification.permission==='granted')await periodicReminderRegistration(true);
   }
-  renderCommands();renderAll();syncSettingsDrawer();syncManagementDialogs();if($('#appSettingsDialog')?.open)$('#appSettingsDialog').close();closeSettingsDrawer();toast('Respaldo restaurado');
+  renderCommands();renderAll();syncSettingsDrawer();syncManagementDialogs();if($('#appSettingsDialog')?.open)$('#appSettingsDialog').close();closeSettingsDrawer();toast(appLanguage==='en'?'Backup restored':appLanguage==='de'?'Backup wiederhergestellt':'Respaldo restaurado');
 }
 
 function localReminderDateKey(date=new Date()){const y=date.getFullYear(),m=String(date.getMonth()+1).padStart(2,'0'),d=String(date.getDate()).padStart(2,'0');return`${y}-${m}-${d}`}
