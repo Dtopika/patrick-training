@@ -60,3 +60,103 @@ body.settingsOpen{overflow:hidden}.settingsBackdrop{position:fixed;inset:0;z-ind
 .setupLanguageField select:focus{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 14%,transparent)}
 .setupSubhead{margin:2px 0 -3px;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:950}
 @media(max-width:420px){.setupLanguageGrid{grid-template-columns:1fr}.setupLanguageField{grid-template-columns:minmax(0,1fr) 128px;align-items:center}.setupLanguageField select{min-width:0}}
+
+/* Localized-copy responsive hardening */
+.managementDialog[open]{overflow-x:hidden}
+.managementCard{
+  width:min(520px,calc(100vw - 24px));
+  max-width:100%;
+  min-width:0;
+  overflow-x:hidden;
+}
+.managementHeader,.managementHeader>div,
+.managementSection,.managementSectionTitle,.managementSectionTitle>div,
+.managementControl,.managementMeta,.managementAction,.managementAction>div,
+.settingsDrawer,.settingsDrawerHead,.settingsDrawerIdentity,
+.settingsRow,.settingsField,.settingsMeta,.settingsRowCopy,
+.setupWizardCard,.setupWizardBody,.setupWizardStep,
+.setupLanguageGrid,.setupLanguageField,.setupLanguageField>span{
+  min-width:0;
+}
+.managementHeader h2,.managementHeader p,
+.managementSectionTitle strong,.managementSectionTitle small,
+.managementControl>span,.managementMeta>span,.managementMeta>strong,
+.managementAction strong,.managementAction small,.settingsNote,
+.settingsRowCopy strong,.settingsRowCopy small,
+.setupLanguageField strong,.setupLanguageField small{
+  overflow-wrap:anywhere;
+}
+.managementControl{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(132px,44%);
+  align-items:center;
+  justify-content:normal;
+}
+.managementControl>span{min-width:0}
+.managementControl select{
+  width:100%;
+  min-width:0;
+  max-width:100%;
+}
+.managementMeta{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:center;
+  justify-content:normal;
+}
+.managementMeta>strong{
+  min-width:0;
+  max-width:min(58vw,250px);
+  text-align:right;
+}
+.managementAction>div,.aboutLinks a>span{min-width:0}
+.settingsField label{min-width:0;flex:1}
+.settingsField select{
+  min-width:0;
+  width:min(132px,44%);
+  max-width:44%;
+  flex:0 1 132px;
+}
+.settingsValue{
+  min-width:0;
+  max-width:46%;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.setupLanguageField select{min-width:0;max-width:100%}
+
+@media(max-width:420px){
+  .managementDialog[open]{
+    padding:8px 8px max(8px,env(safe-area-inset-bottom));
+  }
+  .managementCard{
+    width:100%;
+    max-height:min(92dvh,820px);
+    padding:14px;
+  }
+  .managementControl{
+    grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);
+    gap:8px;
+  }
+  .managementControl select{
+    font-size:10.5px;
+    padding-left:8px;
+    padding-right:26px;
+  }
+  .managementSectionTitle{align-items:flex-start}
+  .settingsField select{width:min(132px,46%);max-width:46%}
+  .setupLanguageField>span{min-width:0}
+}
+
+@media(max-width:340px){
+  .managementControl,.managementMeta{
+    grid-template-columns:1fr;
+    align-items:stretch;
+  }
+  .managementControl select{width:100%}
+  .managementMeta>strong{
+    max-width:100%;
+    text-align:left;
+  }
+}
+
