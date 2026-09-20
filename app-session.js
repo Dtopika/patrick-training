@@ -17,7 +17,7 @@ function ensureSessionContextUI(){
   if($('#sessionContext'))return;
   const target=$('#sessionSafety'),box=document.createElement('section');box.id='sessionContext';box.className='sessionContext';
   const contextTitle=appLanguage==='en'?'Session context':appLanguage==='de'?'Kontext dieser Einheit':'Contexto de esta sesión',suggestion=appLanguage==='en'?'The app will suggest a difficulty.':appLanguage==='de'?'Die App schlägt eine Schwierigkeit vor.':'La app sugerirá una dificultad.',evidence=appLanguage==='en'?'Evidence':appLanguage==='de'?'Daten':'Evidencia',environment=appLanguage==='en'?'Environment':appLanguage==='de'?'Umgebung':'Entorno',distraction=appLanguage==='en'?'Distraction':appLanguage==='de'?'Ablenkung':'Distracción',note=appLanguage==='en'?'Locks after the first execution so the entire session keeps the same context.':appLanguage==='de'?'Wird nach der ersten Ausführung gesperrt, damit die ganze Einheit denselben Kontext behält.':'Se bloquea al registrar la primera ejecución para que toda la sesión tenga el mismo contexto.';
-  box.innerHTML='<div class="sessionContextHead"><div><strong>'+escapeHtml(contextTitle)+'</strong><small id="sessionContextSuggestion">'+escapeHtml(suggestion)+'</small></div><span class="contextEvidenceBadge">'+escapeHtml(evidence)+'</span></div><div class="sessionContextGrid"><label><span>'+escapeHtml(environment)+'</span><select id="sessionEnvironment">'+ENGINE.CONTEXT_ENVIRONMENTS.map(x=>'<option>'+escapeHtml(x)+'</option>').join('')+'</select></label><label><span>'+escapeHtml(distraction)+'</span><select id="sessionDistraction">'+ENGINE.CONTEXT_DISTRACTIONS.map(x=>'<option>'+escapeHtml(x)+'</option>').join('')+'</select></label></div><small class="sessionContextNote">'+escapeHtml(note)+'</small>';
+  box.innerHTML='<div class="sessionContextHead"><div><strong>'+escapeHtml(contextTitle)+'</strong><small id="sessionContextSuggestion">'+escapeHtml(suggestion)+'</small></div><span class="contextEvidenceBadge">'+escapeHtml(evidence)+'</span></div><div class="sessionContextGrid"><label><span>'+escapeHtml(environment)+'</span><select id="sessionEnvironment">'+ENGINE.CONTEXT_ENVIRONMENTS.map(x=>'<option value="'+escapeHtml(x)+'">'+escapeHtml(displayEngineText(x))+'</option>').join('')+'</select></label><label><span>'+escapeHtml(distraction)+'</span><select id="sessionDistraction">'+ENGINE.CONTEXT_DISTRACTIONS.map(x=>'<option value="'+escapeHtml(x)+'">'+escapeHtml(displayEngineText(x))+'</option>').join('')+'</select></label></div><small class="sessionContextNote">'+escapeHtml(note)+'</small>';
   target.insertAdjacentElement('afterend',box);
   $('#sessionEnvironment').onchange=updateSessionContextFromUI;$('#sessionDistraction').onchange=updateSessionContextFromUI;
 }
@@ -63,7 +63,7 @@ function syncSessionContextUI(command){
   ensureSessionContextUI();if(!session)return;
   const context=ENGINE.normalizeContext(session.context),rec=recommendedTrainingContext(command);
   $('#sessionEnvironment').value=context.environment;$('#sessionDistraction').value=context.distraction;
-  $('#sessionContextSuggestion').textContent=(appLanguage==='en'?'Suggestion for ':appLanguage==='de'?'Empfehlung für ':'Sugerencia para ')+displayCommand(command)+': '+rec.label+'.';
+  $('#sessionContextSuggestion').textContent=(appLanguage==='en'?'Suggestion for ':appLanguage==='de'?'Empfehlung für ':'Sugerencia para ')+displayCommand(command)+': '+displayEngineText(rec.label)+'.';
   setSessionContextLocked(sessionAttemptCount()>0);
 }
 function updateExecutionUI(){
@@ -71,7 +71,7 @@ function updateExecutionUI(){
   $('#executionLabel').textContent=appLanguage==='en'?`EXECUTION ${current} OF ${target}`:appLanguage==='de'?`AUSFÜHRUNG ${current} VON ${target}`:`EJECUCIÓN ${current} DE ${target}`;
   updateExecutionDots();
   const difficulty=ENGINE.difficultyTarget(command,stateOf(command.cmd),{stateScore:STATE_SCORE,context:session.context});
-  $('#executionHint').textContent=appLanguage==='en'?`Goal: ${difficulty.target}. Tap “Start execution” just before giving ${dogName()} the cue.`:appLanguage==='de'?`Ziel: ${difficulty.target}. Tippe direkt vor dem Signal an ${dogName()} auf „Ausführung starten“.`:`Objetivo: ${difficulty.target}. Pulsa “Iniciar ejecución” justo antes de dar la señal a ${dogName()}.`;
+  const difficultyLabel=displayEngineText(difficulty.target);$('#executionHint').textContent=appLanguage==='en'?`Goal: ${difficultyLabel}. Tap “Start execution” just before giving ${dogName()} the cue.`:appLanguage==='de'?`Ziel: ${difficultyLabel}. Tippe direkt vor dem Signal an ${dogName()} auf „Ausführung starten“.`:`Objetivo: ${difficultyLabel}. Pulsa “Iniciar ejecución” justo antes de dar la señal a ${dogName()}.`;
 }
 function inferSessionLevel(commands,fallback=currentLevel){
   const levels=[...new Set((commands||[]).map(c=>Number(c?.level)).filter(Number.isInteger))];
@@ -96,8 +96,8 @@ function openStartChoice(cmds,{level=null,label='esta sesión'}={}){
   const recommended=recommendedTrainingContext(commands[0]),last=ENGINE.normalizeContext(trainingContext);
   pendingStartRequest={commands,level:sessionLevel,recommended,last,label};
   $('#startChoiceSubtitle').textContent=level===null?(appLanguage==='en'?`You will practice ${label}.`:appLanguage==='de'?`Du trainierst ${label}.`:`Vas a practicar ${label}.`):`${t('level')} ${level} · ${label}`;
-  $('#recommendedStartLabel').textContent=recommended.label;
-  $('#lastStartLabel').textContent=ENGINE.contextLabel(last);
+  $('#recommendedStartLabel').textContent=displayEngineText(recommended.label);
+  $('#lastStartLabel').textContent=displayEngineText(ENGINE.contextLabel(last));
   setStartChoiceMode('recommended');
   const dialog=$('#startChoiceDialog');if(!dialog.open)dialog.showModal();
 }
@@ -120,8 +120,8 @@ function startSession(cmds=focusForLevel(currentLevel),options={}){
 function renderSessionStep(){
   if(!session)return;
   const c=session.commands[session.index],total=session.commands.length;
-  $('#sessionCounter').textContent=appLanguage==='en'?`Command ${session.index+1} of ${total}`:appLanguage==='de'?`Kommando ${session.index+1} von ${total}`:`Comando ${session.index+1} de ${total}`;$('#sessionCommandTitle').textContent=displayCommand(c);$('#sessionCategory').textContent=`${t('level')} ${c.level} · ${displayCategory(c.category)}`;$('#sessionPron').textContent=displayPron(c);$('#sessionMeaning').textContent=displayMeaning(c);$('#sessionSignal').textContent=c.signal;$('#sessionAction').textContent=c.action;$('#sessionHow').textContent=c.how;$('#sessionReward').textContent=c.reward;
-  const safety=trainingSafety(c),safetyBox=$('#sessionSafety');if(safetyBox){safetyBox.hidden=!safety;safetyBox.classList.toggle('deferred',!!safety?.deferFromAdaptive);if(safety)safetyBox.innerHTML=`<strong>${escapeHtml(safety.label)}</strong><span>${escapeHtml(safety.message)}</span>`}
+  $('#sessionCounter').textContent=appLanguage==='en'?`Command ${session.index+1} of ${total}`:appLanguage==='de'?`Kommando ${session.index+1} von ${total}`:`Comando ${session.index+1} de ${total}`;$('#sessionCommandTitle').textContent=displayCommand(c);$('#sessionCategory').textContent=`${t('level')} ${c.level} · ${displayCategory(c.category)}`;$('#sessionPron').textContent=displayPron(c);$('#sessionMeaning').textContent=displayMeaning(c);$('#sessionSignal').textContent=displayCommandDetail(c,'signal');$('#sessionAction').textContent=displayCommandDetail(c,'action');$('#sessionHow').textContent=displayCommandDetail(c,'how');$('#sessionReward').textContent=displayCommandDetail(c,'reward');
+  const safety=trainingSafety(c),safetyBox=$('#sessionSafety');if(safetyBox){safetyBox.hidden=!safety;safetyBox.classList.toggle('deferred',!!safety?.deferFromAdaptive);if(safety)safetyBox.innerHTML=`<strong>${escapeHtml(displayEngineText(safety.label))}</strong><span>${escapeHtml(displayEngineText(safety.message))}</span>`}
   const done=completedBeforeCurrent()+session.trial,targetTotal=sessionTargetTotal();$('#sessionProgressBar').style.width=`${Math.round(done/Math.max(1,targetTotal)*100)}%`;
   lastRatedExecution=null;syncSessionContextUI(c);$('#sessionAudioBtn').onclick=()=>speak(c);updateExecutionUI();prepareExecution();
 }
@@ -212,7 +212,7 @@ function init(){
   ensureExecutionUI();initProfileUI();$('#dayType').value=dayType;
   $$('.bottomNav button').forEach(b=>b.onclick=()=>setView(b.dataset.view));$$('[data-go]').forEach(b=>b.onclick=()=>setView(b.dataset.go));
   $('#dayType').onchange=e=>{dayType=e.target.value;store.set('patrickDayType',dayType);renderToday();syncSettingsDrawer()};
-  const startToday=()=>{const level=levelBy(currentLevel),commands=focusForLevel(currentLevel);openStartChoice(commands,{level:currentLevel,label:level?.title||'sesión de hoy'})};
+  const startToday=()=>{const level=levelBy(currentLevel),commands=focusForLevel(currentLevel);openStartChoice(commands,{level:currentLevel,label:levelText(level).title||(appLanguage==='en'?'today’s session':appLanguage==='de'?'heutige Einheit':'sesión de hoy')})};
   $('#startSessionBtn').onclick=startToday;$('#firstSessionBtn').onclick=startToday;
   $('#advanceBtn').onclick=()=>{if(currentLevel<maxRouteLevel())activateLevel(currentLevel+1)};
   $$('[data-start-mode]').forEach(button=>button.onclick=()=>setStartChoiceMode(button.dataset.startMode));
