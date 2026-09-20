@@ -189,6 +189,10 @@ function allSessionCount(){return history.length+archivedSessionCount()}
 
 function dogName(){return String(dogProfile?.name||'').trim()||'Patrick'}
 function t(key,vars={}){return I18N?.t?.(appLanguage,key,vars)||key}
+function copyText(value){return I18N?.copy?.(appLanguage,value)||String(value??'')}
+function displayState(value){return I18N?.state?.(appLanguage,value)||String(value??'')}
+function displayEngineText(value){return I18N?.engineText?.(appLanguage,value)||String(value??'')}
+function displayCommandDetail(c,field){return I18N?.commandDetail?.(appLanguage,c?.cmd,field,c?.[field]||'')||c?.[field]||''}
 function languageName(value){return I18N?.name?.(value)||value}
 function displayCommand(c){const raw=typeof c==='string'?c:c?.cmd||'';return I18N?.commandLabel?.(commandLanguage,raw,dogName())||(raw==='Patrick'?dogName():raw)}
 function displayPron(c){const raw=typeof c==='string'?c:c?.cmd||'';if(raw==='Patrick')return dogName();if(commandLanguage==='de')return c?.pron||raw;return displayCommand(c)}
@@ -240,8 +244,8 @@ function maxUnlockedLevel(){return maxUnlockedLevelFrom(progress)}
 function canActivateLevel(n){return Number.isInteger(Number(n))&&Number(n)>=0&&Number(n)<=maxUnlockedLevel()&&!!levelBy(Number(n))}
 function activateLevel(n,{silent=false}={}){
   const next=Number(n);
-  if(!canActivateLevel(next)){if(!silent)toast('Completa el nivel anterior para desbloquear este nivel.');return false}
-  currentLevel=next;store.set('patrickCurrentLevel',currentLevel);renderAll();if(!silent)toast(`Nivel ${currentLevel} activado`);return true;
+  if(!canActivateLevel(next)){if(!silent)toast(copyText('Completa el nivel anterior para desbloquear este nivel.'));return false}
+  currentLevel=next;store.set('patrickCurrentLevel',currentLevel);renderAll();if(!silent)toast(appLanguage==='en'?`Level ${currentLevel} activated`:appLanguage==='de'?`Stufe ${currentLevel} aktiviert`:`Nivel ${currentLevel} activado`);return true;
 }
 function repairCurrentLevel({persist=true}={}){
   const unlocked=maxUnlockedLevel();
@@ -292,9 +296,9 @@ function renderToday(){
   $('#dayType').value=dayType;$('#levelBadge').textContent=`${t('level')} ${currentLevel}`;$('#readinessBadge').textContent=ready&&currentLevel<maxRouteLevel()?t('readyAdvance'):t('inProgress');$('#readinessBadge').classList.toggle('ready',ready);$('#sessionTitle').textContent=lt.title;$('#sessionGoal').textContent=lt.goal;
   const focus=focusForLevel(currentLevel).filter(c=>c&&String(c.cmd||'').trim());$('#focusCommands').innerHTML=focus.map(focusChipHtml).filter(Boolean).join('');
   const guidance=ENGINE.ageGuidance(dogProfile),ageBox=$('#ageGuidance');
-  if(ageBox){ageBox.hidden=!guidance;if(guidance)ageBox.innerHTML=`<strong>${escapeHtml(guidance.label)}</strong><span>${escapeHtml(guidance.message)}</span>`}
+  if(ageBox){ageBox.hidden=!guidance;if(guidance)ageBox.innerHTML=`<strong>${escapeHtml(displayEngineText(guidance.label))}</strong><span>${escapeHtml(displayEngineText(guidance.message))}</span>`}
   $('#metricProgress').textContent=levelProgress(currentLevel)+'%';$('#metricSolid').textContent=currentLevelSolidCount();$('#metricSessions').textContent=allSessionCount();
-  $('#todayPlan').innerHTML=microPlan().map(([name,dur,goal,cmds],i)=>`<article class="planItem"><span class="planNumber">${i+1}</span><div><strong>${escapeHtml(name)} · ${escapeHtml(goal)}</strong><p>${cmds.map(c=>escapeHtml(displayCommand(c))).join(' · ')||'Juego y vínculo'}</p></div><small>${escapeHtml(dur)}</small></article>`).join('');
+  $('#todayPlan').innerHTML=microPlan().map(([name,dur,goal,cmds],i)=>`<article class="planItem"><span class="planNumber">${i+1}</span><div><strong>${escapeHtml(displayEngineText(name))} · ${escapeHtml(displayEngineText(goal))}</strong><p>${cmds.map(c=>escapeHtml(displayCommand(c))).join(' · ')||escapeHtml(copyText('Juego y vínculo'))}</p></div><small>${escapeHtml(dur)}</small></article>`).join('');
   $('#advanceCard').hidden=!(ready&&currentLevel<maxRouteLevel());if(typeof renderSmartDailyPlan==='function')renderSmartDailyPlan();
 }
 function renderLevels(){
@@ -315,7 +319,7 @@ function renderLevels(){
     </article>`;
   }).join('');
   $$('[data-set-level]').forEach(b=>b.onclick=()=>activateLevel(+b.dataset.setLevel));
-  $$('[data-start-level]').forEach(b=>b.onclick=()=>{const n=+b.dataset.startLevel,commands=commandsForLevelStart(n),level=levelBy(n);openStartChoice(commands,{level:n,label:level?.title||'este nivel'})});
+  $$('[data-start-level]').forEach(b=>b.onclick=()=>{const n=+b.dataset.startLevel,commands=commandsForLevelStart(n),level=levelBy(n);openStartChoice(commands,{level:n,label:levelText(level).title||copyText('este nivel')})});
 }
 function categories(){return ['Todos',...new Set(COMMANDS.map(c=>c.category))]}
 function commandCard(c){
