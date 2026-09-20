@@ -6,13 +6,29 @@ async function onboard(page){
   await expect(wizard).toBeVisible();
   await expect(page.locator('#setupWizardCounter')).toHaveText('1 / 4');
 
+  const firstNextBox=await page.locator('#setupNextBtn').boundingBox();
+  const viewport=page.viewportSize();
+  expect(firstNextBox.height).toBeLessThanOrEqual(54);
+  expect(firstNextBox.width).toBeGreaterThan(viewport.width*.82);
+  await expect(page.locator('#setupBackBtn')).toBeHidden();
+
   await page.locator('[data-setup-theme="dark"]').click();
   await expect(page.locator('body')).toHaveClass(/dark/);
   await page.locator('#setupNextBtn').click();
 
   await expect(page.locator('#setupWizardCounter')).toHaveText('2 / 4');
+  await expect(page.locator('#setupBackBtn')).toBeVisible();
+  await expect(page.locator('#setupNextBtn')).toBeDisabled();
+  const backBox=await page.locator('#setupBackBtn').boundingBox();
+  const secondNextBox=await page.locator('#setupNextBtn').boundingBox();
+  expect(backBox.height).toBeLessThanOrEqual(54);
+  expect(secondNextBox.height).toBeLessThanOrEqual(54);
+  expect(secondNextBox.width).toBeGreaterThan(backBox.width*1.5);
+
   await page.locator('#setupDogName').fill('Patrick');
+  await expect(page.locator('#setupNextBtn')).toBeDisabled();
   await page.locator('#setupDogAge').fill('4');
+  await expect(page.locator('#setupNextBtn')).toBeEnabled();
   await expect(page.locator('#setupDogAgePreview')).toContainText('4 meses');
   await page.locator('#setupNextBtn').click();
 
