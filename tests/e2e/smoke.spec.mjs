@@ -147,6 +147,23 @@ test('full reset requires two confirmations and only then returns to first-run w
   expect(finalMessages[1]).toContain('ÚLTIMA CONFIRMACIÓN');
 });
 
+test('level 11 safe protection route is visible but locked until previous levels are complete',async({page})=>{
+  await onboard(page);
+  await page.locator('.bottomNav [data-view="levels"]').click();
+  const level11=page.locator('.levelCard').filter({hasText:'Control y protección segura'});
+  await expect(level11).toBeVisible();
+  await expect(level11).toContainText('PASO 11');
+  await expect(level11).toContainText('Bloqueado');
+  await expect(level11).toContainText('Completa el anterior');
+
+  await page.locator('.bottomNav [data-view="commands"]').click();
+  await page.locator('#search').fill('Bei mir');
+  const command=page.locator('.commandCard[data-command="Bei mir"]');
+  await expect(command).toBeVisible();
+  await expect(command).toContainText('Protección segura');
+  await command.locator('.commandToggle').click();
+  await expect(command).toContainText('No lo uses para acercar al perro a personas o conflictos');
+});
 test('completed session can be corrected from history',async({page})=>{
   await onboard(page);
   await page.locator('.bottomNav [data-view="commands"]').click();
