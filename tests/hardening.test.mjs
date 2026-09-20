@@ -362,7 +362,7 @@ test('v7.4 adds level 11 as safe protection and de-escalation, not attack traini
   assert.match(backup,/const maxLevel=Math\.max\(10/);
 });
 test('v7.5 separates app language from command language without changing canonical ids',()=>{
-  const ctx=vm.createContext({console});ctx.window=ctx;vm.runInContext(read('i18n.js'),ctx,{filename:'i18n.js'});
+  const ctx=vm.createContext({console});ctx.window=ctx;vm.runInContext(read('i18n-data.js'),ctx,{filename:'i18n-data.js'});vm.runInContext(read('i18n.js'),ctx,{filename:'i18n.js'});
   const i18n=ctx.PatrickI18n;
   assert.equal(i18n.commandLabel('de','Sitz','Patrick'),'Sitz');
   assert.equal(i18n.commandLabel('en','Sitz','Patrick'),'Sit');
@@ -431,7 +431,9 @@ test('v7.5 upgrade contract cache-busts every critical browser asset',()=>{
   assert.match(pwa,new RegExp("serviceWorker\\.register\\('\\.\\/sw\\.js\\?"+tag+"'\\)"));
   assert.match(sw,new RegExp("importScripts\\('\\.\\/config\\.js\\?"+tag+"'\\)"));
   assert.match(index,new RegExp('app-insights\\.js\\?'+tag));
+  assert.match(index,new RegExp('i18n-data\\.js\\?'+tag));
   assert.match(index,new RegExp('i18n\\.js\\?'+tag));
+  assert.match(sw,new RegExp('i18n-data\\.js\\?'+tag));
   assert.match(sw,new RegExp('i18n\\.js\\?'+tag));
   assert.match(styles,new RegExp('styles-insights\\.css\\?'+tag));
   assert.match(sw,new RegExp('app-insights\\.js\\?'+tag));
@@ -459,7 +461,7 @@ test('v6 privacy, CSP, accessibility and PWA regressions stay closed',()=>{
 });
 
 test('production JavaScript parses and CSS override debt stays bounded',()=>{
-  const files=['config.js','i18n.js','training-engine.js','backup-schema.js','db.js','app-core.js',...PROFILE_FILES,'progress.js','app-media.js','app-insights.js','app-session.js','pwa.js','sw.js','commands-1.js','commands-2.js','commands-3.js','commands-4.js','levels.js','videos.js','splash.js'];
+  const files=['config.js','i18n-data.js','i18n.js','training-engine.js','backup-schema.js','db.js','app-core.js',...PROFILE_FILES,'progress.js','app-media.js','app-insights.js','app-session.js','pwa.js','sw.js','commands-1.js','commands-2.js','commands-3.js','commands-4.js','levels.js','videos.js','splash.js'];
   for(const file of files)assert.doesNotThrow(()=>new Function(read(file)),file);
   const important=(read('styles-polish.css').match(/!important/g)||[]).length;
   assert.ok(important<=12,'styles-polish.css !important count='+important);
