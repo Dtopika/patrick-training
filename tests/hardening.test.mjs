@@ -296,8 +296,8 @@ test('video catalog still covers every training command exactly once',()=>{
   const commandFiles=['commands-1.js','commands-2.js','commands-3.js','commands-4.js'];
   const commands=commandFiles.flatMap(path=>[...read(path).matchAll(/"cmd":\s*"([^"]+)"/g)].map(x=>x[1]));
   const videos=[...read('videos.js').matchAll(/"([^"]+)":\s*\{/g)].map(x=>x[1]);
-  assert.equal(commands.length,41);
-  assert.equal(videos.length,41);
+  assert.equal(commands.length,47);
+  assert.equal(videos.length,47);
   assert.deepEqual(new Set(videos),new Set(commands));
 });
 
@@ -344,6 +344,21 @@ test('v7.3.2 wizard actions stay compact, prioritized and validation-aware',()=>
   assert.match(styles,/\.setupWizardActions \.primaryBtn:disabled/);
 });
 
+test('v7.4 adds level 11 as safe protection and de-escalation, not attack training',()=>{
+  const levels=read('levels.js'),commands=read('commands-4.js'),engine=read('training-engine.js'),core=read('app-core.js'),session=read('app-session.js'),backup=read('backup-schema.js');
+  assert.match(levels,/"n": 11/);
+  assert.match(levels,/"title": "Control y protección segura"/);
+  for(const cmd of ['Bei mir','Leise','Weg','Kehr um','Zu mir','Abstand'])assert.ok(levels.includes('"'+cmd+'"'));
+  assert.match(commands,/"category":"Protección segura"/);
+  assert.match(commands,/nunca lo uses para enfrentar o acorralar a alguien/);
+  assert.match(engine,/Desescalada/);
+  assert.match(engine,/Desenganche seguro/);
+  assert.match(engine,/Salida de emergencia/);
+  assert.match(core,/function maxRouteLevel/);
+  assert.doesNotMatch(core,/currentLevel<10/);
+  assert.doesNotMatch(session,/finishedLevel<10|currentLevel<10/);
+  assert.match(backup,/const maxLevel=Math\.max\(10/);
+});
 test('adaptive focus always returns command objects, never score wrappers',async()=>{
   const env=await loadCore(baseContext());
   const result=vm.runInContext("focusForLevel(0)",env.ctx);
@@ -366,14 +381,14 @@ test('session evidence is committed only at session completion',async()=>{
   assert.match(sessionLogic,/addEventListener\('cancel'/);
 });
 
-test('all 41 commands map one-to-one to levels and curated videos',()=>{
+test('all 47 commands map one-to-one to levels and curated videos',()=>{
   const commandText=['commands-1.js','commands-2.js','commands-3.js','commands-4.js'].map(read).join('\n');
   const commands=[...commandText.matchAll(/"cmd":\s*"([^"]+)"/g)].map(m=>m[1]);
   const levels=read('levels.js');
   const levelCommands=[...levels.matchAll(/"commands":\s*\[([^\]]*)\]/g)].flatMap(m=>[...m[1].matchAll(/"([^"]+)"/g)].map(x=>x[1]));
   const videos=read('videos.js'),videoCommands=[...videos.matchAll(/^\s*"([^"]+)":\{/gm)].map(m=>m[1]);
-  assert.equal(commands.length,41);
-  assert.equal(new Set(commands).size,41);
+  assert.equal(commands.length,47);
+  assert.equal(new Set(commands).size,47);
   assert.deepEqual(new Set(levelCommands),new Set(commands));
   assert.deepEqual(new Set(videoCommands),new Set(commands));
 });
