@@ -1,6 +1,6 @@
 (()=>{
   const DB_NAME='patrick-training-db';
-  const DB_VERSION=1;
+  const DB_VERSION=globalThis.PATRICK_CONFIG?.DB_VERSION||1;
   const STORE='kv';
   let dbPromise=null;
 
