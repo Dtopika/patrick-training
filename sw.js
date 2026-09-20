@@ -34,9 +34,9 @@ async function maybeNotifyDaily(){
     const config=await reminderDbGet('patrickNotifications');if(!config?.enabled||!timePassed(config.time))return;
     const today=dateKey();if(config.lastNotifiedDate===today)return;
     const history=await reminderDbGet('patrickHistory')||[];if(trainedToday(history))return;
-    const profile=await reminderDbGet('patrickDogProfile')||{},name=String(profile.name||'Patrick').trim()||'Patrick';
-    const day=new Intl.DateTimeFormat('es-CO',{weekday:'long'}).format(new Date()),streak=streakFromHistory(history);
-    const title=`Hoy es ${day} 🐾`,body=streak>0?`Tu racha va en ${streak} ${streak===1?'día':'días'}. Una micro-sesión con ${name} la mantiene.`:`Una micro-sesión corta con ${name} es suficiente para empezar la racha.`;
+    const profile=await reminderDbGet('patrickDogProfile')||{},name=String(profile.name||'Patrick').trim()||'Patrick',lang=['es','en','de'].includes(await reminderDbGet('patrickAppLanguage'))?await reminderDbGet('patrickAppLanguage'):'es';
+    const locale=lang==='en'?'en-US':lang==='de'?'de-DE':'es-CO',day=new Intl.DateTimeFormat(locale,{weekday:'long'}).format(new Date()),streak=streakFromHistory(history);
+    const title=lang==='en'?`Today is ${day} 🐾`:lang==='de'?`Heute ist ${day} 🐾`:`Hoy es ${day} 🐾`,body=streak>0?(lang==='en'?`Your streak is ${streak} ${streak===1?'day':'days'}. One micro-session with ${name} keeps it going.`:lang==='de'?`Deine Serie steht bei ${streak} ${streak===1?'Tag':'Tagen'}. Eine Mikro-Einheit mit ${name} hält sie am Laufen.`:`Tu racha va en ${streak} ${streak===1?'día':'días'}. Una micro-sesión con ${name} la mantiene.`):(lang==='en'?`One short micro-session with ${name} is enough to start the streak.`:lang==='de'?`Eine kurze Mikro-Einheit mit ${name} reicht aus, um die Serie zu starten.`:`Una micro-sesión corta con ${name} es suficiente para empezar la racha.`);
     await self.registration.showNotification(title,{body,icon:'icons/icon-192.png',badge:'icons/icon-192.png',tag:REMINDER_TAG,renotify:false,data:{url:self.registration.scope},vibrate:[120,70,120]});
     config.lastNotifiedDate=today;await reminderDbSet('patrickNotifications',config);
   }catch(e){console.warn('Patrick reminder check failed',e)}
