@@ -1,5 +1,6 @@
 const COMMANDS=window.PATRICK_COMMANDS;
 const LEVELS=window.PATRICK_LEVELS;
+const I18N=window.PatrickI18n;
 let CONFIG=window.PATRICK_CONFIG||null;
 let ENGINE=window.PatrickTrainingEngine||null;
 let BACKUP_SCHEMA=window.PatrickBackupSchema||null;
@@ -73,6 +74,8 @@ const STORAGE_DEFAULTS={
   patrickDogProfile:null,
   patrickTrainingContext:{environment:'Casa',distraction:'Baja'},
   patrickTheme:'system',
+  patrickAppLanguage:'es',
+  patrickCommandLanguage:'de',
   patrickHistoryArchive:{version:1,totalSessions:0,months:{}},
   patrickTeachingOnboardingVersion:0,
   patrickSetupWizardVersion:0,
@@ -153,6 +156,7 @@ const store={
 let progress={},trials={},history=[],historyArchive={version:1,totalSessions:0,months:{}},currentLevel=0,dayType='Todo el día',filter='Todos';
 let dogProfile={name:'',breed:'Pastor Alemán'};
 let trainingContext={environment:'Casa',distraction:'Baja'},germanVoicePreference='auto';
+let appLanguage='es',commandLanguage='de';
 let session=null,toastTimer=null;
 
 function emptyHistoryArchive(){return{version:1,totalSessions:0,months:{}}}
@@ -184,20 +188,26 @@ function archivedSessionCount(){return Number(historyArchive?.totalSessions)||0}
 function allSessionCount(){return history.length+archivedSessionCount()}
 
 function dogName(){return String(dogProfile?.name||'').trim()||'Patrick'}
-function displayCommand(c){const raw=typeof c==='string'?c:c?.cmd||'';return raw==='Patrick'?dogName():raw}
-function displayPron(c){return c?.cmd==='Patrick'?dogName():c?.pron||''}
+function t(key,vars={}){return I18N?.t?.(appLanguage,key,vars)||key}
+function languageName(value){return I18N?.name?.(value)||value}
+function displayCommand(c){const raw=typeof c==='string'?c:c?.cmd||'';return I18N?.commandLabel?.(commandLanguage,raw,dogName())||(raw==='Patrick'?dogName():raw)}
+function displayPron(c){const raw=typeof c==='string'?c:c?.cmd||'';if(raw==='Patrick')return dogName();if(commandLanguage==='de')return c?.pron||raw;return displayCommand(c)}
+function displayCategory(value){return I18N?.category?.(appLanguage,value)||value}
+function levelText(level){const translated=I18N?.levelText?.(appLanguage,level?.n);return{title:translated?.[0]||level?.title||'',goal:translated?.[1]||level?.goal||''}}
 function stateOf(cmd){return progress[cmd]||'No iniciado'}
 function commandBy(name){return COMMANDS.find(c=>c.cmd===name)||(name===dogName()?COMMANDS.find(c=>c.cmd==='Patrick'):undefined)}
 function levelBy(n){return LEVELS.find(l=>l.n===n)}
 function escapeHtml(s=''){return String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]))}
 function toast(msg){const el=$('#toast');if(!el)return;el.textContent=msg;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),1800)}
-function germanVoices(){
+function voicesForLanguage(language=commandLanguage){
   if(!('speechSynthesis'in window))return[];
-  return window.speechSynthesis.getVoices().filter(v=>String(v.lang||'').toLowerCase().startsWith('de')).sort((a,b)=>{
-    const aDE=String(a.lang||'').toLowerCase()==='de-de'?0:1,bDE=String(b.lang||'').toLowerCase()==='de-de'?0:1;
-    return aDE-bDE||String(a.name||'').localeCompare(String(b.name||''));
+  const locale=I18N?.locale?.(language)||'de-DE',prefix=locale.slice(0,2).toLowerCase();
+  return window.speechSynthesis.getVoices().filter(v=>String(v.lang||'').toLowerCase().startsWith(prefix)).sort((a,b)=>{
+    const aExact=String(a.lang||'').toLowerCase()===locale.toLowerCase()?0:1,bExact=String(b.lang||'').toLowerCase()===locale.toLowerCase()?0:1;
+    return aExact-bExact||String(a.name||'').localeCompare(String(b.name||''));
   });
 }
+function germanVoices(){return voicesForLanguage('de')}
 function selectedGermanVoice(){
   const voices=germanVoices();
   if(germanVoicePreference&&germanVoicePreference!=='auto'){
@@ -206,9 +216,14 @@ function selectedGermanVoice(){
   }
   return voices.find(v=>String(v.lang||'').toLowerCase()==='de-de')||voices[0]||null;
 }
-function germanVoiceLabel(voice){return voice?(String(voice.name||'Voz alemana')+' · '+String(voice.lang||'de-DE')):'Voz alemana del sistema'}
-function localGermanSpeech(text){return new Promise((resolve,reject)=>{if(!('speechSynthesis'in window)){reject(new Error('speechSynthesis unavailable'));return}try{const synth=window.speechSynthesis;synth.cancel();synth.resume();const de=selectedGermanVoice();const u=new SpeechSynthesisUtterance(text);u.lang=de?.lang||'de-DE';u.rate=.72;u.pitch=1;if(de)u.voice=de;u.onend=()=>resolve();u.onerror=e=>reject(e);synth.speak(u)}catch(e){reject(e)}})}
-async function speak(c){const text=displayCommand(c).replace(/!/g,'').trim();if(!text)return;try{await localGermanSpeech(text)}catch(e){console.warn('Local German TTS failed',e);toast('No pude reproducir el audio. Instala o activa una voz alemana en el teléfono.')}}
+function selectedCommandVoice(){
+  if(commandLanguage==='de')return selectedGermanVoice();
+  const voices=voicesForLanguage(commandLanguage),locale=I18N?.locale?.(commandLanguage)||'en-US';
+  return voices.find(v=>String(v.lang||'').toLowerCase()===locale.toLowerCase())||voices[0]||null;
+}
+function germanVoiceLabel(voice){return voice?(String(voice.name||'Deutsch')+' · '+String(voice.lang||'de-DE')):'Deutsch'}
+function localCommandSpeech(text){return new Promise((resolve,reject)=>{if(!('speechSynthesis'in window)){reject(new Error('speechSynthesis unavailable'));return}try{const synth=window.speechSynthesis;synth.cancel();synth.resume();const voice=selectedCommandVoice(),locale=I18N?.locale?.(commandLanguage)||'de-DE',u=new SpeechSynthesisUtterance(text);u.lang=voice?.lang||locale;u.rate=commandLanguage==='de'?.72:.82;u.pitch=1;if(voice)u.voice=voice;u.onend=()=>resolve();u.onerror=e=>reject(e);synth.speak(u)}catch(e){reject(e)}})}
+async function speak(c){const text=displayCommand(c).replace(/!/g,'').trim();if(!text)return;try{await localCommandSpeech(text)}catch(e){console.warn('Local command TTS failed',e);toast(appLanguage==='en'?'Could not play the command audio.':appLanguage==='de'?'Kommando-Audio konnte nicht abgespielt werden.':'No pude reproducir el audio del comando.')}}
 function levelProgressFrom(n,source=progress){const level=levelBy(n),cmds=level?.commands||[];if(!cmds.length)return 0;return Math.round(cmds.reduce((a,x)=>a+STATE_SCORE[source[x]||'No iniciado']/4,0)/cmds.length*100)}
 function levelProgress(n){return levelProgressFrom(n,progress)}
 function levelReadyFrom(n,source=progress){const level=levelBy(n);return !!level&&level.commands.every(x=>STATE_SCORE[source[x]||'No iniciado']>=2)}
@@ -297,7 +312,7 @@ function renderCommands(){const q=$('#search').value.trim().toLowerCase();$('#fi
 
 window.PATRICK_READY=(async()=>{
   await ensureV6Dependencies();
-  await store.hydrate();progress=store.get('patrickProgress',{})||{};trials=store.get('patrickTrials',{})||{};history=store.get('patrickHistory',[])||[];historyArchive=normalizeHistoryArchive(store.get('patrickHistoryArchive',emptyHistoryArchive()));currentLevel=Number(store.get('patrickCurrentLevel',0))||0;dayType=store.get('patrickDayType','Todo el día')||'Todo el día';dogProfile=store.get('patrickDogProfile',null)||{name:'',breed:'Pastor Alemán'};trainingContext=ENGINE.normalizeContext(store.get('patrickTrainingContext',trainingContext));germanVoicePreference=String(store.get('patrickGermanVoice','auto')||'auto');
+  await store.hydrate();progress=store.get('patrickProgress',{})||{};trials=store.get('patrickTrials',{})||{};history=store.get('patrickHistory',[])||[];historyArchive=normalizeHistoryArchive(store.get('patrickHistoryArchive',emptyHistoryArchive()));currentLevel=Number(store.get('patrickCurrentLevel',0))||0;dayType=store.get('patrickDayType','Todo el día')||'Todo el día';dogProfile=store.get('patrickDogProfile',null)||{name:'',breed:'Pastor Alemán'};trainingContext=ENGINE.normalizeContext(store.get('patrickTrainingContext',trainingContext));germanVoicePreference=String(store.get('patrickGermanVoice','auto')||'auto');appLanguage=I18N?.normalizeLanguage?.(store.get('patrickAppLanguage','es'))||'es';commandLanguage=I18N?.normalizeLanguage?.(store.get('patrickCommandLanguage','de'),'de')||'de';document.documentElement.lang=appLanguage;
   if(repairCurrentLevel({persist:false}))await store.set('patrickCurrentLevel',currentLevel)
   const hasExistingData=Object.keys(progress).length>0||Object.keys(trials).length>0||history.length>0||currentLevel>0;
   if(!String(dogProfile?.name||'').trim()&&hasExistingData){dogProfile={...dogProfile,name:'Patrick',breed:'Pastor Alemán'};store.set('patrickDogProfile',dogProfile)}
