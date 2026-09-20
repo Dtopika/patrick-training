@@ -1,14 +1,12 @@
 const VIDEO_LIBRARY=window.PATRICK_VIDEOS||{};
 
-function teachingFlow(c){return[
-  ['signal','Señal',c.signal],
-  ['target','Respuesta',c.action],
-  ['check','Ja!','Marca el instante correcto con Ja!'],
-  ['reward','Premio',c.reward]
-]}
+function teachingFlow(c){
+  const marker=displayCommand(commandBy('Ja!')),response=appLanguage==='en'?'Response':appLanguage==='de'?'Reaktion':'Respuesta',markText=appLanguage==='en'?`Mark the correct instant with ${marker}`:appLanguage==='de'?`Markiere den richtigen Moment mit ${marker}`:`Marca el instante correcto con ${marker}`;
+  return[['signal',t('signal'),c.signal],['target',response,c.action],['check',marker,markText],['reward',t('reward'),c.reward]]
+}
 function demoSteps(c){return[
-  ['steps','Cómo enseñarlo',c.how],
-  ['target','Criterio de éxito',c.action]
+  ['steps',t('howTeach'),c.how],
+  ['target',appLanguage==='en'?'Success criterion':appLanguage==='de'?'Erfolgskriterium':'Criterio de éxito',c.action]
 ]}
 
 function videoUrls(meta){
@@ -19,18 +17,18 @@ function videoUrls(meta){
 
 function openDemo(c){
   if(!c)return;const meta=VIDEO_LIBRARY[c.cmd],urls=videoUrls(meta);
-  $('#demoCommand').textContent=displayCommand(c);$('#demoPron').textContent=displayPron(c);$('#demoMeaning').textContent=c.meaning;
+  $('#demoCommand').textContent=displayCommand(c);$('#demoPron').textContent=displayPron(c);$('#demoMeaning').textContent=displayMeaning(c);
   $('#demoFlow').innerHTML=teachingFlow(c).map(([ico,t,x],i)=>`<article class="demoFlowStep"><span class="demoFlowNumber">${i+1}</span><span class="coachIcon">${icon(ico)}</span><div><strong>${escapeHtml(t)}</strong><p>${escapeHtml(x)}</p></div></article>`).join('');
   $('#demoSteps').innerHTML=demoSteps(c).map(([ico,t,x])=>`<article class="demoStep"><span class="coachIcon">${icon(ico)}</span><div><strong>${escapeHtml(t)}</strong><p>${escapeHtml(x)}</p></div></article>`).join('');
   $('#demoAudioBtn').onclick=()=>speak(c);
-  const frame=$('#demoFrame'),empty=$('#demoEmpty'),external=$('#demoExternal');external.textContent='Abrir tutorial completo ↗';
+  const frame=$('#demoFrame'),empty=$('#demoEmpty'),external=$('#demoExternal');external.textContent=appLanguage==='en'?'Open full tutorial ↗':appLanguage==='de'?'Vollständiges Tutorial öffnen ↗':'Abrir tutorial completo ↗';
   if(meta&&urls){frame.hidden=false;empty.hidden=true;frame.src=urls.embed;$('#demoVideoTitle').textContent=meta.title;$('#demoVideoSource').textContent=meta.source;external.hidden=false;external.href=urls.external}
-  else{frame.hidden=true;frame.removeAttribute('src');empty.hidden=false;$('#demoVideoTitle').textContent='Guía visual';$('#demoVideoSource').textContent='Todavía no hay un tutorial curado para este comando.';external.hidden=false;external.href=`https://www.youtube.com/results?search_query=${encodeURIComponent('dog training '+c.meaning+' positive reinforcement')}`;external.textContent='Buscar tutorial en YouTube ↗'}
+  else{frame.hidden=true;frame.removeAttribute('src');empty.hidden=false;$('#demoVideoTitle').textContent=appLanguage==='en'?'Visual guide':appLanguage==='de'?'Visuelle Anleitung':'Guía visual';$('#demoVideoSource').textContent=appLanguage==='en'?'There is no curated tutorial for this command yet.':appLanguage==='de'?'Für dieses Kommando gibt es noch kein kuratiertes Tutorial.':'Todavía no hay un tutorial curado para este comando.';external.hidden=false;external.href=`https://www.youtube.com/results?search_query=${encodeURIComponent('dog training '+displayMeaning(c)+' positive reinforcement')}`;external.textContent=appLanguage==='en'?'Search tutorial on YouTube ↗':appLanguage==='de'?'Tutorial auf YouTube suchen ↗':'Buscar tutorial en YouTube ↗'}
   $('#demoDialog').showModal();
 }
-function closeDemo(){const frame=$('#demoFrame');frame.removeAttribute('src');$('#demoExternal').textContent='Abrir tutorial completo ↗';$('#demoDialog').close()}
+function closeDemo(){const frame=$('#demoFrame');frame.removeAttribute('src');$('#demoExternal').textContent=appLanguage==='en'?'Open full tutorial ↗':appLanguage==='de'?'Vollständiges Tutorial öffnen ↗':'Abrir tutorial completo ↗';$('#demoDialog').close()}
 function decorateDemoButtons(){
-  $$('.commandCard').forEach(card=>{const actions=card.querySelector('.commandActions');if(!actions||actions.querySelector('.demoBtn'))return;const c=commandBy(card.dataset.command),btn=document.createElement('button');btn.className='demoBtn';btn.dataset.demo=card.dataset.command;btn.setAttribute('aria-label',`Ver demostración de ${displayCommand(c||card.dataset.command)}`);btn.title='Ver demostración';btn.innerHTML=icon('video');const practice=actions.querySelector('.practiceBtn');practice?actions.insertBefore(btn,practice):actions.appendChild(btn)});
+  $$('.commandCard').forEach(card=>{const actions=card.querySelector('.commandActions');if(!actions||actions.querySelector('.demoBtn'))return;const c=commandBy(card.dataset.command),btn=document.createElement('button');btn.className='demoBtn';btn.dataset.demo=card.dataset.command;btn.setAttribute('aria-label',(appLanguage==='en'?'View demo for ':appLanguage==='de'?'Demo anzeigen für ':'Ver demostración de ')+displayCommand(c||card.dataset.command));btn.title=appLanguage==='en'?'View demo':appLanguage==='de'?'Demo anzeigen':'Ver demostración';btn.innerHTML=icon('video');const practice=actions.querySelector('.practiceBtn');practice?actions.insertBefore(btn,practice):actions.appendChild(btn)});
 }
 function validateVideoCoverage(){const missing=COMMANDS.filter(c=>!VIDEO_LIBRARY[c.cmd]||!videoUrls(VIDEO_LIBRARY[c.cmd]));if(missing.length)console.warn('Patrick Training: comandos sin video curado',missing.map(c=>c.cmd))}
 document.addEventListener('click',e=>{const btn=e.target.closest('[data-demo]');if(btn)openDemo(commandBy(btn.dataset.demo))});
