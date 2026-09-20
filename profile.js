@@ -161,24 +161,24 @@ function populateDogProfileEditor(){
 }
 function updateDogAgePreview(){
   const value=Number($('#dogAgeInput')?.value||0),unit=$('#dogAgeUnit')?.value,preview=$('#dogAgePreview');if(!preview)return;
-  if(!value){preview.textContent='Indica la edad de tu perro.';return}
-  const months=Math.max(1,Math.round(unit==='years'?value*12:value)),stage=ENGINE.ageStage({ageMonths:months,ageUpdatedAt:new Date().toISOString()});
-  if(months<12){preview.textContent=`${stage.label} · ${months} ${months===1?'mes':'meses'}`;return}
-  const years=Math.round((months/12)*10)/10,shown=Number.isInteger(years)?String(years):String(years).replace('.',',');preview.textContent=`${stage.label} · ${shown} ${years===1?'año':'años'}`;
+  if(!value){preview.textContent=t('ageHint');return}
+  const months=Math.max(1,Math.round(unit==='years'?value*12:value)),stage=ENGINE.ageStage({ageMonths:months,ageUpdatedAt:new Date().toISOString()}),stageLabel=displayEngineText(stage.label);
+  if(months<12){preview.textContent=`${stageLabel} · ${months} ${appLanguage==='en'?(months===1?'month':'months'):appLanguage==='de'?(months===1?'Monat':'Monate'):(months===1?'mes':'meses')}`;return}
+  const years=Math.round((months/12)*10)/10,shown=Number.isInteger(years)?String(years):String(years).replace('.',appLanguage==='en'?'.':',');preview.textContent=`${stageLabel} · ${shown} ${appLanguage==='en'?(years===1?'year':'years'):appLanguage==='de'?(years===1?'Jahr':'Jahre'):(years===1?'año':'años')}`;
 }
 function openDogProfileEditor(firstRun=false,ageOnly=false){
   const dialog=$('#profileDialog');dialog.dataset.firstRun=firstRun?'1':'0';
-  $('#profileDialogTitle').textContent=firstRun?'Cuéntame sobre tu pastor alemán':ageOnly?`Completa el perfil de ${dogName()}`:`Perfil de ${dogName()}`;
-  $('#profileDialogText').textContent=firstRun?'Configura su nombre y edad. Patrick Training seguirá siendo el nombre de la app y personalizará las sesiones para tu perro.':ageOnly?'Añade su edad para que la app pueda mostrar su etapa de vida sin tocar tu progreso.':'Puedes cambiar el nombre y la edad sin perder niveles, sesiones ni estadísticas.';
-  $('#profileCancelBtn').hidden=firstRun;$('#saveProfileBtn').textContent=firstRun?'Guardar y empezar':'Guardar cambios';populateDogProfileEditor();if(!dialog.open)dialog.showModal();
+  $('#profileDialogTitle').textContent=firstRun?copyText('Cuéntame sobre tu pastor alemán'):ageOnly?(appLanguage==='en'?`Complete ${dogName()}'s profile`:appLanguage==='de'?`Profil von ${dogName()} vervollständigen`:`Completa el perfil de ${dogName()}`):(appLanguage==='en'?`${dogName()}'s profile`:appLanguage==='de'?`Profil von ${dogName()}`:`Perfil de ${dogName()}`);
+  $('#profileDialogText').textContent=firstRun?(appLanguage==='en'?'Set name and age. Patrick Training remains the app name and will personalize sessions for your dog.':appLanguage==='de'?'Lege Name und Alter fest. Patrick Training bleibt der App-Name und personalisiert die Einheiten für deinen Hund.':'Configura su nombre y edad. Patrick Training seguirá siendo el nombre de la app y personalizará las sesiones para tu perro.'):ageOnly?(appLanguage==='en'?'Add age so the app can show the life stage without changing progress.':appLanguage==='de'?'Füge das Alter hinzu, damit die App die Lebensphase anzeigen kann, ohne den Fortschritt zu verändern.':'Añade su edad para que la app pueda mostrar su etapa de vida sin tocar tu progreso.'):(appLanguage==='en'?'You can change name and age without losing levels, sessions or statistics.':appLanguage==='de'?'Du kannst Name und Alter ändern, ohne Stufen, Einheiten oder Statistiken zu verlieren.':'Puedes cambiar el nombre y la edad sin perder niveles, sesiones ni estadísticas.');
+  $('#profileCancelBtn').hidden=firstRun;$('#profileCancelBtn').textContent=t('cancel');$('#saveProfileBtn').textContent=firstRun?copyText('Guardar y empezar'):(appLanguage==='en'?'Save changes':appLanguage==='de'?'Änderungen speichern':'Guardar cambios');populateDogProfileEditor();if(!dialog.open)dialog.showModal();
   setTimeout(()=>$(firstRun?'#dogNameInput':ageOnly?'#dogAgeInput':'#dogNameInput')?.focus(),80);
 }
 function saveDogProfile(){
   const firstRun=$('#profileDialog')?.dataset.firstRun==='1';
-  const name=$('#dogNameInput').value.trim().replace(/\s+/g,' ').slice(0,24);if(!name){toast('Escribe el nombre de tu perro');$('#dogNameInput').focus();return}
-  const ageValue=Number($('#dogAgeInput').value||0),unit=$('#dogAgeUnit').value;if(!Number.isFinite(ageValue)||ageValue<=0){toast('Indica la edad de tu perro');$('#dogAgeInput').focus();return}
+  const name=$('#dogNameInput').value.trim().replace(/\s+/g,' ').slice(0,24);if(!name){toast(appLanguage==='en'?'Enter your dog’s name':appLanguage==='de'?'Gib den Namen deines Hundes ein':'Escribe el nombre de tu perro');$('#dogNameInput').focus();return}
+  const ageValue=Number($('#dogAgeInput').value||0),unit=$('#dogAgeUnit').value;if(!Number.isFinite(ageValue)||ageValue<=0){toast(appLanguage==='en'?'Enter your dog’s age':appLanguage==='de'?'Gib das Alter deines Hundes ein':'Indica la edad de tu perro');$('#dogAgeInput').focus();return}
   const ageMonths=Math.max(1,Math.round(unit==='years'?ageValue*12:ageValue));dogProfile={...dogProfile,name,breed:'Pastor Alemán',ageMonths,ageUpdatedAt:new Date().toISOString()};
-  store.set('patrickDogProfile',dogProfile);$('#profileDialog').close();renderAll();renderCommands();syncSettingsDrawer();toast(`Perfil de ${name} guardado`);
+  store.set('patrickDogProfile',dogProfile);$('#profileDialog').close();renderAll();renderCommands();syncSettingsDrawer();toast(appLanguage==='en'?`${name}'s profile saved`:appLanguage==='de'?`Profil von ${name} gespeichert`:`Perfil de ${name} guardado`);
   if(firstRun&&teachingOnboardingVersion<TEACHING_GUIDE_VERSION)setTimeout(()=>openTeachingGuide(),220);
 }
 
