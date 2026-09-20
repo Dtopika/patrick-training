@@ -46,6 +46,53 @@ async function onboard(page){
   await expect(page.locator('#dailyMissionTitle')).not.toHaveText('Preparando tu sesión');
 }
 
+test('app and command languages are independent from wizard through settings',async({page})=>{
+  await page.goto('/');
+  await expect(page.locator('#setupWizardDialog')).toBeVisible();
+
+  await page.locator('#setupAppLanguage').selectOption('en');
+  await expect(page.locator('[data-setup-step="0"] h2')).toHaveText('First, make it yours');
+  await expect(page.locator('#setupNextBtn')).toHaveText('Continue');
+  await page.locator('#setupCommandLanguage').selectOption('es');
+  await page.locator('#setupNextBtn').click();
+
+  await expect(page.locator('[data-setup-step="1"] h2')).toHaveText('Who are we training with?');
+  await page.locator('#setupDogName').fill('Max');
+  await page.locator('#setupDogAge').fill('5');
+  await expect(page.locator('#setupDogAgePreview')).toContainText('5 months');
+  await page.locator('#setupNextBtn').click();
+  await expect(page.locator('[data-setup-step="2"]')).toContainText('Short sessions');
+  await page.locator('#setupNextBtn').click();
+
+  await expect(page.locator('#setupSummaryAppLanguage')).toHaveText('English');
+  await expect(page.locator('#setupSummaryCommandLanguage')).toHaveText('Español');
+  await expect(page.locator('#setupNextBtn')).toHaveText('Start Level 0');
+  await page.locator('#setupNextBtn').click();
+
+  await expect(page.locator('.bottomNav [data-view="today"] small')).toHaveText('Today');
+  await expect(page.locator('.bottomNav [data-view="commands"] small')).toHaveText('Commands');
+  await page.locator('.bottomNav [data-view="commands"]').click();
+  const sit=page.locator('.commandCard[data-command="Sitz"]');
+  await expect(sit).toBeVisible();
+  await expect(sit.locator('.commandTitle strong')).toHaveText('Siéntate');
+  await expect(sit.locator('.commandMeaning')).toHaveText('Siéntate');
+  await expect.poll(()=>page.evaluate(()=>({app:appLanguage,commands:commandLanguage,canonical:commandBy('Sitz').cmd,shown:displayCommand(commandBy('Sitz'))}))).toEqual({app:'en',commands:'es',canonical:'Sitz',shown:'Siéntate'});
+
+  await page.locator('#settingsAvatarBtn').click();
+  await page.locator('#openAppSettingsBtn').click();
+  await expect(page.locator('#germanVoiceSection')).toBeHidden();
+  await page.locator('#appLanguageSelect').selectOption('de');
+  await page.locator('#commandLanguageSelect').selectOption('en');
+  await expect(page.locator('#appSettingsTitle')).toHaveText('Einstellungen');
+  await page.locator('#closeAppSettingsBtn').click();
+
+  await expect(page.locator('.bottomNav [data-view="today"] small')).toHaveText('Heute');
+  await expect(page.locator('.bottomNav [data-view="levels"] small')).toHaveText('Stufen');
+  await page.locator('.bottomNav [data-view="commands"]').click();
+  await expect(page.locator('.commandCard[data-command="Sitz"] .commandTitle strong')).toHaveText('Sit');
+  await expect.poll(()=>page.evaluate(()=>({lang:document.documentElement.lang,app:appLanguage,commands:commandLanguage,canonical:commandBy('Sitz').cmd}))).toEqual({lang:'de',app:'de',commands:'en',canonical:'Sitz'});
+});
+
 test('mobile navigation, chooser and undo work end to end',async({page})=>{
   await onboard(page);
 
