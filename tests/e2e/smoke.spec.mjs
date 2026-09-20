@@ -9,6 +9,11 @@ async function expectContainedHorizontally(page,selector){
   expect(metrics.right).toBeLessThanOrEqual(metrics.viewport+1);
   expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.clientWidth+1);
 }
+async function expectNoHorizontalOverflow(page){
+  const metrics=await page.evaluate(()=>({scrollWidth:document.documentElement.scrollWidth,clientWidth:document.documentElement.clientWidth,innerWidth:window.innerWidth}));
+  expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.innerWidth+1);
+  expect(metrics.clientWidth).toBeLessThanOrEqual(metrics.innerWidth+1);
+}
 async function onboard(page){
   await page.goto('/');
   const wizard=page.locator('#setupWizardDialog');
@@ -302,3 +307,55 @@ test('completed session can be corrected from history',async({page})=>{
   await expect(page.locator('#historyEditDialog')).not.toBeVisible();
   await expect(page.locator('.historyCard').first()).toContainText('3✓ · 1~ · 0×');
 });
+
+test('dog age contract stays valid from wizard input through backup rules',async({page})=>{
+  await page.goto('/');
+  await page.locator('#setupAppLanguage').selectOption('en');
+  await page.locator('#setupNextBtn').click();
+  await page.locator('#setupDogName').fill('Patrick');
+  await page.locator('#setupDogAgeUnit').selectOption('years');
+  await expect(page.locator('#setupDogAge')).toHaveAttribute('max','20');
+  await page.locator('#setupDogAge').fill('21');
+  await expect(page.locator('#setupNextBtn')).toBeDisabled();
+  await expect(page.locator('#setupDogAgePreview')).toContainText('up to 20 years');
+  await page.locator('#setupDogAge').fill('20');
+  await expect(page.locator('#setupNextBtn')).toBeEnabled();
+  await page.locator('#setupDogAgeUnit').selectOption('months');
+  await expect(page.locator('#setupDogAge')).toHaveAttribute('max','240');
+  await expect.poll(()=>page.evaluate(()=>PATRICK_CONFIG.MAX_DOG_AGE_MONTHS)).toBe(240);
+});
+
+test('backup health updates immediately after a successful export',async({page})=>{
+  await onboard(page);
+  await page.locator('#settingsAvatarBtn').click();
+  await page.locator('#openAppSettingsBtn').click();
+  await expect(page.locator('#lastBackupStatus')).toHaveText('Aún sin respaldo');
+  const downloadPromise=page.waitForEvent('download');
+  await page.locator('#exportBtn').click();
+  await downloadPromise;
+  await expect(page.locator('#lastBackupStatus')).toHaveText('Hoy · protegido');
+  await expect.poll(()=>page.evaluate(()=>store.get('patrickLastBackupAt',null))).not.toBeNull();
+});
+
+test('core surfaces preserve visual bounds across the Android viewport matrix',async({page})=>{
+  await onboard(page);
+  await page.locator('#settingsAvatarBtn').click();
+  await page.locator('#openAppSettingsBtn').click();
+  await page.locator('#appLanguageSelect').selectOption('de');
+  await expectNoHorizontalOverflow(page);
+  await expectContainedHorizontally(page,'#appSettingsDialog .managementCard');
+  await page.locator('#closeAppSettingsBtn').click();
+
+  for(const view of ['today','levels','commands','progress']){
+    await page.locator('.bottomNav [data-view="'+view+'"]').click();
+    await expectNoHorizontalOverflow(page);
+    await expectContainedHorizontally(page,'#'+view);
+  }
+
+  await page.locator('.bottomNav [data-view="commands"]').click();
+  const sit=page.locator('.commandCard[data-command="Sitz"]');
+  await sit.locator('.commandToggle').click();
+  await expectContainedHorizontally(page,'.commandCard[data-command="Sitz"]');
+  await expectNoHorizontalOverflow(page);
+});
+
