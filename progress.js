@@ -5,20 +5,20 @@ function commandTrialStats(cmd){
   return{arr,avg,lastMs};
 }
 function relativePracticeLabel(ms){
-  if(!ms)return'Nunca';
+  if(!ms)return copyText('Nunca');
   const days=Math.floor(Math.max(0,Date.now()-ms)/86400000);
-  if(days===0)return'Hoy';if(days===1)return'Ayer';if(days<7)return`Hace ${days} días`;
-  const weeks=Math.floor(days/7);return`Hace ${weeks} ${weeks===1?'semana':'semanas'}`;
+  if(days===0)return appLanguage==='en'?'Today':appLanguage==='de'?'Heute':'Hoy';if(days===1)return appLanguage==='en'?'Yesterday':appLanguage==='de'?'Gestern':'Ayer';if(days<7)return appLanguage==='en'?`${days} days ago`:appLanguage==='de'?`Vor ${days} Tagen`:`Hace ${days} días`;
+  const weeks=Math.floor(days/7);return appLanguage==='en'?`${weeks} ${weeks===1?'week':'weeks'} ago`:appLanguage==='de'?`Vor ${weeks} ${weeks===1?'Woche':'Wochen'}`:`Hace ${weeks} ${weeks===1?'semana':'semanas'}`;
 }
 function trialTrendHtml(arr){
-  if(!arr.length)return'<span class="trendEmpty">Sin ejecuciones aún</span>';
-  const recent=arr.slice(-10),labels=recent.map(v=>v>=1?'Logrado':v>=.5?'Con ayuda':'No logrado');
-  return`<span class="trialTrend"><span class="srOnly">Últimas ejecuciones: ${escapeHtml(labels.join(', '))}</span>${recent.map((v,i)=>`<i class="${v>=1?'hit':v>=.5?'assist':'miss'}" aria-hidden="true" title="${escapeHtml(labels[i])}"></i>`).join('')}</span>`;
+  if(!arr.length)return`<span class="trendEmpty">${appLanguage==='en'?'No executions yet':appLanguage==='de'?'Noch keine Ausführungen':'Sin ejecuciones aún'}</span>`;
+  const recent=arr.slice(-10),labels=recent.map(v=>v>=1?t('achieved'):v>=.5?t('assisted'):t('missed'));
+  const recentLabel=appLanguage==='en'?'Latest executions':appLanguage==='de'?'Letzte Ausführungen':'Últimas ejecuciones';return`<span class="trialTrend"><span class="srOnly">${recentLabel}: ${escapeHtml(labels.join(', '))}</span>${recent.map((v,i)=>`<i class="${v>=1?'hit':v>=.5?'assist':'miss'}" aria-hidden="true" title="${escapeHtml(labels[i])}"></i>`).join('')}</span>`;
 }
 function adaptiveSummaryHtml(){
   const eligible=COMMANDS.filter(c=>c.level<=currentLevel).map(c=>{const details=commandPriorityDetails(c,currentLevel);return{c,details,stats:commandTrialStats(c.cmd)}}).sort((a,b)=>b.details.score-a.details.score).slice(0,3);
   if(!eligible.length)return'';
-  return`<div class="adaptiveSummaryHead"><div><p class="kicker">MOTOR ADAPTATIVO V3</p><h2>Prioridades de hoy</h2></div><span class="adaptiveBadge">Explicable</span></div><div class="adaptiveCards adaptiveCardsV2">${eligible.map(({c,details,stats})=>`<article><div class="adaptiveCardTop"><strong>${escapeHtml(displayCommand(c))}</strong><span>${stats.avg===null?'Nuevo':Math.round(stats.avg*100)+'%'}</span></div><p>${escapeHtml(details.reasons[0])}</p><small>${escapeHtml(details.recommendation.label)} · ${relativePracticeLabel(stats.lastMs)}</small></article>`).join('')}</div><p class="adaptiveExplain">La prioridad combina nivel, rendimiento reciente, tiempo sin practicar y evidencia en contextos diferentes. La sugerencia de contexto no cambia tu sesión hasta que tú la selecciones.</p>`;
+  const explanation=appLanguage==='en'?'Priority combines level, recent performance, time since practice and evidence across different contexts. The context suggestion does not change your session until you select it.':appLanguage==='de'?'Die Priorität kombiniert Stufe, aktuelle Leistung, Zeit seit dem letzten Training und Daten aus verschiedenen Kontexten. Der Kontextvorschlag ändert deine Einheit erst, wenn du ihn auswählst.':'La prioridad combina nivel, rendimiento reciente, tiempo sin practicar y evidencia en contextos diferentes. La sugerencia de contexto no cambia tu sesión hasta que tú la selecciones.';return`<div class="adaptiveSummaryHead"><div><p class="kicker">${escapeHtml(copyText('MOTOR ADAPTATIVO V3'))}</p><h2>${escapeHtml(copyText('Prioridades de hoy'))}</h2></div><span class="adaptiveBadge">${escapeHtml(copyText('Explicable'))}</span></div><div class="adaptiveCards adaptiveCardsV2">${eligible.map(({c,details,stats})=>`<article><div class="adaptiveCardTop"><strong>${escapeHtml(displayCommand(c))}</strong><span>${stats.avg===null?escapeHtml(copyText('Nuevo')):Math.round(stats.avg*100)+'%'}</span></div><p>${escapeHtml(displayEngineText(details.reasons[0]))}</p><small>${escapeHtml(displayEngineText(details.recommendation.label))} · ${relativePracticeLabel(stats.lastMs)}</small></article>`).join('')}</div><p class="adaptiveExplain">${escapeHtml(explanation)}</p>`;
 }
 function sessionAccuracy(item){
   const values=Object.values(item?.results||{});let score=0,total=0;
@@ -28,19 +28,19 @@ function sessionAccuracy(item){
 let historyEditIndex=null;
 function renderSessionHistory(){
   const list=$('#sessionHistoryList'),count=$('#historyCount');if(!list)return;
-  if(count)count.textContent=archivedSessionCount()?`${history.length} recientes · ${archivedSessionCount()} archivadas`:`${history.length} recientes`;
-  if(!history.length){list.innerHTML='<article class="historyEmpty"><strong>Aún no hay sesiones</strong><p>Cuando termines una sesión aparecerá aquí con sus resultados.</p></article>';return}
-  const fmt=new Intl.DateTimeFormat('es-CO',{day:'numeric',month:'short',hour:'numeric',minute:'2-digit'});
+  if(count)count.textContent=archivedSessionCount()?(appLanguage==='en'?`${history.length} recent · ${archivedSessionCount()} archived`:appLanguage==='de'?`${history.length} aktuell · ${archivedSessionCount()} archiviert`:`${history.length} recientes · ${archivedSessionCount()} archivadas`):(appLanguage==='en'?`${history.length} recent`:appLanguage==='de'?`${history.length} aktuell`:`${history.length} recientes`);
+  if(!history.length){list.innerHTML=`<article class="historyEmpty"><strong>${escapeHtml(copyText('Aún no hay sesiones'))}</strong><p>${escapeHtml(copyText('Cuando termines una sesión aparecerá aquí con sus resultados.'))}</p></article>`;return}
+  const fmt=new Intl.DateTimeFormat(I18N?.locale?.(appLanguage)||'es-CO',{day:'numeric',month:'short',hour:'numeric',minute:'2-digit'});
   list.innerHTML=history.slice(0,24).map((item,index)=>{
     const date=new Date(item.at),accuracy=sessionAccuracy(item),entries=Object.entries(item.results||{}),context=ENGINE.normalizeContext(item.context);
-    return`<article class="historyCard"><div class="historyTop"><div><strong>${Number.isNaN(date.getTime())?'Sesión':fmt.format(date)}</strong><small>Nivel ${Number(item.level)||0} · ${accuracy}% de logro</small><small class="historyContext">${escapeHtml(ENGINE.contextLabel(context))}</small></div><div class="historyCardTools"><span class="historyScore">${accuracy}%</span><button class="historyEditBtn" type="button" data-history-edit="${index}" aria-label="Corregir sesión">Corregir</button></div></div><div class="historyCommands">${entries.map(([cmd,r])=>`<span><b>${escapeHtml(displayCommand(commandBy(cmd)||cmd))}</b><small>${Number(r?.achieved)||0}✓ · ${Number(r?.assisted)||0}~ · ${Number(r?.missed)||0}×</small></span>`).join('')}</div></article>`;
+    const achievement=appLanguage==='en'?'achievement':appLanguage==='de'?'Erfolg':'logro';return`<article class="historyCard"><div class="historyTop"><div><strong>${Number.isNaN(date.getTime())?(appLanguage==='en'?'Session':appLanguage==='de'?'Einheit':'Sesión'):fmt.format(date)}</strong><small>${t('level')} ${Number(item.level)||0} · ${accuracy}% ${achievement}</small><small class="historyContext">${escapeHtml(displayEngineText(ENGINE.contextLabel(context)))}</small></div><div class="historyCardTools"><span class="historyScore">${accuracy}%</span><button class="historyEditBtn" type="button" data-history-edit="${index}" aria-label="${escapeHtml(copyText('Corregir sesión'))}">${escapeHtml(copyText('Corregir'))}</button></div></div><div class="historyCommands">${entries.map(([cmd,r])=>`<span><b>${escapeHtml(displayCommand(commandBy(cmd)||cmd))}</b><small>${Number(r?.achieved)||0}✓ · ${Number(r?.assisted)||0}~ · ${Number(r?.missed)||0}×</small></span>`).join('')}</div></article>`;
   }).join('');
   $$('[data-history-edit]').forEach(button=>button.onclick=()=>openHistoryEditor(Number(button.dataset.historyEdit)));
 }
 function archiveMonthLabel(key){
   if(!/^\d{4}-\d{2}$/.test(key))return key;
   const [year,month]=key.split('-').map(Number),date=new Date(Date.UTC(year,month-1,1));
-  const label=new Intl.DateTimeFormat('es-CO',{month:'long',year:'numeric',timeZone:'UTC'}).format(date);
+  const label=new Intl.DateTimeFormat(I18N?.locale?.(appLanguage)||'es-CO',{month:'long',year:'numeric',timeZone:'UTC'}).format(date);
   return label.charAt(0).toUpperCase()+label.slice(1);
 }
 function monthSummarySeed(source={}){
@@ -73,19 +73,19 @@ function renderLongTermEvolution(){
   const root=$('#longTermEvolution');if(!root)return;
   const rows=longTermEvolutionRows(6);root.hidden=rows.length<2;if(rows.length<2){root.innerHTML='';return}
   const first=rows[0],last=rows.at(-1),delta=last.accuracy-first.accuracy,maxSessions=Math.max(...rows.map(x=>x.month.sessions),1);
-  root.innerHTML=`<div class="longTermHead"><div><p class="kicker">EVOLUCIÓN A LARGO PLAZO</p><h2>Últimos ${rows.length} meses con actividad</h2><p>${delta===0?'Precisión estable':delta>0?`+${delta} pts de precisión desde ${archiveMonthLabel(first.key)}`:`${delta} pts desde ${archiveMonthLabel(first.key)}`} · ${allSessionCount()} sesiones registradas</p></div><span>${last.accuracy}% actual</span></div>
+  const monthsTitle=appLanguage==='en'?`Last ${rows.length} active months`:appLanguage==='de'?`Letzte ${rows.length} aktive Monate`:`Últimos ${rows.length} meses con actividad`,deltaText=delta===0?copyText('Precisión estable'):delta>0?(appLanguage==='en'?`+${delta} accuracy pts since ${archiveMonthLabel(first.key)}`:appLanguage==='de'?`+${delta} Genauigkeitspunkte seit ${archiveMonthLabel(first.key)}`:`+${delta} pts de precisión desde ${archiveMonthLabel(first.key)}`):(appLanguage==='en'?`${delta} pts since ${archiveMonthLabel(first.key)}`:appLanguage==='de'?`${delta} Punkte seit ${archiveMonthLabel(first.key)}`:`${delta} pts desde ${archiveMonthLabel(first.key)}`);root.innerHTML=`<div class="longTermHead"><div><p class="kicker">${escapeHtml(copyText('EVOLUCIÓN A LARGO PLAZO'))}</p><h2>${escapeHtml(monthsTitle)}</h2><p>${escapeHtml(deltaText)} · ${allSessionCount()} ${appLanguage==='en'?'sessions recorded':appLanguage==='de'?'erfasste Einheiten':'sesiones registradas'}</p></div><span>${last.accuracy}% ${appLanguage==='en'?'current':appLanguage==='de'?'aktuell':'actual'}</span></div>
     <div class="longTermChart" role="list" aria-label="Evolución mensual">${rows.map(row=>`<article class="longTermMonth" role="listitem"><div class="longTermBars"><i class="longTermSessionBar" style="height:${Math.max(12,Math.round(row.month.sessions/maxSessions*100))}%"></i><i class="longTermAccuracyBar" style="height:${Math.max(8,row.accuracy)}%"></i></div><strong>${row.accuracy}%</strong><small>${escapeHtml(archiveMonthLabel(row.key).replace(/ de /g,' '))}</small><span>${row.month.sessions} ses. · ${Object.keys(row.month.contexts||{}).length} ctx.</span>${row.topCommand?`<em>${escapeHtml(displayCommand(commandBy(row.topCommand[0])||row.topCommand[0]))}</em>`:''}</article>`).join('')}</div>
-    <div class="longTermLegend"><span><i class="legendSessions"></i> sesiones</span><span><i class="legendAccuracy"></i> precisión</span></div>`;
+    <div class="longTermLegend"><span><i class="legendSessions"></i> ${appLanguage==='en'?'sessions':appLanguage==='de'?'Einheiten':'sesiones'}</span><span><i class="legendAccuracy"></i> ${appLanguage==='en'?'accuracy':appLanguage==='de'?'Genauigkeit':'precisión'}</span></div>`;
 }
 
 function renderHistoryArchive(){
   const section=$('#historyArchiveSection'),list=$('#historyArchiveList'),count=$('#archiveCount');if(!section||!list)return;
   const months=Object.entries(historyArchive?.months||{}).sort(([a],[b])=>b.localeCompare(a));
-  section.hidden=!months.length;if(count)count.textContent=`${archivedSessionCount()} ${archivedSessionCount()===1?'sesión':'sesiones'}`;
+  section.hidden=!months.length;if(count)count.textContent=`${archivedSessionCount()} ${appLanguage==='en'?(archivedSessionCount()===1?'session':'sessions'):appLanguage==='de'?(archivedSessionCount()===1?'Einheit':'Einheiten'):(archivedSessionCount()===1?'sesión':'sesiones')}`;
   list.innerHTML=months.map(([key,month])=>{
     const accuracy=Number(month.total)>0?Math.round(Number(month.score||0)/Number(month.total)*100):0;
     const commands=Object.entries(month.commands||{}).sort((a,b)=>(b[1]?.sessions||0)-(a[1]?.sessions||0)).slice(0,4);
-    return`<article class="archiveMonthCard"><div class="archiveMonthTop"><div><strong>${escapeHtml(archiveMonthLabel(key))}</strong><small>${Number(month.sessions)||0} sesiones · ${Object.keys(month.contexts||{}).length} contextos</small></div><span>${accuracy}%</span></div><div class="archiveCommands">${commands.map(([cmd,data])=>`<span><b>${escapeHtml(displayCommand(commandBy(cmd)||cmd))}</b><small>${Number(data.sessions)||0} sesiones · ${Number(data.total)>0?Math.round(Number(data.score||0)/Number(data.total)*100):0}%</small></span>`).join('')}</div></article>`;
+    const sessionsLabel=appLanguage==='en'?'sessions':appLanguage==='de'?'Einheiten':'sesiones',contextsLabel=appLanguage==='en'?'contexts':appLanguage==='de'?'Kontexte':'contextos';return`<article class="archiveMonthCard"><div class="archiveMonthTop"><div><strong>${escapeHtml(archiveMonthLabel(key))}</strong><small>${Number(month.sessions)||0} ${sessionsLabel} · ${Object.keys(month.contexts||{}).length} ${contextsLabel}</small></div><span>${accuracy}%</span></div><div class="archiveCommands">${commands.map(([cmd,data])=>`<span><b>${escapeHtml(displayCommand(commandBy(cmd)||cmd))}</b><small>${Number(data.sessions)||0} ${sessionsLabel} · ${Number(data.total)>0?Math.round(Number(data.score||0)/Number(data.total)*100):0}%</small></span>`).join('')}</div></article>`;
   }).join('');
 }
 
@@ -100,8 +100,8 @@ function historyEditorRow(cmd,result){
 }
 function openHistoryEditor(index){
   const item=history[index],dialog=$('#historyEditDialog');if(!item||!dialog)return;
-  historyEditIndex=index;const date=new Date(item.at),fmt=new Intl.DateTimeFormat('es-CO',{dateStyle:'medium',timeStyle:'short'}),context=ENGINE.normalizeContext(item.context);
-  $('#historyEditMeta').textContent=`Nivel ${Number(item.level)||0} · ${Number.isNaN(date.getTime())?'fecha desconocida':fmt.format(date)} · ${ENGINE.contextLabel(context)}`;
+  historyEditIndex=index;const date=new Date(item.at),fmt=new Intl.DateTimeFormat(I18N?.locale?.(appLanguage)||'es-CO',{dateStyle:'medium',timeStyle:'short'}),context=ENGINE.normalizeContext(item.context);
+  $('#historyEditMeta').textContent=`${t('level')} ${Number(item.level)||0} · ${Number.isNaN(date.getTime())?copyText('fecha desconocida'):fmt.format(date)} · ${displayEngineText(ENGINE.contextLabel(context))}`;
   $('#historyEditResults').innerHTML=Object.entries(item.results||{}).map(([cmd,result])=>historyEditorRow(cmd,result)).join('');
   if(!dialog.open)dialog.showModal();
 }
@@ -113,26 +113,26 @@ async function saveHistoryCorrection(){
     const cmd=row.dataset.historyCommand,total=Number(row.dataset.historyTotal)||5;
     const read=field=>Number(row.querySelector(`[data-history-field="${field}"]`)?.value);
     const achieved=read('achieved'),assisted=read('assisted'),missed=read('missed'),values=[achieved,assisted,missed];
-    if(values.some(value=>!Number.isInteger(value)||value<0||value>total)){toast('Usa números enteros entre 0 y '+total);return}
-    if(achieved+assisted+missed!==total){toast(`${displayCommand(commandBy(cmd)||cmd)} debe sumar ${total} ejecuciones`);return}
+    if(values.some(value=>!Number.isInteger(value)||value<0||value>total)){toast(copyText('Usa números enteros entre 0 y ')+total);return}
+    if(achieved+assisted+missed!==total){toast(appLanguage==='en'?`${displayCommand(commandBy(cmd)||cmd)} must total ${total} executions`:appLanguage==='de'?`${displayCommand(commandBy(cmd)||cmd)} muss insgesamt ${total} Ausführungen ergeben`:`${displayCommand(commandBy(cmd)||cmd)} debe sumar ${total} ejecuciones`);return}
     const prev=results[cmd]||{},outcomes=[...Array(achieved).fill('achieved'),...Array(assisted).fill('assisted'),...Array(missed).fill('missed')];
     results[cmd]={...prev,achieved,assisted,missed,total,score:achieved+assisted*.5,outcomes};affected.push(cmd);
   }
   const nextHistory=[...history];nextHistory[historyEditIndex]={...original,results};
-  await replaceHistoryAndRebuild(nextHistory,affected);closeHistoryEditor();toast('Sesión corregida y evidencia recalculada');
+  await replaceHistoryAndRebuild(nextHistory,affected);closeHistoryEditor();toast(copyText('Sesión corregida y evidencia recalculada'));
 }
 async function deleteHistorySession(){
   if(historyEditIndex===null||!history[historyEditIndex])return;
-  if(!confirm('¿Eliminar esta sesión? Se recalculará la evidencia de sus comandos.'))return;
+  if(!confirm(copyText('¿Eliminar esta sesión? Se recalculará la evidencia de sus comandos.')))return;
   const item=history[historyEditIndex],affected=Object.keys(item.results||{}),nextHistory=history.filter((_,index)=>index!==historyEditIndex);
-  await replaceHistoryAndRebuild(nextHistory,affected);closeHistoryEditor();toast('Sesión eliminada y evidencia recalculada');
+  await replaceHistoryAndRebuild(nextHistory,affected);closeHistoryEditor();toast(copyText('Sesión eliminada y evidencia recalculada'));
 }
 
 function renderProgress(){
   const pct=levelProgress(currentLevel),routePct=totalProgress(),level=levelBy(currentLevel),levelTotal=level?.commands?.length||0;renderDogIdentity();
   $('#progressPct').textContent=pct+'%';$('#progressRing').style.setProperty('--p',pct);
-  $('#progressHeadline').textContent=pct===0?'Empieza este nivel':pct<35?'Construyendo bases':pct<70?'Buen progreso del nivel':pct<100?'Casi listo para avanzar':'Nivel consolidado';
-  $('#progressText').textContent=pct===0?`Nivel ${currentLevel} · ${level?.title||''}. Completa una sesión para generar evidencia.`:`${currentLevelSolidCount()} de ${levelTotal} comandos del nivel están consistentes o mejor · ${routePct}% de la ruta completa.`;
+  $('#progressHeadline').textContent=copyText(pct===0?'Empieza este nivel':pct<35?'Construyendo bases':pct<70?'Buen progreso del nivel':pct<100?'Casi listo para avanzar':'Nivel consolidado');
+  const lt=levelText(level);$('#progressText').textContent=pct===0?(appLanguage==='en'?`Level ${currentLevel} · ${lt.title}. Complete a session to generate evidence.`:appLanguage==='de'?`Stufe ${currentLevel} · ${lt.title}. Schließe eine Einheit ab, um Daten zu erzeugen.`:`Nivel ${currentLevel} · ${lt.title}. Completa una sesión para generar evidencia.`):(appLanguage==='en'?`${currentLevelSolidCount()} of ${levelTotal} commands in this level are consistent or better · ${routePct}% of the full route.`:appLanguage==='de'?`${currentLevelSolidCount()} von ${levelTotal} Kommandos dieser Stufe sind konstant oder besser · ${routePct}% der gesamten Route.`:`${currentLevelSolidCount()} de ${levelTotal} comandos del nivel están consistentes o mejor · ${routePct}% de la ruta completa.`);
   const adaptive=$('#adaptiveSummary');if(adaptive)adaptive.innerHTML=adaptiveSummaryHtml();
   renderSessionHistory();renderHistoryArchive();renderLongTermEvolution();if(typeof renderEvolutionDashboard==='function')renderEvolutionDashboard();
 }
@@ -158,8 +158,8 @@ function sessionsThisWeek(){
 function renderHabit(){
   const card=$('#habitCard');if(!card)return;
   const days=historyDaySet(),todayKey=localDateKey(new Date()),streak=currentHealthyStreak(),weekCount=sessionsThisWeek();
-  const names=['L','M','X','J','V','S','D'];
-  card.innerHTML=`<div class="habitHead"><div><p class="kicker">HÁBITO SALUDABLE</p><h2>${streak?`${streak} ${streak===1?'día':'días'} de racha`:'Empieza tu racha'}</h2><p>${history.length?'Una micro-sesión al día es suficiente. No necesitas entrenar de más para mantenerla.':'La primera sesión de la semana cuenta. Corta, clara y positiva.'}</p></div><div class="habitFlame" aria-hidden="true">${icon('flame')}</div></div><div class="habitWeek" aria-label="Actividad de esta semana">${weekDays().map((date,i)=>{const key=localDateKey(date),active=days.has(key),today=key===todayKey,future=date>new Date();return`<div class="habitDay ${active?'active':''} ${today?'today':''} ${future?'future':''}"><span>${names[i]}</span><div aria-label="${active?'Entrenamiento registrado':'Sin entrenamiento'}">${active?icon('check'):''}</div></div>`}).join('')}</div><div class="habitFoot"><span>${weekCount} ${weekCount===1?'sesión':'sesiones'} esta semana</span><span>${allSessionCount()} total</span></div>`;
+  const names=appLanguage==='en'?['M','T','W','T','F','S','S']:appLanguage==='de'?['M','D','M','D','F','S','S']:['L','M','X','J','V','S','D'];
+  const streakText=streak?(appLanguage==='en'?`${streak} ${streak===1?'day':'days'} streak`:appLanguage==='de'?`${streak} ${streak===1?'Tag':'Tage'} Serie`:`${streak} ${streak===1?'día':'días'} de racha`):copyText('Empieza tu racha'),habitText=history.length?(appLanguage==='en'?'One micro-session a day is enough. You do not need to overtrain to maintain it.':appLanguage==='de'?'Eine Mikro-Einheit pro Tag reicht aus. Du musst nicht zu viel trainieren, um die Serie zu halten.':'Una micro-sesión al día es suficiente. No necesitas entrenar de más para mantenerla.'):(appLanguage==='en'?'The first session of the week counts. Short, clear and positive.':appLanguage==='de'?'Die erste Einheit der Woche zählt. Kurz, klar und positiv.':'La primera sesión de la semana cuenta. Corta, clara y positiva.');card.innerHTML=`<div class="habitHead"><div><p class="kicker">${escapeHtml(copyText('HÁBITO SALUDABLE'))}</p><h2>${escapeHtml(streakText)}</h2><p>${escapeHtml(habitText)}</p></div><div class="habitFlame" aria-hidden="true">${icon('flame')}</div></div><div class="habitWeek" aria-label="${escapeHtml(copyText('Actividad de esta semana'))}">${weekDays().map((date,i)=>{const key=localDateKey(date),active=days.has(key),today=key===todayKey,future=date>new Date();return`<div class="habitDay ${active?'active':''} ${today?'today':''} ${future?'future':''}"><span>${names[i]}</span><div aria-label="${escapeHtml(copyText(active?'Entrenamiento registrado':'Sin entrenamiento'))}">${active?icon('check'):''}</div></div>`}).join('')}</div><div class="habitFoot"><span>${weekCount} ${appLanguage==='en'?(weekCount===1?'session':'sessions'):appLanguage==='de'?(weekCount===1?'Einheit':'Einheiten'):(weekCount===1?'sesión':'sesiones')} ${appLanguage==='en'?'this week':appLanguage==='de'?'diese Woche':'esta semana'}</span><span>${allSessionCount()} ${appLanguage==='en'?'total':appLanguage==='de'?'gesamt':'total'}</span></div>`;
   const first=$('#firstSessionCoach');if(first)first.hidden=allSessionCount()>0;
 }
 
