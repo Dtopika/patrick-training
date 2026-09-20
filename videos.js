@@ -45,5 +45,12 @@ window.PATRICK_VIDEOS={
 
   "Hier":{youtubeId:"rjd99MlmqqI",title:"Puppy recall: come when called",source:"Kikopup"},
   "Pass auf":{youtubeId:"EdraNF2hcgA",title:"Look At That — calm observation and reorientation",source:"Donna Hill"},
-  "Hinter":{vimeoId:"929561192",title:"The benefits of teaching the Go Behind behavior",source:"Karen Pryor Academy / Emma Parsons"}
+  "Hinter":{vimeoId:"929561192",title:"The benefits of teaching the Go Behind behavior",source:"Karen Pryor Academy / Emma Parsons"},
+
+  "Bei mir":{youtubeId:"2UG-h705PYw",title:"Struggling training your dog HEEL?",source:"Kikopup"},
+  "Leise":{youtubeId:"yr1olzgidMw",title:"The Calm Settle — for dogs and puppies",source:"Kikopup"},
+  "Weg":{youtubeId:"EdraNF2hcgA",title:"Look At That — calm observation and reorientation",source:"Donna Hill"},
+  "Kehr um":{youtubeId:"NUG_J7mIHvc",title:"Loose Leash Walking — complete tutorial",source:"Kikopup"},
+  "Zu mir":{youtubeId:"rjd99MlmqqI",title:"Puppy recall: come when called",source:"Kikopup"},
+  "Abstand":{youtubeId:"nBAz0kqeJYg",title:"Train BACK UP with positive reinforcement",source:"Kikopup"}
 };
