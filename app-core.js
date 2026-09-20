@@ -265,6 +265,7 @@ function applyStaticAppLanguage(){
   const set=(selector,key,vars)=>{const el=$(selector);if(el)el.textContent=t(key,vars)};
   set('.bottomNav [data-view="today"] small','today');set('.bottomNav [data-view="levels"] small','levels');set('.bottomNav [data-view="commands"] small','commands');set('.bottomNav [data-view="progress"] small','progress');
   set('#today .welcomeRow .kicker','trainingToday');set('.patrickHeroCopy strong','oneStep');set('.patrickHeroCopy small','bondProgress');
+  const day=$('#dayType');if(day?.options?.length>=2){day.options[0].text=t('duringDay');day.options[1].text=t('nightOnly')}set('#dayTypeHelp','availabilityHelp');
   set('#dailyMission .kicker','missionToday');set('#dailyMissionStartBtn span','startMission');
   set('#levels .pageHead .kicker','learningRoute');set('#levelsHeading','levels');set('#levels .pageHead .muted','levelsHelp');
   set('#commands .pageHead .kicker','dictionary');set('#commandsHeading','commands');set('#commands .pageHead .muted','commandsHelp');
@@ -272,7 +273,7 @@ function applyStaticAppLanguage(){
   set('#progress .pageHead .kicker','tracking');set('#progressHeading','progress');set('#progress .pageHead>.muted','progressHelp');
   set('#startChoiceDialog .startChoiceHeader .kicker','beforeStart');set('#startChoiceTitle','howStart');set('#startChoiceSubtitle','chooseContext');
   set('#recommendedStartChoice strong','recommendedContext');set('#lastStartChoice strong','lastTime');set('#cancelStartChoiceBtn','cancel');set('#confirmStartChoiceBtn','startSession');
-  set('#missedBtn','missed');set('#assistedBtn','assisted');set('#correctBtn','achieved');
+  set('#missedBtn','missed');set('#assistedBtn','assisted');set('#correctBtn','achieved');set('#advanceBtn','nextLevel');
 }
 function renderDogIdentity(){const name=dogName();if($('#dogNameHeader'))$('#dogNameHeader').textContent=name;if($('#todayHeading'))$('#todayHeading').textContent=t('todayWith',{name});if($('#advanceTitle'))$('#advanceTitle').textContent=`${name} · ${t('readyAdvance')}`;if($('#dogProfileName'))$('#dogProfileName').textContent=name;if($('#storageModeLabel'))$('#storageModeLabel').textContent=storageMode==='indexeddb'?'IndexedDB':appLanguage==='en'?'Local storage':appLanguage==='de'?'Lokaler Speicher':'Almacenamiento local'}
 function focusChipHtml(c){
