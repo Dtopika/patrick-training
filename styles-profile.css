@@ -50,3 +50,13 @@ body.settingsOpen{overflow:hidden}.settingsBackdrop{position:fixed;inset:0;z-ind
 
 .managementDangerAction{border-color:color-mix(in srgb,#c62828 38%,var(--line));background:color-mix(in srgb,#c62828 6%,var(--surface))}
 .managementDangerAction>span{color:#c62828}.managementDangerAction strong{color:#c62828}
+
+
+/* v7.5 language choices */
+.setupLanguageGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.setupLanguageField{display:grid;gap:8px;padding:11px;border:1px solid var(--line);border-radius:15px;background:var(--surface)}
+.setupLanguageField>span{display:grid;gap:2px;text-align:left}.setupLanguageField strong{font-size:11px}.setupLanguageField small{font-size:9px;line-height:1.35;color:var(--muted)}
+.setupLanguageField select{width:100%;border:1px solid var(--line);background:var(--surface2);color:var(--text);border-radius:11px;padding:10px 30px 10px 10px;font-size:12px;font-weight:900;outline:none}
+.setupLanguageField select:focus{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 14%,transparent)}
+.setupSubhead{margin:2px 0 -3px;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:950}
+@media(max-width:420px){.setupLanguageGrid{grid-template-columns:1fr}.setupLanguageField{grid-template-columns:minmax(0,1fr) 128px;align-items:center}.setupLanguageField select{min-width:0}}
