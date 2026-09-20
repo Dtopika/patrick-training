@@ -5,6 +5,12 @@
   const CONTEXT_DISTRACTIONS=Object.freeze(['Baja','Media','Alta']);
   const ENVIRONMENT_WEIGHT=Object.freeze({'Casa':0,'Exterior tranquilo':1,'Calle':2,'Parque':2});
   const DISTRACTION_WEIGHT=Object.freeze({'Baja':0,'Media':1,'Alta':2});
+  const ADAPTIVE_POLICY=Object.freeze({
+    confidence:Object.freeze({sessionCap:6,sessionWeight:.35,trialCap:10,trialWeight:.25,contextCap:3,contextWeight:.2,spanCapDays:7,spanWeight:.2,high:.72,medium:.4}),
+    attempts:Object.freeze({fresh:4,lowPerformance:.55,low:3,mediumPerformance:.8,medium:5,solidState:2,solid:3,fallback:4,min:3,max:5,youngPuppyMax:4,puppyMax:5}),
+    progress:Object.freeze({successAccuracy:.8,consistentTrials:10,consistentPoints:8,generalizingAccuracy:.8,generalizingSessions:3,generalizingContexts:2,generalizingChallenging:1,masteredAccuracy:.9,masteredSessions:6,masteredContexts:3,masteredChallenging:3,masteredMediumPlus:2,masteredSpanDays:7}),
+    priority:Object.freeze({currentLevel:110,review:38,noAverage:34,performanceWeight:72,staleDayCap:30,staleDayWeight:1.7,earlyState:26,consistentLowContext:30,generalizingLowContext:18,weakAverageThreshold:.7,weakAverageBoost:24,lowConfidence:10,timingMinSamples:2,responseSlowFactor:1.25,responseBoost:14,durationLowFactor:.8,durationBoost:12,solidRecentAccuracy:.9,solidRecentDays:5,solidContextCount:3,solidPenalty:34,deferredPenalty:1000,staleReasonDays:7})
+  });
 
   /** @param {object|null|undefined} profile */
   function effectiveAgeMonths(profile,now=Date.now()){
@@ -193,17 +199,17 @@
     const trialCount=Array.isArray(trials?.[cmd])?trials[cmd].length:0,evidence=commandContextEvidence(history,cmd);
     const times=sessions.map(x=>Date.parse(x.at||'')).filter(Number.isFinite).sort((a,b)=>a-b);
     const spanDays=times.length>1?(times.at(-1)-times[0])/DAY_MS:0;
-    const score=Math.min(sessions.length/6,.35)+Math.min(trialCount/10,.25)+Math.min(evidence.contextCount/3,.2)+Math.min(spanDays/7,.2);
-    const normalized=Math.max(0,Math.min(1,score)),level=normalized>=.72?'Alta':normalized>=.4?'Media':'Baja';
+    const p=ADAPTIVE_POLICY.confidence,score=Math.min(sessions.length/p.sessionCap,p.sessionWeight)+Math.min(trialCount/p.trialCap,p.trialWeight)+Math.min(evidence.contextCount/p.contextCap,p.contextWeight)+Math.min(spanDays/p.spanCapDays,p.spanWeight);
+    const normalized=Math.max(0,Math.min(1,score)),level=normalized>=p.high?'Alta':normalized>=p.medium?'Media':'Baja';
     return{score:normalized,level,sessions:sessions.length,trials:trialCount,contexts:evidence.contextCount,spanDays};
   }
 
   function recommendedAttempts(command,{trials={},history=[],progress={},stateScore={},profile=null,now=Date.now()}={}){
     const cmd=typeof command==='string'?command:command?.cmd,state=progress[cmd]||'No iniciado',level=stateLevel(state,stateScore),avg=recentAverage(trials,cmd),stage=ageStage(profile,now);
-    let attempts=avg===null?4:avg<.55?3:avg<.8?5:level>=2?3:4;
-    if(stage.key==='young-puppy')attempts=Math.min(attempts,4);
-    if(stage.key==='puppy')attempts=Math.min(attempts,5);
-    return Math.max(3,Math.min(5,attempts));
+    const p=ADAPTIVE_POLICY.attempts;let attempts=avg===null?p.fresh:avg<p.lowPerformance?p.low:avg<p.mediumPerformance?p.medium:level>=p.solidState?p.solid:p.fallback;
+    if(stage.key==='young-puppy')attempts=Math.min(attempts,p.youngPuppyMax);
+    if(stage.key==='puppy')attempts=Math.min(attempts,p.puppyMax);
+    return Math.max(p.min,Math.min(p.max,attempts));
   }
 
   function lastPracticeMs(history,cmd){
@@ -225,7 +231,7 @@
     for(const item of Array.isArray(history)?history:[]){
       const result=item?.results?.[cmd];if(!result)continue;
       const total=Number(result.total)||0,score=Number(result.score)||0;
-      if(total<=0||score/total<.8)continue;
+      if(total<=0||score/total<ADAPTIVE_POLICY.progress.successAccuracy)continue;
       const at=Date.parse(item.at||'');
       const context=normalizeContext(item.context);
       successful.push({at:Number.isFinite(at)?at:0,context,difficulty:contextDifficulty(context),accuracy:score/total});
@@ -256,16 +262,16 @@
     const arr=Array.isArray(trials?.[cmd])?trials[cmd].map(Number).filter(Number.isFinite):[];
     if(arr.length&&scoreOf(state)<1)state='En práctica';
     const points=arr.reduce((a,b)=>a+b,0);
-    if(arr.length>=10&&points>=8&&scoreOf(state)<2)state='Consistente';
+    const p=ADAPTIVE_POLICY.progress;if(arr.length>=p.consistentTrials&&points>=p.consistentPoints&&scoreOf(state)<2)state='Consistente';
 
     const recent=recentAverage(trials,cmd),evidence=commandContextEvidence(history,cmd);
-    if(scoreOf(state)>=2&&scoreOf(state)<3&&recent!==null&&recent>=.8&&
-      evidence.successfulSessions>=3&&evidence.contextCount>=2&&evidence.challengingSessions>=1){
+    if(scoreOf(state)>=2&&scoreOf(state)<3&&recent!==null&&recent>=p.generalizingAccuracy&&
+      evidence.successfulSessions>=p.generalizingSessions&&evidence.contextCount>=p.generalizingContexts&&evidence.challengingSessions>=p.generalizingChallenging){
       state='Generalizando';
     }
-    if(scoreOf(state)>=3&&scoreOf(state)<4&&recent!==null&&recent>=.9&&
-      evidence.successfulSessions>=6&&evidence.contextCount>=3&&evidence.challengingSessions>=3&&
-      evidence.mediumPlusSessions>=2&&evidence.spanDays>=7){
+    if(scoreOf(state)>=3&&scoreOf(state)<4&&recent!==null&&recent>=p.masteredAccuracy&&
+      evidence.successfulSessions>=p.masteredSessions&&evidence.contextCount>=p.masteredContexts&&evidence.challengingSessions>=p.masteredChallenging&&
+      evidence.mediumPlusSessions>=p.masteredMediumPlus&&evidence.spanDays>=p.masteredSpanDays){
       state='Dominado';
     }
     return state;
@@ -293,17 +299,17 @@
     const evidence=commandContextEvidence(history,command.cmd),confidence=evidenceConfidence(history,trials,command);
     const timing=commandTimingEvidence(history,command,stateName,{stateScore}),difficulty=difficultyTarget(command,stateName,{stateScore,context:recommendedContext(command,{progress,history,stateScore})});
     const attempts=recommendedAttempts(command,{trials,history,progress,stateScore,profile,now});
-    let score=command.level===currentLevel?110:38;
-    score+=avg===null?34:(1-avg)*72;
-    score+=Math.min(days,30)*1.7;
-    if(state<2)score+=26;
-    if(state===2&&evidence.contextCount<3)score+=30;
-    if(state===3&&evidence.contextCount<3)score+=18;
-    if(avg!==null&&avg<.7)score+=24;
-    if(confidence.level==='Baja')score+=10;
-    if(timing.mode==='response'&&timing.recentCount>=2&&timing.targetSeconds&&timing.medianSeconds>timing.targetSeconds*1.25)score+=14;
-    if(timing.mode==='duration'&&timing.recentCount>=2&&timing.targetSeconds&&timing.medianSeconds<timing.targetSeconds*.8)score+=12;
-    if(state>=2&&avg!==null&&avg>=.9&&days<5&&evidence.contextCount>=3&&confidence.level==='Alta')score-=34;
+    const p=ADAPTIVE_POLICY.priority;let score=command.level===currentLevel?p.currentLevel:p.review;
+    score+=avg===null?p.noAverage:(1-avg)*p.performanceWeight;
+    score+=Math.min(days,p.staleDayCap)*p.staleDayWeight;
+    if(state<2)score+=p.earlyState;
+    if(state===2&&evidence.contextCount<3)score+=p.consistentLowContext;
+    if(state===3&&evidence.contextCount<3)score+=p.generalizingLowContext;
+    if(avg!==null&&avg<p.weakAverageThreshold)score+=p.weakAverageBoost;
+    if(confidence.level==='Baja')score+=p.lowConfidence;
+    if(timing.mode==='response'&&timing.recentCount>=p.timingMinSamples&&timing.targetSeconds&&timing.medianSeconds>timing.targetSeconds*p.responseSlowFactor)score+=p.responseBoost;
+    if(timing.mode==='duration'&&timing.recentCount>=p.timingMinSamples&&timing.targetSeconds&&timing.medianSeconds<timing.targetSeconds*p.durationLowFactor)score+=p.durationBoost;
+    if(state>=2&&avg!==null&&avg>=p.solidRecentAccuracy&&days<p.solidRecentDays&&evidence.contextCount>=p.solidContextCount&&confidence.level==='Alta')score-=p.solidPenalty;
 
     const reasons=[];
     if(command.level===currentLevel)reasons.push('Es parte del nivel actual');
@@ -313,14 +319,14 @@
     else if(state===2&&evidence.contextCount<2)reasons.push('Falta probarlo en otro contexto');
     else if(state===2)reasons.push('Conviene seguir generalizándolo');
     else if(state===3)reasons.push('Necesita más evidencia para considerarlo dominado');
-    if(timing.mode==='response'&&timing.recentCount>=2&&timing.targetSeconds&&timing.medianSeconds>timing.targetSeconds*1.25)reasons.push('La respuesta aún tarda ≈ '+timing.medianSeconds.toFixed(1)+' s');
-    if(timing.mode==='duration'&&timing.recentCount>=2&&timing.targetSeconds&&timing.medianSeconds<timing.targetSeconds*.8)reasons.push('Conviene alargar la duración estable');
+    if(timing.mode==='response'&&timing.recentCount>=p.timingMinSamples&&timing.targetSeconds&&timing.medianSeconds>timing.targetSeconds*p.responseSlowFactor)reasons.push('La respuesta aún tarda ≈ '+timing.medianSeconds.toFixed(1)+' s');
+    if(timing.mode==='duration'&&timing.recentCount>=p.timingMinSamples&&timing.targetSeconds&&timing.medianSeconds<timing.targetSeconds*p.durationLowFactor)reasons.push('Conviene alargar la duración estable');
     if(confidence.level==='Baja'&&confidence.sessions>0)reasons.push('La confianza todavía es baja: falta más evidencia');
-    if(days>=7)reasons.push('Lleva '+Math.floor(days)+' días sin practicarse');
+    if(days>=p.staleReasonDays)reasons.push('Lleva '+Math.floor(days)+' días sin practicarse');
     if(!reasons.length)reasons.push('Repaso espaciado para conservar la respuesta');
 
     const safety=safetyForCommand(command,profile,now);
-    if(safety?.deferFromAdaptive)score-=1000;
+    if(safety?.deferFromAdaptive)score-=p.deferredPenalty;
     return{score,reasons,evidence,confidence,timing,difficulty,attempts,recommendation:recommendedContext(command,{progress,history,stateScore}),safety};
   }
 
@@ -438,7 +444,7 @@
   }
 
   globalThis.PatrickTrainingEngine=Object.freeze({
-    CONTEXT_ENVIRONMENTS,CONTEXT_DISTRACTIONS,normalizeContext,contextSignature,contextDifficulty,contextLabel,
+    POLICY:ADAPTIVE_POLICY,CONTEXT_ENVIRONMENTS,CONTEXT_DISTRACTIONS,normalizeContext,contextSignature,contextDifficulty,contextLabel,
     effectiveAgeMonths,ageStage,safetyForCommand,skillFamily,difficultyTarget,timingTarget,commandTimingEvidence,evidenceConfidence,recommendedAttempts,
     lastPracticeMs,recentAverage,commandContextEvidence,nextProgressState,recommendedContext,priorityDetails,adaptivePriority,focusForLevel,
     commandHistorySeries,commandTrend,evolutionSummary,dailyPlan,microPlan,ageGuidance
