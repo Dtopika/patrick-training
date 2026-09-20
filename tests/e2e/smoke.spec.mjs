@@ -1,5 +1,14 @@
 import {test,expect} from '@playwright/test';
 
+async function expectContainedHorizontally(page,selector){
+  const metrics=await page.locator(selector).evaluate(el=>{
+    const r=el.getBoundingClientRect();
+    return{left:r.left,right:r.right,scrollWidth:el.scrollWidth,clientWidth:el.clientWidth,viewport:window.innerWidth};
+  });
+  expect(metrics.left).toBeGreaterThanOrEqual(-1);
+  expect(metrics.right).toBeLessThanOrEqual(metrics.viewport+1);
+  expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.clientWidth+1);
+}
 async function onboard(page){
   await page.goto('/');
   const wizard=page.locator('#setupWizardDialog');
@@ -108,6 +117,46 @@ test('app and command languages are independent from wizard through settings',as
   await expect.poll(()=>page.evaluate(()=>({lang:document.documentElement.lang,app:appLanguage,commands:commandLanguage,canonical:commandBy('Sitz').cmd}))).toEqual({lang:'de',app:'de',commands:'en',canonical:'Sitz'});
 });
 
+test('localized option layouts stay inside the mobile viewport',async({page})=>{
+  await page.goto('/');
+  await page.locator('#setupAppLanguage').selectOption('de');
+  await expect(page.locator('[data-setup-step="0"] h2')).toContainText('Mach sie');
+  await expectContainedHorizontally(page,'#setupWizardDialog .setupWizardCard');
+  await expectContainedHorizontally(page,'.setupLanguageGrid');
+
+  await page.locator('#setupNextBtn').click();
+  await page.locator('#setupDogName').fill('Patrick');
+  await page.locator('#setupDogAge').fill('4');
+  await page.locator('#setupNextBtn').click();
+  await page.locator('#setupNextBtn').click();
+  await page.locator('#setupNextBtn').click();
+
+  await page.locator('#settingsAvatarBtn').click();
+  await page.locator('#openAppSettingsBtn').click();
+  await expect(page.locator('#appSettingsDialog')).toBeVisible();
+  await expect(page.locator('#germanVoiceSection')).toBeVisible();
+  await expectContainedHorizontally(page,'#appSettingsDialog .managementCard');
+
+  const layout=await page.locator('#appSettingsDialog .managementCard').evaluate(card=>({
+    cardScrollWidth:card.scrollWidth,
+    cardClientWidth:card.clientWidth,
+    widest:[...card.querySelectorAll('.managementControl,.managementMeta,.managementAction')].reduce((max,el)=>Math.max(max,el.scrollWidth-el.clientWidth),0),
+    escaped:[...card.querySelectorAll('.managementControl,.managementMeta,.managementAction,select')].some(el=>{const r=el.getBoundingClientRect();return r.left<card.getBoundingClientRect().left-1||r.right>card.getBoundingClientRect().right+1})
+  }));
+  expect(layout.cardScrollWidth).toBeLessThanOrEqual(layout.cardClientWidth+1);
+  expect(layout.widest).toBeLessThanOrEqual(1);
+  expect(layout.escaped).toBe(false);
+
+  await page.locator('#appLanguageSelect').selectOption('en');
+  await expect(page.locator('#appSettingsTitle')).toHaveText('Settings');
+  await expectContainedHorizontally(page,'#appSettingsDialog .managementCard');
+
+  await page.locator('#appLanguageSelect').selectOption('de');
+  await page.locator('#commandLanguageSelect').selectOption('de');
+  await expect(page.locator('#germanVoiceSection')).toBeVisible();
+  await expectContainedHorizontally(page,'#germanVoiceSection');
+  await expectContainedHorizontally(page,'#germanVoiceSelect');
+});
 test('mobile navigation, chooser and undo work end to end',async({page})=>{
   await onboard(page);
 
