@@ -52,6 +52,18 @@ test('generalizing commands require durable varied evidence before becoming domi
   assert.equal(e.nextProgressState('Sitz','Generalizando',{trials,history:shortWindow,stateScore}),'Generalizando');
 });
 
+test('adaptive policy is explicit and preserves v3 behavior',()=>{
+  const e=engine(),p=e.POLICY,stateScore={'No iniciado':0,'En práctica':1,'Consistente':2,'Generalizando':3,'Dominado':4},command={level:1,cmd:'Sitz',category:'Posiciones'};
+  assert.equal(p.progress.consistentTrials,10);
+  assert.equal(p.progress.consistentPoints,8);
+  assert.equal(p.progress.masteredSpanDays,7);
+  assert.equal(p.confidence.high,.72);
+  assert.equal(e.recommendedAttempts(command,{trials:{},history:[],progress:{Sitz:'No iniciado'},stateScore,profile:{ageMonths:24}}),4);
+  assert.equal(e.recommendedAttempts(command,{trials:{Sitz:[0,0,.5]},history:[],progress:{Sitz:'En práctica'},stateScore,profile:{ageMonths:24}}),3);
+  assert.equal(e.recommendedAttempts(command,{trials:{Sitz:[1,.5,.5]},history:[],progress:{Sitz:'En práctica'},stateScore,profile:{ageMonths:24}}),5);
+  assert.equal(e.nextProgressState('Sitz','En práctica',{trials:{Sitz:[1,1,1,1,1,1,1,1,0,0]},history:[],stateScore}),'Consistente');
+});
+
 test('adaptive v2 explains why a command is selected and recommends the next context',()=>{
   const e=engine(),stateScore={'No iniciado':0,'En práctica':1,'Consistente':2,'Generalizando':3,'Dominado':4};
   const command={level:1,cmd:'Sitz',category:'Posiciones'};
