@@ -3,11 +3,10 @@ let activeInsightCommand=null,currentDailyMissionPlan=null;
 function pctText(value){return value===null||value===undefined?'—':Math.round(Number(value)*100)+'%'}
 function signedPct(value){if(value===null||value===undefined)return copyText('Sin comparación');const n=Math.round(Number(value)*100);return(n>0?'+':'')+n+' pts'}
 function stateProgressHint(state){
-  if(state==='No iniciado')return'Empieza con una respuesta simple y fácil de premiar.';
-  if(state==='En práctica')return'Busca 8 de 10 puntos recientes antes de subir dificultad.';
-  if(state==='Consistente')return'Ahora importa repetir el comportamiento en contextos diferentes.';
-  if(state==='Generalizando')return'Consolida buenos resultados en varios entornos y a lo largo del tiempo.';
-  return'Mantén el comando con repasos espaciados sin entrenarlo de más.';
+  const es=state==='No iniciado'?'Empieza con una respuesta simple y fácil de premiar.':state==='En práctica'?'Busca 8 de 10 puntos recientes antes de subir dificultad.':state==='Consistente'?'Ahora importa repetir el comportamiento en contextos diferentes.':state==='Generalizando'?'Consolida buenos resultados en varios entornos y a lo largo del tiempo.':'Mantén el comando con repasos espaciados sin entrenarlo de más.';
+  if(appLanguage==='en')return state==='No iniciado'?'Start with a simple response that is easy to reward.':state==='En práctica'?'Aim for 8 of 10 recent points before increasing difficulty.':state==='Consistente'?'Now repeat the behavior in different contexts.':state==='Generalizando'?'Consolidate strong results across several environments and over time.':'Maintain the command with spaced reviews without overtraining it.';
+  if(appLanguage==='de')return state==='No iniciado'?'Beginne mit einer einfachen Reaktion, die leicht zu belohnen ist.':state==='En práctica'?'Erreiche 8 von 10 aktuellen Punkten, bevor du die Schwierigkeit erhöhst.':state==='Consistente'?'Jetzt zählt die Wiederholung des Verhaltens in verschiedenen Kontexten.':state==='Generalizando'?'Festige gute Ergebnisse in mehreren Umgebungen und über längere Zeit.':'Erhalte das Kommando mit verteilten Wiederholungen, ohne zu viel zu trainieren.';
+  return es;
 }
 
 function renderDailyMission(plan){
@@ -66,7 +65,7 @@ function renderEvolutionDashboard(){
 function commandSeriesHtml(series){
   if(!series.length)return`<p class="insightEmpty">${appLanguage==='en'?'There are no completed sessions for this command yet.':appLanguage==='de'?'Für dieses Kommando gibt es noch keine abgeschlossenen Einheiten.':'Todavía no hay sesiones terminadas para este comando.'}</p>`;
   const fmt=new Intl.DateTimeFormat(I18N?.locale?.(appLanguage)||'es-CO',{day:'numeric',month:'short'});
-  return`<div class="commandSeriesRail" role="list" aria-label="Sesiones recientes, de izquierda a derecha">${series.map(item=>`<article class="commandSessionCard" role="listitem"><small>${fmt.format(new Date(item.at))}</small><strong>${Math.round(item.accuracy*100)}%</strong><span>${escapeHtml(ENGINE.contextLabel(item.context))}</span>${item.timingMode==='cue-to-rating'&&item.avgSeconds?`<span>${item.avgSeconds.toFixed(1)} s · tiempo preciso</span>`:''}</article>`).join('')}</div><small class="commandSeriesHint">Más antiguo ← desliza → más reciente</small>`;
+  return`<div class="commandSeriesRail" role="list" aria-label="${escapeHtml(copyText('Sesiones recientes, de izquierda a derecha'))}">${series.map(item=>`<article class="commandSessionCard" role="listitem"><small>${fmt.format(new Date(item.at))}</small><strong>${Math.round(item.accuracy*100)}%</strong><span>${escapeHtml(displayEngineText(ENGINE.contextLabel(item.context)))}</span>${item.timingMode==='cue-to-rating'&&item.avgSeconds?`<span>${item.avgSeconds.toFixed(1)} s · ${escapeHtml(copyText('tiempo preciso'))}</span>`:''}</article>`).join('')}</div><small class="commandSeriesHint">${escapeHtml(copyText('Más antiguo ← desliza → más reciente'))}</small>`;
 }
 
 function openCommandInsight(cmdName){
