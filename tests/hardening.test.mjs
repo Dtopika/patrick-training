@@ -4,6 +4,8 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 
 const read=path=>fs.readFileSync(new URL('../'+path,import.meta.url),'utf8');
+const PROFILE_FILES=['profile.js','profile-setup.js','profile-data.js','profile-reminders.js','profile-settings.js'];
+const readProfile=()=>PROFILE_FILES.map(read).join('\n');
 
 class MemoryStorage{
   constructor(seed={}){this.map=new Map(Object.entries(seed))}
@@ -88,7 +90,7 @@ test('v6 bootstraps its dependencies when an older HTML shell loads newer JavaSc
 });
 
 test('navigation and settings click wiring remain collection-safe',()=>{
-  const core=read('app-core.js'),session=read('app-session.js'),profile=read('profile.js');
+  const core=read('app-core.js'),session=read('app-session.js'),profile=readProfile();
   assert.ok(core.includes("function setView(id){$$('.view').forEach"),'setView must iterate all views');
   assert.ok(core.includes("$$('.bottomNav button').forEach"),'setView must iterate all nav buttons');
   assert.ok(session.includes("$$('.bottomNav button').forEach"),'bottom-nav handlers must bind to all buttons');
@@ -180,7 +182,7 @@ test('future levels stay locked and an invalid saved active level repairs to the
 });
 
 test('v6.3 separates progress, route and application settings responsibilities',()=>{
-  const index=read('index.html'),progressSource=read('progress.js'),core=read('app-core.js'),profile=read('profile.js'),insights=read('app-insights.js');
+  const index=read('index.html'),progressSource=read('progress.js'),core=read('app-core.js'),profile=readProfile(),insights=read('app-insights.js');
   assert.doesNotMatch(index,/id="progressList"/);
   assert.doesNotMatch(progressSource,/data-state=/);
   assert.match(core,/levelCardV2/);
@@ -213,7 +215,7 @@ test('v6.4 keeps level cards compact and gates starts through an explicit choose
 });
 
 test('v6.4 keeps route focus separate from session level and makes evidence correctable',()=>{
-  const session=read('app-session.js'),progressSource=read('progress.js'),profile=read('profile.js'),workflow=read('.github/workflows/quality.yml'),release=read('scripts/release-version.mjs'),pkg=JSON.parse(read('package.json'));
+  const session=read('app-session.js'),progressSource=read('progress.js'),profile=readProfile(),workflow=read('.github/workflows/quality.yml'),release=read('scripts/release-version.mjs'),pkg=JSON.parse(read('package.json'));
   assert.match(session,/session=\{commands:safeCommands,level:sessionLevel/);
   assert.match(session,/finishedLevel=Number\(activeSession\.level\)/);
   assert.match(session,/routeFrontierBefore=maxUnlockedLevelFrom\(progress\)/);
@@ -265,7 +267,7 @@ test('v7.1 archives overflow sessions and exposes a single teaching mission',asy
   assert.equal(compacted.history.length,200);
   assert.equal(compacted.archive.totalSessions,1);
   assert.equal(Object.values(compacted.archive.months)[0].sessions,1);
-  const index=read('index.html'),profile=read('profile.js'),progressSource=read('progress.js'),core=read('app-core.js');
+  const index=read('index.html'),profile=readProfile(),progressSource=read('progress.js'),core=read('app-core.js');
   assert.match(index,/id="dailyMission"/);
   assert.match(index,/id="dailyPlanDetails"/);
   assert.match(profile,/id="openTeachingGuideBtn"/);
@@ -276,7 +278,7 @@ test('v7.1 archives overflow sessions and exposes a single teaching mission',asy
 });
 
 test('v7.2 teaches visually, preserves German voice and charts long-term evolution',()=>{
-  const core=read('app-core.js'),profile=read('profile.js'),media=read('app-media.js'),progressSource=read('progress.js'),index=read('index.html'),backup=read('backup-schema.js');
+  const core=read('app-core.js'),profile=readProfile(),media=read('app-media.js'),progressSource=read('progress.js'),index=read('index.html'),backup=read('backup-schema.js');
   assert.match(core,/function germanVoices/);
   assert.match(core,/function selectedGermanVoice/);
   assert.match(core,/patrickGermanVoice:'auto'/);
@@ -302,7 +304,7 @@ test('video catalog still covers every training command exactly once',()=>{
 });
 
 test('v7.3 first-run wizard configures theme profile tutorial and level zero before app use',()=>{
-  const index=read('index.html'),profile=read('profile.js'),core=read('app-core.js'),backup=read('backup-schema.js');
+  const index=read('index.html'),profile=readProfile(),core=read('app-core.js'),backup=read('backup-schema.js');
   assert.match(index,/id="setupWizardDialog"/);
   assert.match(index,/data-setup-step="0"/);
   assert.match(index,/data-setup-step="3"/);
@@ -319,7 +321,7 @@ test('v7.3 first-run wizard configures theme profile tutorial and level zero bef
 });
 
 test('v7.3.2 full reset requires two confirmations and resets only managed data',()=>{
-  const profile=read('profile.js');
+  const profile=readProfile();
   const fn=profile.match(/async function resetAllTrainingData\(\)\{[\s\S]*?\n\}/)?.[0]||'';
   assert.match(profile,/id="resetAllDataBtn"/);
   assert.equal((fn.match(/confirm\(/g)||[]).length,2);
@@ -331,7 +333,7 @@ test('v7.3.2 full reset requires two confirmations and resets only managed data'
 });
 
 test('v7.3.2 wizard actions stay compact, prioritized and validation-aware',()=>{
-  const profile=read('profile.js'),styles=read('styles-profile.css'),index=read('index.html');
+  const profile=readProfile(),styles=read('styles-profile.css'),index=read('index.html');
   assert.match(index,/id="setupWizardBody"/);
   assert.match(profile,/function setupStepCanContinue/);
   assert.match(profile,/function syncSetupNextState/);
@@ -368,7 +370,7 @@ test('v7.5 separates app language from command language without changing canonic
   assert.equal(i18n.commandLabel('en','Patrick','Max'),'Max');
   assert.equal(i18n.commandMeaning('en','Sitz','Siéntate'),'Sit');
   assert.equal(i18n.levelText('de',11)[0],'Sichere Kontrolle und Schutz');
-  const core=read('app-core.js'),profile=read('profile.js'),index=read('index.html'),backup=read('backup-schema.js'),sw=read('sw.js');
+  const core=read('app-core.js'),profile=readProfile(),index=read('index.html'),backup=read('backup-schema.js'),sw=read('sw.js');
   assert.match(core,/patrickAppLanguage:'es'/);
   assert.match(core,/patrickCommandLanguage:'de'/);
   assert.match(core,/function displayCommand/);
@@ -439,7 +441,7 @@ test('v7.5 upgrade contract cache-busts every critical browser asset',()=>{
 });
 
 test('v6 privacy, CSP, accessibility and PWA regressions stay closed',()=>{
-  const index=read('index.html'),core=read('app-core.js'),profile=read('profile.js'),pwa=read('pwa.js'),sw=read('sw.js'),manifest=JSON.parse(read('manifest.webmanifest'));
+  const index=read('index.html'),core=read('app-core.js'),profile=readProfile(),pwa=read('pwa.js'),sw=read('sw.js'),manifest=JSON.parse(read('manifest.webmanifest'));
   assert.match(index,/Content-Security-Policy/);
   assert.match(index,/script-src 'self'/);
   assert.match(index,/aria-labelledby="sessionCommandTitle"/);
@@ -457,7 +459,7 @@ test('v6 privacy, CSP, accessibility and PWA regressions stay closed',()=>{
 });
 
 test('production JavaScript parses and CSS override debt stays bounded',()=>{
-  const files=['config.js','i18n.js','training-engine.js','backup-schema.js','db.js','app-core.js','profile.js','progress.js','app-media.js','app-insights.js','app-session.js','pwa.js','sw.js','commands-1.js','commands-2.js','commands-3.js','commands-4.js','levels.js','videos.js','splash.js'];
+  const files=['config.js','i18n.js','training-engine.js','backup-schema.js','db.js','app-core.js',...PROFILE_FILES,'progress.js','app-media.js','app-insights.js','app-session.js','pwa.js','sw.js','commands-1.js','commands-2.js','commands-3.js','commands-4.js','levels.js','videos.js','splash.js'];
   for(const file of files)assert.doesNotThrow(()=>new Function(read(file)),file);
   const important=(read('styles-polish.css').match(/!important/g)||[]).length;
   assert.ok(important<=12,'styles-polish.css !important count='+important);
