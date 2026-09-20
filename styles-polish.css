@@ -11,3 +11,35 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible,te
 @media(max-width:360px){.sessionActions button{font-size:10px;padding:0 4px}.habitWeek{gap:3px}.habitDay>div{width:29px;height:29px}}
 
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+
+/* Resilient layout for localized copy */
+.welcomeRow>*,.planItem>div,.advanceCard>div,.commandSummary>div:first-child,
+.levelTitleWrap,.startChoiceOption>span:nth-child(2),.coachCard>div,
+.finishResult>*,.dailyPlanDetails>summary>*{
+  min-width:0;
+}
+.welcomeRow h1,.pageHead h1,.planItem strong,.planItem p,
+.levelTitleWrap strong,.levelTitleWrap small,.startChoiceOption strong,
+.startChoiceOption small,.coachCard strong,.coachCard p,
+.dailyPlanDetails>summary span,.dailyPlanDetails>summary small{
+  overflow-wrap:anywhere;
+}
+select{max-width:100%}
+
+@media(max-width:420px){
+  .welcomeRow{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) minmax(132px,42%);
+    align-items:end;
+  }
+  .daySelect{
+    width:100%;
+    min-width:0;
+    max-width:100%;
+  }
+  .daySelectHelp{max-width:none}
+}
+@media(max-width:360px){
+  .welcomeRow{grid-template-columns:1fr}
+}
+
