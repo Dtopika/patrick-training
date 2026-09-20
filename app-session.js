@@ -224,4 +224,13 @@ function init(){
   $('#finishBtn').onclick=()=>{$('#finishDialog').close();setView('today')};
   renderCommands();renderAll();document.dispatchEvent(new Event('patrick:ready'));
 }
-window.PATRICK_READY.then(init).catch(e=>{console.error('Patrick Training bootstrap failed',e);init()});
+let bootstrapRetrying=false;
+function showBootstrapFailure(error){
+  console.error('Patrick Training bootstrap failed',error);
+  let box=$('#bootstrapRecovery');
+  if(!box){document.body.insertAdjacentHTML('beforeend','<section id="bootstrapRecovery" class="bootstrapRecovery" role="alertdialog" aria-modal="true"><div><strong id="bootstrapRecoveryTitle"></strong><p id="bootstrapRecoveryText"></p><button id="bootstrapRetryBtn" type="button"></button></div></section>');box=$('#bootstrapRecovery')}
+  const lang=document.documentElement.lang||'es',title=lang==='en'?'Patrick Training could not start':lang==='de'?'Patrick Training konnte nicht starten':'Patrick Training no pudo iniciar',message=lang==='en'?'Your data is still on this device. Try loading the app again.':lang==='de'?'Deine Daten bleiben auf diesem Gerät. Versuche, die App erneut zu laden.':'Tus datos siguen en este dispositivo. Intenta cargar la app de nuevo.',retry=lang==='en'?'Try again':lang==='de'?'Erneut versuchen':'Intentar de nuevo';
+  $('#bootstrapRecoveryTitle').textContent=title;$('#bootstrapRecoveryText').textContent=message;const button=$('#bootstrapRetryBtn');button.textContent=retry;button.disabled=false;
+  button.onclick=async()=>{if(bootstrapRetrying)return;bootstrapRetrying=true;button.disabled=true;try{await bootstrapPatrick();box.remove();init()}catch(e){bootstrapRetrying=false;showBootstrapFailure(e)}};
+}
+window.PATRICK_READY.then(init).catch(showBootstrapFailure);
