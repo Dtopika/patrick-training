@@ -43,6 +43,30 @@
     Hinter:{
       label:'Posición segura',
       message:'Úsalo como posición de refugio detrás de ti. Practica primero en ambientes tranquilos y sin confrontación.'
+    },
+    'Bei mir':{
+      label:'Protección segura',
+      message:'Debe significar volver y permanecer junto al guía. No lo uses para acercar al perro a personas o conflictos.'
+    },
+    Leise:{
+      label:'Desescalada',
+      message:'Refuerza silencio y calma después de una alerta breve; no provoques amenazas para practicarlo.'
+    },
+    Weg:{
+      label:'Desenganche seguro',
+      message:'Debe alejar al perro del estímulo y devolverlo contigo, nunca enviarlo hacia una persona.'
+    },
+    'Kehr um':{
+      label:'Salida de emergencia',
+      message:'Úsalo para girar y abandonar una situación de forma controlada.'
+    },
+    'Zu mir':{
+      label:'Retorno al guía',
+      message:'Refuerza regreso inmediato y permanencia cerca del guía; no es una señal de persecución.'
+    },
+    Abstand:{
+      label:'Crear distancia',
+      message:'Construye alejamiento y espacio respecto al estímulo. Practica con estímulos neutros y sin confrontación.'
     }
   });
 
@@ -101,7 +125,7 @@
     Nein:'control',Aus:'control','Lass es':'control',Stopp:'control',Ruhe:'control',Schau:'control',
     Links:'direction',Rechts:'direction',Voraus:'direction',Hoch:'direction',Runter:'direction',Hopp:'direction',
     Rein:'household',Raus:'household',Box:'household','Lös dich':'household',
-    Laut:'alert','Pass auf':'alert'
+    Laut:'alert','Pass auf':'alert','Leise':'control','Weg':'control','Abstand':'control','Bei mir':'heel','Kehr um':'heel','Zu mir':'recall'
   });
 
   function skillFamily(command){
@@ -110,7 +134,7 @@
       (category==='Posiciones'?'position':category==='Autocontrol'?'hold':category==='Llamada'?'recall':
       category==='Objetos'?'object':category==='Casa'?'household':category==='Dirección'||category==='Movimiento'||category==='Distancia'?'direction':
       category==='Paseo'||category==='Obediencia'?'heel':category==='Seguridad'||category==='Control'?'control':
-      category==='Alerta'||category==='Control defensivo'?'alert':category==='Olfato'?'search':'default');
+      category==='Alerta'||category==='Control defensivo'?'alert':category==='Protección segura'?'control':category==='Olfato'?'search':'default');
     return{key,...SKILL_FAMILIES[key]};
   }
 
