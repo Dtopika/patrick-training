@@ -3,13 +3,13 @@
 PWA móvil, local-first, para entrenar a Patrick con comandos en alemán, sesiones guiadas y progresión adaptativa.
 
 ## Estado
-- Release estable publicada: v7.3.2.
+- Release estable publicada: v7.4.0.
 - Línea actual: First-run Experience con wizard de tema, perfil, tutorial y arranque guiado de Nivel 0.
 - Sin backend ni cuentas: los datos permanecen en el dispositivo salvo exportación manual.
 
 ## Funciones
-- 41 comandos organizados en niveles 0 → 10.
-- Sesiones guiadas de cinco ejecuciones por comando.
+- 47 comandos organizados en niveles 0 → 11.
+- Sesiones guiadas de 3–5 ejecuciones adaptativas por comando.
 - Motor adaptativo v2 por nivel, rendimiento, antigüedad, contexto y etapa/edad del perro.
 - Plan diario inteligente con objetivo, contexto recomendado y acceso directo a práctica.
 - Dashboard de evolución de 7/30 días con tendencias y señales de mejora/atención.
@@ -41,7 +41,7 @@ PWA móvil, local-first, para entrenar a Patrick con comandos en alemán, sesion
 - Tutorial visual 1→2→3→4: señal, respuesta, Ja! y premio.
 - Voz alemana seleccionable entre las voces instaladas en el dispositivo, con fallback automático.
 - Evolución mensual combina sesiones recientes y archivo sin duplicar datos.
-- Cobertura multimedia contractual: 41 comandos y 41 videos curados.
+- Cobertura multimedia contractual: 47 comandos y 47 videos curados.
 - Backups schema 11 preservan la preferencia de voz alemana.
 - Primer arranque unificado en un wizard de 4 pasos.
 - Tema se elige antes de entrar a la app y se previsualiza al instante.
@@ -51,6 +51,8 @@ PWA móvil, local-first, para entrenar a Patrick con comandos en alemán, sesion
 - Backups schema 12 preservan el estado de configuración inicial.
 - Reinicio completo desde Configuración con doble confirmación obligatoria y regreso inmediato al wizard.
 - Footer del wizard corregido: CTA compacto, Atrás secundario, validación en línea y layout estable con teclado.
+- Nivel 11 · Control y protección segura: retorno al guía, silencio, desenganche, salida, llamada y creación de distancia; sin mordida ni ataque operativo.
+- El techo de la ruta ahora es dinámico y backups/historial aceptan el último nivel real.
 - Historial, racha y evidencia reciente por comando.
 - Perfil del perro con edad y recomendaciones de seguridad.
 - Videos curados y pronunciación mediante la voz alemana del dispositivo.
