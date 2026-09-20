@@ -71,25 +71,40 @@ test('app and command languages are independent from wizard through settings',as
 
   await expect(page.locator('.bottomNav [data-view="today"] small')).toHaveText('Today');
   await expect(page.locator('.bottomNav [data-view="commands"] small')).toHaveText('Commands');
+  await expect(page.locator('#dailyPlanDetails summary span')).toHaveText('View plan details');
+  await expect(page.locator('#smartDailyPlan')).toContainText('ADAPTIVE COACH');
   await page.locator('.bottomNav [data-view="commands"]').click();
   const sit=page.locator('.commandCard[data-command="Sitz"]');
   await expect(sit).toBeVisible();
   await expect(sit.locator('.commandTitle strong')).toHaveText('Siéntate');
   await expect(sit.locator('.commandMeaning')).toHaveText('Sit');
+  await sit.locator('.commandToggle').click();
+  await expect(sit).toContainText('Rear touches the ground while front paws remain planted.');
+  await expect(sit).toContainText('Reward at the nose');
   await expect.poll(()=>page.evaluate(()=>({app:appLanguage,commands:commandLanguage,canonical:commandBy('Sitz').cmd,shown:displayCommand(commandBy('Sitz'))}))).toEqual({app:'en',commands:'es',canonical:'Sitz',shown:'Siéntate'});
 
   await page.locator('#settingsAvatarBtn').click();
   await page.locator('#openAppSettingsBtn').click();
   await expect(page.locator('#germanVoiceSection')).toBeHidden();
+  await expect(page.locator('#exportBtn strong')).toHaveText('Export backup');
   await page.locator('#appLanguageSelect').selectOption('de');
   await page.locator('#commandLanguageSelect').selectOption('en');
   await expect(page.locator('#appSettingsTitle')).toHaveText('Einstellungen');
+  await expect(page.locator('#exportBtn strong')).toHaveText('Backup exportieren');
+  await expect(page.locator('#germanVoiceSection')).toBeHidden();
   await page.locator('#closeAppSettingsBtn').click();
 
   await expect(page.locator('.bottomNav [data-view="today"] small')).toHaveText('Heute');
   await expect(page.locator('.bottomNav [data-view="levels"] small')).toHaveText('Stufen');
   await page.locator('.bottomNav [data-view="commands"]').click();
-  await expect(page.locator('.commandCard[data-command="Sitz"] .commandTitle strong')).toHaveText('Sit');
+  const germanSit=page.locator('.commandCard[data-command="Sitz"]');
+  await expect(germanSit.locator('.commandTitle strong')).toHaveText('Sit');
+  await germanSit.locator('.commandToggle').click();
+  await expect(germanSit).toContainText('Hinterteil am Boden');
+  await expect(germanSit).toContainText('Belohnung an die Nase');
+  await page.locator('.bottomNav [data-view="progress"]').click();
+  await expect(page.locator('#adaptiveSummary')).toContainText('ADAPTIVE ENGINE V3');
+  await expect(page.locator('#habitCard')).toContainText('GESUNDE GEWOHNHEIT');
   await expect.poll(()=>page.evaluate(()=>({lang:document.documentElement.lang,app:appLanguage,commands:commandLanguage,canonical:commandBy('Sitz').cmd}))).toEqual({lang:'de',app:'de',commands:'en',canonical:'Sitz'});
 });
 
