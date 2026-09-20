@@ -75,7 +75,7 @@ test('app and command languages are independent from wizard through settings',as
   const sit=page.locator('.commandCard[data-command="Sitz"]');
   await expect(sit).toBeVisible();
   await expect(sit.locator('.commandTitle strong')).toHaveText('Siéntate');
-  await expect(sit.locator('.commandMeaning')).toHaveText('Siéntate');
+  await expect(sit.locator('.commandMeaning')).toHaveText('Sit');
   await expect.poll(()=>page.evaluate(()=>({app:appLanguage,commands:commandLanguage,canonical:commandBy('Sitz').cmd,shown:displayCommand(commandBy('Sitz'))}))).toEqual({app:'en',commands:'es',canonical:'Sitz',shown:'Siéntate'});
 
   await page.locator('#settingsAvatarBtn').click();
@@ -199,7 +199,7 @@ test('level 11 safe protection route is visible but locked until previous levels
   await page.locator('.bottomNav [data-view="levels"]').click();
   const level11=page.locator('.levelCard').filter({hasText:'Control y protección segura'});
   await expect(level11).toBeVisible();
-  await expect(level11).toContainText('PASO 11');
+  await expect(level11).toContainText('NIVEL 11');
   await expect(level11).toContainText('Bloqueado');
   await expect(level11).toContainText('Completa el anterior');
 
