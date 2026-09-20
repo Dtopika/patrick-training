@@ -79,7 +79,8 @@ const STORAGE_DEFAULTS={
   patrickHistoryArchive:{version:1,totalSessions:0,months:{}},
   patrickTeachingOnboardingVersion:0,
   patrickSetupWizardVersion:0,
-  patrickGermanVoice:'auto'
+  patrickGermanVoice:'auto',
+  patrickLastBackupAt:null
 };
 const STORAGE_META_KEY='patrickStorageMetaV2';
 const memoryStore={};
