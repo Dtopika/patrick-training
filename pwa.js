@@ -48,7 +48,7 @@ if('serviceWorker' in navigator){
     hadController=true;
   });
   window.addEventListener('load',async()=>{
-    try{serviceWorkerRegistration=await navigator.serviceWorker.register('./sw.js?v740-r1');syncInstallUI()}
+    try{serviceWorkerRegistration=await navigator.serviceWorker.register('./sw.js?v750-r1');syncInstallUI()}
     catch(e){console.warn('Service Worker registration failed',e)}
   });
 }
