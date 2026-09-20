@@ -6,6 +6,11 @@ const TEACHING_GUIDE_VERSION=1;
 const SETUP_WIZARD_VERSION=1;
 let profileUiInitialized=false,reminderLoaded=false,reminderTimer=null,reminderStorageMode='indexeddb',settingsReturnFocus=null,teachingOnboardingVersion=0,setupWizardVersion=0,setupWizardStep=0;
 let reminderSettings={enabled:false,time:'19:00',lastNotifiedDate:null},themePreference='system';
+const MAX_DOG_AGE_MONTHS=CONFIG?.MAX_DOG_AGE_MONTHS||240;
+function dogAgeMonthsFromValue(value,unit='months'){const n=Number(value);return Number.isFinite(n)&&n>0?Math.round(unit==='years'?n*12:n):0}
+function dogAgeValueValid(value,unit='months'){const months=dogAgeMonthsFromValue(value,unit);return months>=1&&months<=MAX_DOG_AGE_MONTHS}
+function syncDogAgeInputBounds(input,unit='months'){if(!input)return;input.min='1';input.max=String(unit==='years'?MAX_DOG_AGE_MONTHS/12:MAX_DOG_AGE_MONTHS);input.step=unit==='years'?'0.1':'1'}
+function dogAgeLimitMessage(){const years=MAX_DOG_AGE_MONTHS/12;return appLanguage==='en'?`Enter an age up to ${years} years.`:appLanguage==='de'?`Gib ein Alter bis ${years} Jahre ein.`:`Indica una edad de máximo ${years} años.`}
 
 function currentDogAgeMonths(){return ENGINE.effectiveAgeMonths(dogProfile)}
 function dogAgeLabel(){
@@ -88,7 +93,7 @@ function syncSetupAgePreview(){const preview=$('#setupDogAgePreview');if(preview
 function setupDogDraft(){
   const name=String($('#setupDogName')?.value||dogProfile?.name||'').trim().replace(/\s+/g,' ').slice(0,24);
   const value=Number($('#setupDogAge')?.value||0),unit=$('#setupDogAgeUnit')?.value||'months';
-  const ageMonths=Number.isFinite(value)&&value>0?Math.max(1,Math.round(unit==='years'?value*12:value)):0;
+  const ageMonths=dogAgeMonthsFromValue(value,unit);
   return{name,ageMonths,ageUpdatedAt:new Date().toISOString(),breed:'Pastor Alemán'};
 }
 function syncSetupThemeButtons(){
@@ -103,8 +108,8 @@ function syncSetupReadySummary(){
 }
 function setupStepCanContinue(){
   if(setupWizardStep!==1)return true;
-  const name=String($('#setupDogName')?.value||'').trim(),age=Number($('#setupDogAge')?.value||0);
-  return !!name&&Number.isFinite(age)&&age>0;
+  const name=String($('#setupDogName')?.value||'').trim(),age=$('#setupDogAge')?.value,unit=$('#setupDogAgeUnit')?.value||'months';
+  return !!name&&dogAgeValueValid(age,unit);
 }
 function syncSetupNextState(){
   const next=$('#setupNextBtn');if(!next)return;
@@ -120,11 +125,11 @@ function renderSetupWizard(){
 }
 function populateSetupWizard(){
   $('#setupDogName').value=dogProfile?.name||'';
-  const months=currentDogAgeMonths();if(months>=12){$('#setupDogAgeUnit').value='years';$('#setupDogAge').step='0.1';$('#setupDogAge').value=String(Math.round(months/12*10)/10)}else{$('#setupDogAgeUnit').value='months';$('#setupDogAge').step='1';$('#setupDogAge').value=months?String(months):''}
-  syncSetupAgePreview();
+  const months=currentDogAgeMonths();if(months>=12){$('#setupDogAgeUnit').value='years';$('#setupDogAge').value=String(Math.round(months/12*10)/10)}else{$('#setupDogAgeUnit').value='months';$('#setupDogAge').value=months?String(months):''}
+  syncDogAgeInputBounds($('#setupDogAge'),$('#setupDogAgeUnit').value);syncSetupAgePreview();
 }
 function validateSetupDog(){
-  const draft=setupDogDraft();if(!draft.name){toast(appLanguage==='en'?'Enter your dog’s name':appLanguage==='de'?'Gib den Namen deines Hundes ein':'Escribe el nombre de tu perro');$('#setupDogName')?.focus();return false}if(!draft.ageMonths){toast(appLanguage==='en'?'Enter your dog’s age':appLanguage==='de'?'Gib das Alter deines Hundes ein':'Indica la edad de tu perro');$('#setupDogAge')?.focus();return false}
+  const draft=setupDogDraft(),ageValue=$('#setupDogAge')?.value,ageUnit=$('#setupDogAgeUnit')?.value||'months';if(!draft.name){toast(appLanguage==='en'?'Enter your dog’s name':appLanguage==='de'?'Gib den Namen deines Hundes ein':'Escribe el nombre de tu perro');$('#setupDogName')?.focus();return false}if(!dogAgeValueValid(ageValue,ageUnit)){toast(dogAgeLimitMessage());$('#setupDogAge')?.focus();return false}
   dogProfile={...dogProfile,...draft};return true;
 }
 async function completeSetupWizard(){
@@ -149,20 +154,20 @@ function bindSetupWizard(){
   $$('[data-setup-theme]').forEach(button=>button.onclick=()=>{themePreference=normalizeTheme(button.dataset.setupTheme);applyTheme();syncSetupThemeButtons()});
   $('#setupDogName').addEventListener('input',syncSetupNextState);
   $('#setupDogAge').addEventListener('input',()=>{syncSetupAgePreview();syncSetupNextState()});
-  $('#setupDogAgeUnit').addEventListener('change',()=>{const input=$('#setupDogAge'),unit=$('#setupDogAgeUnit');input.step=unit.value==='years'?'0.1':'1';syncSetupAgePreview();syncSetupNextState()});
+  $('#setupDogAgeUnit').addEventListener('change',()=>{const input=$('#setupDogAge'),unit=$('#setupDogAgeUnit');syncDogAgeInputBounds(input,unit.value);syncSetupAgePreview();syncSetupNextState()});
   $('#setupDogName').addEventListener('keydown',e=>{if(e.key==='Enter'&&setupStepCanContinue()){e.preventDefault();setupWizardNext()}});$('#setupWizardDialog').addEventListener('cancel',e=>e.preventDefault());
 }
 function populateDogProfileEditor(){
   const months=currentDogAgeMonths();
   $('#dogNameInput').value=dogProfile?.name||'';
-  if(months>=12){$('#dogAgeUnit').value='years';$('#dogAgeInput').step='0.1';$('#dogAgeInput').value=String(Math.round((months/12)*10)/10)}
-  else{$('#dogAgeUnit').value='months';$('#dogAgeInput').step='1';$('#dogAgeInput').value=months?String(months):''}
-  $('#dogAgeUnit').dataset.previous=$('#dogAgeUnit').value;updateDogAgePreview();
+  if(months>=12){$('#dogAgeUnit').value='years';$('#dogAgeInput').value=String(Math.round((months/12)*10)/10)}
+  else{$('#dogAgeUnit').value='months';$('#dogAgeInput').value=months?String(months):''}
+  syncDogAgeInputBounds($('#dogAgeInput'),$('#dogAgeUnit').value);$('#dogAgeUnit').dataset.previous=$('#dogAgeUnit').value;updateDogAgePreview();
 }
 function updateDogAgePreview(){
   const value=Number($('#dogAgeInput')?.value||0),unit=$('#dogAgeUnit')?.value,preview=$('#dogAgePreview');if(!preview)return;
-  if(!value){preview.textContent=t('ageHint');return}
-  const months=Math.max(1,Math.round(unit==='years'?value*12:value)),stage=ENGINE.ageStage({ageMonths:months,ageUpdatedAt:new Date().toISOString()}),stageLabel=displayEngineText(stage.label);
+  if(!value){preview.textContent=t('ageHint');return}if(!dogAgeValueValid(value,unit)){preview.textContent=dogAgeLimitMessage();return}
+  const months=dogAgeMonthsFromValue(value,unit),stage=ENGINE.ageStage({ageMonths:months,ageUpdatedAt:new Date().toISOString()}),stageLabel=displayEngineText(stage.label);
   if(months<12){preview.textContent=`${stageLabel} · ${months} ${appLanguage==='en'?(months===1?'month':'months'):appLanguage==='de'?(months===1?'Monat':'Monate'):(months===1?'mes':'meses')}`;return}
   const years=Math.round((months/12)*10)/10,shown=Number.isInteger(years)?String(years):String(years).replace('.',appLanguage==='en'?'.':',');preview.textContent=`${stageLabel} · ${shown} ${appLanguage==='en'?(years===1?'year':'years'):appLanguage==='de'?(years===1?'Jahr':'Jahre'):(years===1?'año':'años')}`;
 }
@@ -177,8 +182,8 @@ function openDogProfileEditor(firstRun=false,ageOnly=false){
 function saveDogProfile(){
   const firstRun=$('#profileDialog')?.dataset.firstRun==='1';
   const name=$('#dogNameInput').value.trim().replace(/\s+/g,' ').slice(0,24);if(!name){toast(appLanguage==='en'?'Enter your dog’s name':appLanguage==='de'?'Gib den Namen deines Hundes ein':'Escribe el nombre de tu perro');$('#dogNameInput').focus();return}
-  const ageValue=Number($('#dogAgeInput').value||0),unit=$('#dogAgeUnit').value;if(!Number.isFinite(ageValue)||ageValue<=0){toast(appLanguage==='en'?'Enter your dog’s age':appLanguage==='de'?'Gib das Alter deines Hundes ein':'Indica la edad de tu perro');$('#dogAgeInput').focus();return}
-  const ageMonths=Math.max(1,Math.round(unit==='years'?ageValue*12:ageValue));dogProfile={...dogProfile,name,breed:'Pastor Alemán',ageMonths,ageUpdatedAt:new Date().toISOString()};
+  const ageValue=Number($('#dogAgeInput').value||0),unit=$('#dogAgeUnit').value;if(!dogAgeValueValid(ageValue,unit)){toast(dogAgeLimitMessage());$('#dogAgeInput').focus();return}
+  const ageMonths=dogAgeMonthsFromValue(ageValue,unit);dogProfile={...dogProfile,name,breed:'Pastor Alemán',ageMonths,ageUpdatedAt:new Date().toISOString()};
   store.set('patrickDogProfile',dogProfile);$('#profileDialog').close();renderAll();renderCommands();syncSettingsDrawer();toast(appLanguage==='en'?`${name}'s profile saved`:appLanguage==='de'?`Profil von ${name} gespeichert`:`Perfil de ${name} guardado`);
   if(firstRun&&teachingOnboardingVersion<TEACHING_GUIDE_VERSION)setTimeout(()=>openTeachingGuide(),220);
 }
@@ -448,7 +453,7 @@ function bindProfileUI(){
   $('#appSettingsDialog').addEventListener('click',e=>{if(e.target===$('#appSettingsDialog'))$('#appSettingsDialog').close()});$('#aboutDialog').addEventListener('click',e=>{if(e.target===$('#aboutDialog'))$('#aboutDialog').close()});$('#teachingGuideDialog').addEventListener('cancel',e=>{e.preventDefault();closeTeachingGuide()});$('#teachingGuideDialog').addEventListener('click',e=>{if(e.target===$('#teachingGuideDialog'))closeTeachingGuide()});
   $('#notificationToggle').onclick=toggleDailyReminders;$('#notificationTime').onchange=async e=>{reminderSettings.time=e.target.value||'19:00';reminderSettings.lastNotifiedDate=null;await saveReminderSettings();scheduleForegroundReminder();syncReminderUI();toast(`Recordatorio: ${reminderSettings.time}`)};
   $('#saveProfileBtn').onclick=saveDogProfile;$('#profileCancelBtn').onclick=()=>$('#profileDialog').close();$('#dogNameInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();saveDogProfile()}});$('#dogAgeInput').addEventListener('input',updateDogAgePreview);
-  $('#dogAgeUnit').addEventListener('change',()=>{const input=$('#dogAgeInput'),unit=$('#dogAgeUnit'),previous=unit.dataset.previous||'months',value=Number(input.value||0);if(value>0){const months=previous==='years'?value*12:value;input.value=unit.value==='years'?String(Math.round((months/12)*10)/10):String(Math.max(1,Math.round(months)))}unit.dataset.previous=unit.value;input.step=unit.value==='years'?'0.1':'1';updateDogAgePreview()});
+  $('#dogAgeUnit').addEventListener('change',()=>{const input=$('#dogAgeInput'),unit=$('#dogAgeUnit'),previous=unit.dataset.previous||'months',value=Number(input.value||0);if(value>0){const months=previous==='years'?value*12:value;input.value=unit.value==='years'?String(Math.round((months/12)*10)/10):String(Math.max(1,Math.round(months)))}unit.dataset.previous=unit.value;syncDogAgeInputBounds(input,unit.value);updateDogAgePreview()});
   $('#profileDialog').addEventListener('cancel',e=>{if($('#profileDialog').dataset.firstRun==='1')e.preventDefault()});document.addEventListener('keydown',handleSettingsKeydown);
 }
 function initProfileUI(){
