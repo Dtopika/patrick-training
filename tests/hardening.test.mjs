@@ -84,7 +84,7 @@ test('v6 bootstraps its dependencies when an older HTML shell loads newer JavaSc
   assert.equal(vm.runInContext("CONFIG.APP_VERSION",env.ctx),'7.5.0');
   assert.equal(vm.runInContext("typeof ENGINE.focusForLevel",env.ctx),'function');
   assert.equal(vm.runInContext("typeof BACKUP_SCHEMA.normalize",env.ctx),'function');
-  assert.deepEqual(env.scripts.map(s=>s.src),['config.js?v750-r2','training-engine.js?v750-r2','backup-schema.js?v750-r2']);
+  assert.deepEqual(env.scripts.map(s=>s.src),['config.js?v750-r3','training-engine.js?v750-r3','backup-schema.js?v750-r3']);
 });
 
 test('navigation and settings click wiring remain collection-safe',()=>{
@@ -105,7 +105,7 @@ test('v7.5 configuration centralizes public and schema versions',()=>{
   assert.equal(env.ctx.PATRICK_CONFIG.APP_VERSION,'7.5.0');
   assert.equal(env.ctx.PATRICK_CONFIG.BACKUP_SCHEMA_VERSION,13);
   assert.equal(env.ctx.PATRICK_CONFIG.SESSION_SCHEMA_VERSION,9);
-  assert.equal(env.ctx.PATRICK_CONFIG.CACHE_NAME,'patrick-training-v7.5.0-r2');
+  assert.equal(env.ctx.PATRICK_CONFIG.CACHE_NAME,'patrick-training-v7.5.0-r3');
   assert.equal(JSON.parse(read('package.json')).version,'7.5.0');
 });
 
@@ -379,7 +379,7 @@ test('v7.5 separates app language from command language without changing canonic
   assert.match(index,/id="setupCommandLanguage"/);
   assert.match(backup,/appLanguage:normalizeLanguage/);
   assert.match(backup,/commandLanguage:normalizeLanguage/);
-  assert.match(sw,/i18n\.js\?v750-r2/);
+  assert.match(sw,/i18n\.js\?v750-r3/);
 });
 test('adaptive focus always returns command objects, never score wrappers',async()=>{
   const env=await loadCore(baseContext());
@@ -417,7 +417,7 @@ test('all 47 commands map one-to-one to levels and curated videos',()=>{
 
 test('v7.5 upgrade contract cache-busts every critical browser asset',()=>{
   const index=read('index.html'),styles=read('styles.css'),pwa=read('pwa.js'),sw=read('sw.js');
-  const tag='v750-r2';
+  const tag='v750-r3';
   const scriptSrc=[...index.matchAll(/<script src="([^"]+\.js\?[^"]+)"><\/script>/g)].map(m=>m[1]);
   assert.ok(scriptSrc.length>=10,'expected versioned script URLs');
   assert.ok(scriptSrc.every(src=>src.endsWith('?'+tag)));
