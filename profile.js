@@ -71,10 +71,21 @@ function syncSetupReadySummary(){
   const age=draft.ageMonths<12?`${draft.ageMonths} ${draft.ageMonths===1?'mes':'meses'}`:`${Math.round(draft.ageMonths/12*10)/10} años`;
   $('#setupReadyName').textContent=draft.name||'Tu perro';$('#setupSummaryName').textContent=draft.name||'—';$('#setupSummaryStage').textContent=stage.label;$('#setupSummaryAge').textContent=draft.ageMonths?age:'—';$('#setupSummaryTheme').textContent=themePreferenceLabel();
 }
+function setupStepCanContinue(){
+  if(setupWizardStep!==1)return true;
+  const name=String($('#setupDogName')?.value||'').trim(),age=Number($('#setupDogAge')?.value||0);
+  return !!name&&Number.isFinite(age)&&age>0;
+}
+function syncSetupNextState(){
+  const next=$('#setupNextBtn');if(!next)return;
+  const enabled=setupStepCanContinue();next.disabled=!enabled;next.setAttribute('aria-disabled',String(!enabled));
+}
 function renderSetupWizard(){
-  const steps=$$('.setupWizardStep'),counter=$('#setupWizardCounter'),bar=$('#setupWizardProgressBar'),back=$('#setupBackBtn'),next=$('#setupNextBtn');
-  steps.forEach((step,index)=>step.hidden=index!==setupWizardStep);counter.textContent=`${setupWizardStep+1} / 4`;bar.style.width=`${(setupWizardStep+1)*25}%`;back.hidden=setupWizardStep===0;next.textContent=setupWizardStep===3?'Empezar Nivel 0':'Continuar';
-  syncSetupThemeButtons();if(setupWizardStep===1)syncSetupAgePreview();if(setupWizardStep===3)syncSetupReadySummary();
+  const steps=$$('.setupWizardStep'),counter=$('#setupWizardCounter'),bar=$('#setupWizardProgressBar'),back=$('#setupBackBtn'),next=$('#setupNextBtn'),actions=$('.setupWizardActions'),body=$('#setupWizardBody');
+  steps.forEach((step,index)=>step.hidden=index!==setupWizardStep);counter.textContent=`${setupWizardStep+1} / 4`;bar.style.width=`${(setupWizardStep+1)*25}%`;back.hidden=setupWizardStep===0;actions?.classList.toggle('singleAction',setupWizardStep===0);
+  next.textContent=setupWizardStep===2?'Ver resumen':setupWizardStep===3?'Empezar Nivel 0':'Continuar';
+  syncSetupThemeButtons();if(setupWizardStep===1)syncSetupAgePreview();if(setupWizardStep===3)syncSetupReadySummary();syncSetupNextState();
+  if(body)body.scrollTop=0;
 }
 function populateSetupWizard(){
   $('#setupDogName').value=dogProfile?.name||'';
@@ -92,16 +103,22 @@ async function completeSetupWizard(){
   const dialog=$('#setupWizardDialog');if(dialog?.open)dialog.close();renderCommands();renderAll();syncSettingsDrawer();syncManagementDialogs();toast(`Todo listo para entrenar con ${dogName()}`);setTimeout(()=>$('#dailyMissionStartBtn')?.focus(),120);
 }
 function setupWizardNext(){
-  if(setupWizardStep===1&&!validateSetupDog())return;if(setupWizardStep>=3){completeSetupWizard();return}setupWizardStep++;renderSetupWizard();if(setupWizardStep===1)setTimeout(()=>$('#setupDogName')?.focus(),80);
+  if(!setupStepCanContinue())return;
+  if(setupWizardStep===1&&!validateSetupDog())return;
+  document.activeElement?.blur?.();
+  if(setupWizardStep>=3){completeSetupWizard();return}
+  setupWizardStep++;renderSetupWizard();if(setupWizardStep===1)setTimeout(()=>$('#setupDogName')?.focus(),80);
 }
 function openSetupWizard(){
   setupWizardStep=0;populateSetupWizard();renderSetupWizard();const dialog=$('#setupWizardDialog');if(!dialog.open)dialog.showModal();
 }
 function bindSetupWizard(){
-  $('#setupBackBtn').onclick=()=>{if(setupWizardStep>0){setupWizardStep--;renderSetupWizard()}};$('#setupNextBtn').onclick=setupWizardNext;
+  $('#setupBackBtn').onclick=()=>{if(setupWizardStep>0){document.activeElement?.blur?.();setupWizardStep--;renderSetupWizard()}};$('#setupNextBtn').onclick=setupWizardNext;
   $$('[data-setup-theme]').forEach(button=>button.onclick=()=>{themePreference=normalizeTheme(button.dataset.setupTheme);applyTheme();syncSetupThemeButtons()});
-  $('#setupDogAge').addEventListener('input',syncSetupAgePreview);$('#setupDogAgeUnit').addEventListener('change',()=>{const input=$('#setupDogAge'),unit=$('#setupDogAgeUnit');input.step=unit.value==='years'?'0.1':'1';syncSetupAgePreview()});
-  $('#setupDogName').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();setupWizardNext()}});$('#setupWizardDialog').addEventListener('cancel',e=>e.preventDefault());
+  $('#setupDogName').addEventListener('input',syncSetupNextState);
+  $('#setupDogAge').addEventListener('input',()=>{syncSetupAgePreview();syncSetupNextState()});
+  $('#setupDogAgeUnit').addEventListener('change',()=>{const input=$('#setupDogAge'),unit=$('#setupDogAgeUnit');input.step=unit.value==='years'?'0.1':'1';syncSetupAgePreview();syncSetupNextState()});
+  $('#setupDogName').addEventListener('keydown',e=>{if(e.key==='Enter'&&setupStepCanContinue()){e.preventDefault();setupWizardNext()}});$('#setupWizardDialog').addEventListener('cancel',e=>e.preventDefault());
 }
 function populateDogProfileEditor(){
   const months=currentDogAgeMonths();
