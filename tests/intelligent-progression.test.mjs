@@ -151,7 +151,7 @@ test('backup schema accepts level 11 when the command catalog exposes that route
   assert.throws(()=>schema.normalize({schemaVersion:13,currentLevel:12,dayType:'Todo el día'},{commands,states,currentProfile:{name:'Patrick'},maxSchemaVersion:13}));
 });
 test('session flow persists context only with the completed transaction',()=>{
-  const session=read('app-session.js'),core=read('app-core.js'),profile=read('profile.js');
+  const session=read('app-session.js'),core=read('app-core.js'),profile=['profile.js','profile-setup.js','profile-data.js','profile-reminders.js','profile-settings.js'].map(read).join('\n');
   assert.match(core,/patrickTrainingContext:\{environment:'Casa',distraction:'Baja'\}/);
   assert.match(session,/context:ENGINE\.normalizeContext\(activeSession\.context\)/);
   assert.match(session,/patrickTrainingContext:nextTrainingContext/);
