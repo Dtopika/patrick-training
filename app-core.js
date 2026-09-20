@@ -3,7 +3,7 @@ const LEVELS=window.PATRICK_LEVELS;
 let CONFIG=window.PATRICK_CONFIG||null;
 let ENGINE=window.PatrickTrainingEngine||null;
 let BACKUP_SCHEMA=window.PatrickBackupSchema||null;
-const V6_ASSET_TAG='v732-r1';
+const V6_ASSET_TAG='v740-r1';
 
 function loadPatrickDependency(src,isReady){
   if(isReady())return Promise.resolve();
