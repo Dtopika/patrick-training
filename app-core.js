@@ -213,6 +213,7 @@ function levelProgressFrom(n,source=progress){const level=levelBy(n),cmds=level?
 function levelProgress(n){return levelProgressFrom(n,progress)}
 function levelReadyFrom(n,source=progress){const level=levelBy(n);return !!level&&level.commands.every(x=>STATE_SCORE[source[x]||'No iniciado']>=2)}
 function levelReady(n){return levelReadyFrom(n,progress)}
+function maxRouteLevel(){return LEVELS.reduce((max,level)=>Math.max(max,Number(level?.n)||0),0)}
 function maxUnlockedLevelFrom(source=progress){
   const ordered=[...LEVELS].sort((a,b)=>a.n-b.n);if(!ordered.length)return 0;
   let unlocked=ordered[0].n;
@@ -257,13 +258,13 @@ function renderToday(){
   repairCurrentLevel();const l=levelBy(currentLevel),ready=levelReady(currentLevel);renderDogIdentity();
   $('#headerLevel').textContent=`Nivel ${currentLevel} · ${l.title}`;
   $('#todaySummary').textContent=allSessionCount()===0?'Tu primera misión será corta. La constancia vale más que la duración.':dayType==='Solo noche'?'Una misión compacta con lo que más necesita refuerzo.':'Abre, entrena la misión y deja que el motor ajuste el resto.';
-  $('#dayType').value=dayType;$('#levelBadge').textContent=`Nivel ${currentLevel}`;$('#readinessBadge').textContent=ready&&currentLevel<10?'Listo para avanzar':'En curso';$('#readinessBadge').classList.toggle('ready',ready);$('#sessionTitle').textContent=l.title;$('#sessionGoal').textContent=l.goal;
+  $('#dayType').value=dayType;$('#levelBadge').textContent=`Nivel ${currentLevel}`;$('#readinessBadge').textContent=ready&&currentLevel<maxRouteLevel()?'Listo para avanzar':'En curso';$('#readinessBadge').classList.toggle('ready',ready);$('#sessionTitle').textContent=l.title;$('#sessionGoal').textContent=l.goal;
   const focus=focusForLevel(currentLevel).filter(c=>c&&String(c.cmd||'').trim());$('#focusCommands').innerHTML=focus.map(focusChipHtml).filter(Boolean).join('');
   const guidance=ENGINE.ageGuidance(dogProfile),ageBox=$('#ageGuidance');
   if(ageBox){ageBox.hidden=!guidance;if(guidance)ageBox.innerHTML=`<strong>${escapeHtml(guidance.label)}</strong><span>${escapeHtml(guidance.message)}</span>`}
   $('#metricProgress').textContent=levelProgress(currentLevel)+'%';$('#metricSolid').textContent=currentLevelSolidCount();$('#metricSessions').textContent=allSessionCount();
   $('#todayPlan').innerHTML=microPlan().map(([name,dur,goal,cmds],i)=>`<article class="planItem"><span class="planNumber">${i+1}</span><div><strong>${escapeHtml(name)} · ${escapeHtml(goal)}</strong><p>${cmds.map(c=>escapeHtml(displayCommand(c))).join(' · ')||'Juego y vínculo'}</p></div><small>${escapeHtml(dur)}</small></article>`).join('');
-  $('#advanceCard').hidden=!(ready&&currentLevel<10);if(typeof renderSmartDailyPlan==='function')renderSmartDailyPlan();
+  $('#advanceCard').hidden=!(ready&&currentLevel<maxRouteLevel());if(typeof renderSmartDailyPlan==='function')renderSmartDailyPlan();
 }
 function renderLevels(){
   const unlocked=maxUnlockedLevel();
