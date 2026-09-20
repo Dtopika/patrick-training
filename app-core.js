@@ -259,21 +259,35 @@ function commandContextEvidence(cmd){return ENGINE.commandContextEvidence(histor
 function recommendedTrainingContext(c){return ENGINE.recommendedContext(c,{progress,history,stateScore:STATE_SCORE})}
 function focusForLevel(n){return ENGINE.focusForLevel(COMMANDS,n,{dayType,trials,history,progress,stateScore:STATE_SCORE,profile:dogProfile})}
 function microPlan(){const focus=focusForLevel(currentLevel);return ENGINE.microPlan(COMMANDS,currentLevel,{dayType,progress,stateScore:STATE_SCORE,focus,profile:dogProfile})}
-function setView(id){$$('.view').forEach(v=>v.classList.toggle('active',v.id===id));$$('.bottomNav button').forEach(b=>b.classList.toggle('active',b.dataset.view===id));scrollTo({top:0,behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});if(id==='progress')renderProgress();if(id==='commands')renderCommands();if(id==='levels')renderLevels()}
-function renderDogIdentity(){const name=dogName();if($('#dogNameHeader'))$('#dogNameHeader').textContent=name;if($('#todayHeading'))$('#todayHeading').textContent=`Hoy con ${name}`;if($('#advanceTitle'))$('#advanceTitle').textContent=`${name} está listo para avanzar`;if($('#dogProfileName'))$('#dogProfileName').textContent=name;if($('#storageModeLabel'))$('#storageModeLabel').textContent=storageMode==='indexeddb'?'IndexedDB':'almacenamiento local'}
+function setView(id){$('.view').forEach(v=>v.classList.toggle('active',v.id===id));$('.bottomNav button').forEach(b=>b.classList.toggle('active',b.dataset.view===id));scrollTo({top:0,behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});if(id==='progress')renderProgress();if(id==='commands')renderCommands();if(id==='levels')renderLevels()}
+function applyStaticAppLanguage(){
+  document.documentElement.lang=appLanguage;
+  const set=(selector,key,vars)=>{const el=$(selector);if(el)el.textContent=t(key,vars)};
+  set('.bottomNav [data-view="today"] small','today');set('.bottomNav [data-view="levels"] small','levels');set('.bottomNav [data-view="commands"] small','commands');set('.bottomNav [data-view="progress"] small','progress');
+  set('#today .welcomeRow .kicker','trainingToday');set('.patrickHeroCopy strong','oneStep');set('.patrickHeroCopy small','bondProgress');
+  set('#dailyMission .kicker','missionToday');set('#dailyMissionStartBtn span','startMission');
+  set('#levels .pageHead .kicker','learningRoute');set('#levelsHeading','levels');set('#levels .pageHead .muted','levelsHelp');
+  set('#commands .pageHead .kicker','dictionary');set('#commandsHeading','commands');set('#commands .pageHead .muted','commandsHelp');
+  const search=$('#search');if(search){search.placeholder=t('searchCommand');search.setAttribute('aria-label',t('searchCommand'))}
+  set('#progress .pageHead .kicker','tracking');set('#progressHeading','progress');set('#progress .pageHead>.muted','progressHelp');
+  set('#startChoiceDialog .startChoiceHeader .kicker','beforeStart');set('#startChoiceTitle','howStart');set('#startChoiceSubtitle','chooseContext');
+  set('#recommendedStartChoice strong','recommendedContext');set('#lastStartChoice strong','lastTime');set('#cancelStartChoiceBtn','cancel');set('#confirmStartChoiceBtn','startSession');
+  set('#missedBtn','missed');set('#assistedBtn','assisted');set('#correctBtn','achieved');
+}
+function renderDogIdentity(){const name=dogName();if($('#dogNameHeader'))$('#dogNameHeader').textContent=name;if($('#todayHeading'))$('#todayHeading').textContent=t('todayWith',{name});if($('#advanceTitle'))$('#advanceTitle').textContent=`${name} · ${t('readyAdvance')}`;if($('#dogProfileName'))$('#dogProfileName').textContent=name;if($('#storageModeLabel'))$('#storageModeLabel').textContent=storageMode==='indexeddb'?'IndexedDB':appLanguage==='en'?'Local storage':appLanguage==='de'?'Lokaler Speicher':'Almacenamiento local'}
 function focusChipHtml(c){
   if(!c||typeof c!=='object')return'';
   const raw=String(c.cmd||'').trim();if(!raw)return'';
-  const label=raw==='Patrick'?dogName():raw;
-  const pron=raw==='Patrick'?(String(c.pron||'Pá-trik').trim()):(String(c.pron||'').trim());
+  const label=displayCommand(c);
+  const pron=displayPron(c);
   if(!label)return'';
   return `<span class="focusChip">${escapeHtml(label)}${pron?` <small>${escapeHtml(pron)}</small>`:''}</span>`;
 }
 function renderToday(){
-  repairCurrentLevel();const l=levelBy(currentLevel),ready=levelReady(currentLevel);renderDogIdentity();
-  $('#headerLevel').textContent=`Nivel ${currentLevel} · ${l.title}`;
-  $('#todaySummary').textContent=allSessionCount()===0?'Tu primera misión será corta. La constancia vale más que la duración.':dayType==='Solo noche'?'Una misión compacta con lo que más necesita refuerzo.':'Abre, entrena la misión y deja que el motor ajuste el resto.';
-  $('#dayType').value=dayType;$('#levelBadge').textContent=`Nivel ${currentLevel}`;$('#readinessBadge').textContent=ready&&currentLevel<maxRouteLevel()?'Listo para avanzar':'En curso';$('#readinessBadge').classList.toggle('ready',ready);$('#sessionTitle').textContent=l.title;$('#sessionGoal').textContent=l.goal;
+  repairCurrentLevel();const l=levelBy(currentLevel),ready=levelReady(currentLevel),lt=levelText(l);renderDogIdentity();applyStaticAppLanguage();
+  $('#headerLevel').textContent=`${t('level')} ${currentLevel} · ${lt.title}`;
+  $('#todaySummary').textContent=allSessionCount()===0?(appLanguage==='en'?'Your first mission will be short. Consistency matters more than duration.':appLanguage==='de'?'Deine erste Mission ist kurz. Regelmäßigkeit ist wichtiger als Dauer.':'Tu primera misión será corta. La constancia vale más que la duración.'):dayType==='Solo noche'?(appLanguage==='en'?'A compact mission focused on what needs reinforcement most.':appLanguage==='de'?'Eine kompakte Mission mit Fokus auf das, was am meisten Verstärkung braucht.':'Una misión compacta con lo que más necesita refuerzo.'):(appLanguage==='en'?'Open the mission, train and let the engine adapt the rest.':appLanguage==='de'?'Mission öffnen, trainieren und den Rest vom Motor anpassen lassen.':'Abre, entrena la misión y deja que el motor ajuste el resto.');
+  $('#dayType').value=dayType;$('#levelBadge').textContent=`${t('level')} ${currentLevel}`;$('#readinessBadge').textContent=ready&&currentLevel<maxRouteLevel()?t('readyAdvance'):t('inProgress');$('#readinessBadge').classList.toggle('ready',ready);$('#sessionTitle').textContent=lt.title;$('#sessionGoal').textContent=lt.goal;
   const focus=focusForLevel(currentLevel).filter(c=>c&&String(c.cmd||'').trim());$('#focusCommands').innerHTML=focus.map(focusChipHtml).filter(Boolean).join('');
   const guidance=ENGINE.ageGuidance(dogProfile),ageBox=$('#ageGuidance');
   if(ageBox){ageBox.hidden=!guidance;if(guidance)ageBox.innerHTML=`<strong>${escapeHtml(guidance.label)}</strong><span>${escapeHtml(guidance.message)}</span>`}
@@ -284,16 +298,16 @@ function renderToday(){
 function renderLevels(){
   const unlocked=maxUnlockedLevel();
   $('#levelList').innerHTML=LEVELS.map(l=>{
-    const p=levelProgress(l.n),active=currentLevel===l.n,locked=l.n>unlocked,ready=levelReady(l.n);
-    const status=active?'En curso':locked?'Bloqueado':ready?'Completado':'Disponible';
+    const p=levelProgress(l.n),active=currentLevel===l.n,locked=l.n>unlocked,ready=levelReady(l.n),lt=levelText(l);
+    const status=active?t('inProgress'):locked?t('locked'):ready?t('completed'):t('available');
     const statusIcon=locked?icon('lock'):ready?icon('check'):active?icon('play'):icon('chevron');
     const preview=l.commands.slice(0,3).map(n=>{const c=commandBy(n);return `<span class="levelCommandChip"><b>${escapeHtml(displayCommand(c))}</b></span>`}).join('');
     const rest=Math.max(0,l.commands.length-3),more=rest?`<span class="levelCommandMore">+${rest}</span>`:'';
     const controls=locked
-      ?'<span class="levelLocked" aria-label="Nivel bloqueado">'+icon('lock')+' Completa el anterior</span>'
-      :`<button class="levelStartBtn" data-start-level="${l.n}" type="button">${icon('play')}<span>Iniciar</span></button>${active?'':`<button class="setLevelBtn" data-set-level="${l.n}" type="button">Usar como foco</button>`}`;
+      ?`<span class="levelLocked" aria-label="${escapeHtml(t('locked'))}">${icon('lock')} ${escapeHtml(t('completePrevious'))}</span>`
+      :`<button class="levelStartBtn" data-start-level="${l.n}" type="button">${icon('play')}<span>${escapeHtml(t('start'))}</span></button>${active?'':`<button class="setLevelBtn" data-set-level="${l.n}" type="button">${escapeHtml(t('useFocus'))}</button>`}`;
     return `<article class="levelCard levelCardV2 compactLevelCard ${active?'activeLevel':''} ${locked?'lockedLevel':''} ${ready?'completedLevel':''} ${!locked&&!active&&!ready?'availableLevel':''}">
-      <div class="levelRouteHead"><span class="levelIndex">${l.n}</span><div class="levelTitleWrap"><small class="levelEyebrow">PASO ${l.n}</small><strong>${escapeHtml(l.title)}</strong><p>${escapeHtml(l.goal)}</p></div><span class="levelStatePill">${statusIcon}<b>${status}</b></span></div>
+      <div class="levelRouteHead"><span class="levelIndex">${l.n}</span><div class="levelTitleWrap"><small class="levelEyebrow">${escapeHtml(t('level').toUpperCase())} ${l.n}</small><strong>${escapeHtml(lt.title)}</strong><p>${escapeHtml(lt.goal)}</p></div><span class="levelStatePill">${statusIcon}<b>${status}</b></span></div>
       <div class="levelCompactProgress"><div class="miniBar"><div style="width:${p}%"></div></div><strong>${p}%</strong></div>
       <div class="levelCompactBottom"><div class="levelCommandPreview">${preview}${more}</div><div class="levelActions">${controls}</div></div>
     </article>`;
@@ -303,12 +317,14 @@ function renderLevels(){
 }
 function categories(){return ['Todos',...new Set(COMMANDS.map(c=>c.category))]}
 function commandCard(c){
-  const shown=displayCommand(c),pron=displayPron(c),safety=trainingSafety(c);
+  const shown=displayCommand(c),pron=displayPron(c),safety=trainingSafety(c),category=displayCategory(c.category);
   const safetyChip=safety?`<span class="tinyChip safetyChip">${escapeHtml(safety.label)}</span>`:'';
-  const safetyRow=safety?`<div class="detailRow safetyDetail ${safety.deferFromAdaptive?'deferred':''}"><strong>Seguridad / etapa</strong><p>${escapeHtml(safety.message)}</p></div>`:'';
-  return `<article class="commandCard" data-command="${escapeHtml(c.cmd)}"><div class="commandSummary"><div><div class="commandTitle"><strong>${escapeHtml(shown)}</strong><span class="pronunciation">${escapeHtml(pron)}</span></div><div class="commandMeaning">${escapeHtml(c.meaning)}</div><div class="commandMeta"><span class="tinyChip">Nivel ${c.level}</span><span class="tinyChip">${escapeHtml(c.category)}</span>${safetyChip}</div></div><div class="commandActions"><button class="audioBtn" data-audio="${escapeHtml(c.cmd)}" aria-label="Escuchar pronunciación de ${escapeHtml(shown)}">${icon('volume')}</button><button class="practiceBtn" data-practice="${escapeHtml(c.cmd)}" aria-label="Practicar ${escapeHtml(shown)}">${icon('play')}</button></div></div><button class="commandToggle" data-toggle="${escapeHtml(c.cmd)}" aria-expanded="false">Ver cómo enseñarlo <span>${icon('chevron')}</span></button><div class="commandDetails">${safetyRow}<div class="detailRow"><strong>Señal / gesto</strong><p>${escapeHtml(c.signal)}</p></div><div class="detailRow"><strong>Qué debe hacer</strong><p>${escapeHtml(c.action)}</p></div><div class="detailRow"><strong>Paso a paso</strong><p>${escapeHtml(c.how)}</p></div><div class="detailRow"><strong>Premio</strong><p>${escapeHtml(c.reward)}</p></div><div class="detailRow"><strong>Criterio de avance</strong><p>Primero necesita 8/10 puntos recientes para ser consistente. Después debe repetir buenos resultados en contextos y dificultades diferentes para generalizar y dominar.</p></div></div></article>`;
+  const safetyRow=safety?`<div class="detailRow safetyDetail ${safety.deferFromAdaptive?'deferred':''}"><strong>${escapeHtml(t('safetyStage'))}</strong><p>${escapeHtml(safety.message)}</p></div>`:'';
+  const actionLabel=appLanguage==='en'?'Expected behavior':appLanguage==='de'?'Erwartetes Verhalten':'Qué debe hacer',stepsLabel=appLanguage==='en'?'Step by step':appLanguage==='de'?'Schritt für Schritt':'Paso a paso';
+  const criterion=appLanguage==='en'?'First reach 8/10 recent points for consistency. Then repeat strong results across different contexts and difficulty levels to generalize and master it.':appLanguage==='de'?'Zuerst 8/10 aktuelle Punkte für Konstanz erreichen. Danach gute Ergebnisse in verschiedenen Kontexten und Schwierigkeitsgraden wiederholen, um zu generalisieren und zu festigen.':'Primero necesita 8/10 puntos recientes para ser consistente. Después debe repetir buenos resultados en contextos y dificultades diferentes para generalizar y dominar.';
+  return `<article class="commandCard" data-command="${escapeHtml(c.cmd)}"><div class="commandSummary"><div><div class="commandTitle"><strong>${escapeHtml(shown)}</strong><span class="pronunciation">${escapeHtml(pron)}</span></div><div class="commandMeaning">${escapeHtml(c.meaning)}</div><div class="commandMeta"><span class="tinyChip">${escapeHtml(t('level'))} ${c.level}</span><span class="tinyChip">${escapeHtml(category)}</span>${safetyChip}</div></div><div class="commandActions"><button class="audioBtn" data-audio="${escapeHtml(c.cmd)}" aria-label="${escapeHtml(t('voice'))}: ${escapeHtml(shown)}">${icon('volume')}</button><button class="practiceBtn" data-practice="${escapeHtml(c.cmd)}" aria-label="${escapeHtml(t('start'))}: ${escapeHtml(shown)}">${icon('play')}</button></div></div><button class="commandToggle" data-toggle="${escapeHtml(c.cmd)}" aria-expanded="false">${escapeHtml(t('seeHow'))} <span>${icon('chevron')}</span></button><div class="commandDetails">${safetyRow}<div class="detailRow"><strong>${escapeHtml(t('signal'))}</strong><p>${escapeHtml(c.signal)}</p></div><div class="detailRow"><strong>${escapeHtml(actionLabel)}</strong><p>${escapeHtml(c.action)}</p></div><div class="detailRow"><strong>${escapeHtml(stepsLabel)}</strong><p>${escapeHtml(c.how)}</p></div><div class="detailRow"><strong>${escapeHtml(t('reward'))}</strong><p>${escapeHtml(c.reward)}</p></div><div class="detailRow"><strong>${escapeHtml(t('advanceCriterion'))}</strong><p>${escapeHtml(criterion)}</p></div></div></article>`;
 }
-function renderCommands(){const q=$('#search').value.trim().toLowerCase();$('#filters').innerHTML=categories().map(x=>`<button class="filterBtn ${filter===x?'active':''}" data-filter="${escapeHtml(x)}">${escapeHtml(x)}</button>`).join('');const arr=COMMANDS.filter(c=>(filter==='Todos'||c.category===filter)&&(`${displayCommand(c)} ${displayPron(c)} ${c.meaning} ${c.category}`).toLowerCase().includes(q));$('#commandList').innerHTML=arr.map(commandCard).join('')||'<p class="muted">No encontré comandos con ese filtro.</p>';$$('[data-filter]').forEach(b=>b.onclick=()=>{filter=b.dataset.filter;renderCommands()});$$('[data-audio]').forEach(b=>b.onclick=()=>speak(commandBy(b.dataset.audio)));$$('[data-practice]').forEach(b=>b.onclick=()=>{const command=commandBy(b.dataset.practice);openStartChoice([command],{label:displayCommand(command)})});$$('[data-toggle]').forEach(b=>b.onclick=()=>{const card=b.closest('.commandCard');card.classList.toggle('open');b.setAttribute('aria-expanded',String(card.classList.contains('open')))})}
+function renderCommands(){applyStaticAppLanguage();const q=$('#search').value.trim().toLowerCase();$('#filters').innerHTML=categories().map(x=>`<button class="filterBtn ${filter===x?'active':''}" data-filter="${escapeHtml(x)}">${escapeHtml(x==='Todos'?t('all'):displayCategory(x))}</button>`).join('');const arr=COMMANDS.filter(c=>(filter==='Todos'||c.category===filter)&&(`${displayCommand(c)} ${displayPron(c)} ${c.meaning} ${displayCategory(c.category)}`).toLowerCase().includes(q));const empty=appLanguage==='en'?'No commands match that filter.':appLanguage==='de'?'Keine Kommandos mit diesem Filter gefunden.':'No encontré comandos con ese filtro.';$('#commandList').innerHTML=arr.map(commandCard).join('')||`<p class="muted">${escapeHtml(empty)}</p>`;$$('[data-filter]').forEach(b=>b.onclick=()=>{filter=b.dataset.filter;renderCommands()});$$('[data-audio]').forEach(b=>b.onclick=()=>speak(commandBy(b.dataset.audio)));$$('[data-practice]').forEach(b=>b.onclick=()=>{const command=commandBy(b.dataset.practice);openStartChoice([command],{label:displayCommand(command)})});$$('[data-toggle]').forEach(b=>b.onclick=()=>{const card=b.closest('.commandCard');card.classList.toggle('open');b.setAttribute('aria-expanded',String(card.classList.contains('open')))})}
 
 window.PATRICK_READY=(async()=>{
   await ensureV6Dependencies();
