@@ -1,6 +1,7 @@
 (()=>{'use strict';
   const CONTEXT_ENVIRONMENTS=['Casa','Exterior tranquilo','Calle','Parque'];
   const CONTEXT_DISTRACTIONS=['Baja','Media','Alta'];
+  const MAX_DOG_AGE_MONTHS=globalThis.PATRICK_CONFIG?.MAX_DOG_AGE_MONTHS||240;
 
   function plainObject(value){return !!value&&typeof value==='object'&&!Array.isArray(value)}
   function fail(message){throw new Error(message)}
@@ -18,7 +19,7 @@
     const rawName=String(value.name??'').trim().replace(/\s+/g,' ');
     if(rawName.length>24)fail('Nombre demasiado largo');
     const age=value.ageMonths==null?null:Number(value.ageMonths);
-    if(age!==null&&(!Number.isInteger(age)||age<1||age>240))fail('Edad inválida');
+    if(age!==null&&(!Number.isInteger(age)||age<1||age>MAX_DOG_AGE_MONTHS))fail('Edad inválida');
     const ageUpdatedAt=value.ageUpdatedAt==null?null:String(value.ageUpdatedAt);
     if(ageUpdatedAt&&Number.isNaN(Date.parse(ageUpdatedAt)))fail('Fecha de edad inválida');
     return{name:rawName,breed:'Pastor Alemán',...(age!==null?{ageMonths:age}:{}),...(ageUpdatedAt?{ageUpdatedAt}:{})};
