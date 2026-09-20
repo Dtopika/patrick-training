@@ -81,10 +81,10 @@ test('v6 bootstraps its dependencies when an older HTML shell loads newer JavaSc
   const env=baseContext();
   vm.runInContext(read('app-core.js'),env.ctx,{filename:'app-core.js'});
   await env.ctx.PATRICK_READY;
-  assert.equal(vm.runInContext("CONFIG.APP_VERSION",env.ctx),'7.4.0');
+  assert.equal(vm.runInContext("CONFIG.APP_VERSION",env.ctx),'7.5.0');
   assert.equal(vm.runInContext("typeof ENGINE.focusForLevel",env.ctx),'function');
   assert.equal(vm.runInContext("typeof BACKUP_SCHEMA.normalize",env.ctx),'function');
-  assert.deepEqual(env.scripts.map(s=>s.src),['config.js?v740-r1','training-engine.js?v740-r1','backup-schema.js?v740-r1']);
+  assert.deepEqual(env.scripts.map(s=>s.src),['config.js?v750-r1','training-engine.js?v750-r1','backup-schema.js?v750-r1']);
 });
 
 test('navigation and settings click wiring remain collection-safe',()=>{
@@ -100,13 +100,13 @@ test('navigation and settings click wiring remain collection-safe',()=>{
   }
 });
 
-test('v7.4 configuration centralizes public and schema versions',()=>{
+test('v7.5 configuration centralizes public and schema versions',()=>{
   const env=baseContext();loadArchitecture(env.ctx);
-  assert.equal(env.ctx.PATRICK_CONFIG.APP_VERSION,'7.4.0');
-  assert.equal(env.ctx.PATRICK_CONFIG.BACKUP_SCHEMA_VERSION,12);
+  assert.equal(env.ctx.PATRICK_CONFIG.APP_VERSION,'7.5.0');
+  assert.equal(env.ctx.PATRICK_CONFIG.BACKUP_SCHEMA_VERSION,13);
   assert.equal(env.ctx.PATRICK_CONFIG.SESSION_SCHEMA_VERSION,9);
-  assert.equal(env.ctx.PATRICK_CONFIG.CACHE_NAME,'patrick-training-v7.4.0-r1');
-  assert.equal(JSON.parse(read('package.json')).version,'7.4.0');
+  assert.equal(env.ctx.PATRICK_CONFIG.CACHE_NAME,'patrick-training-v7.5.0-r1');
+  assert.equal(JSON.parse(read('package.json')).version,'7.5.0');
 });
 
 test('storage reconciliation prefers newer local mirror and repairs IndexedDB',async()=>{
@@ -137,15 +137,15 @@ test('storage reconciliation prefers IndexedDB over legacy local data without fr
 
 test('backup schema accepts 5.x backups, v6 schema, and rejects malformed nested data',()=>{
   const env=baseContext();loadArchitecture(env.ctx);
-  const schema=env.ctx.PatrickBackupSchema,opts={commands:env.ctx.PATRICK_COMMANDS,states:['No iniciado','En práctica','Consistente','Generalizando','Dominado'],currentProfile:{name:'Patrick'},maxSchemaVersion:12};
+  const schema=env.ctx.PatrickBackupSchema,opts={commands:env.ctx.PATRICK_COMMANDS,states:['No iniciado','En práctica','Consistente','Generalizando','Dominado'],currentProfile:{name:'Patrick'},maxSchemaVersion:13};
   const legacy=schema.normalize({version:5.1,currentLevel:1,dayType:'Todo el día',progress:{Sitz:'En práctica'},trials:{Sitz:[1,.5,0]},history:[],profile:{name:'Patrick',ageMonths:4},notifications:{enabled:false,time:'19:00'}},opts);
   assert.equal(legacy.profile.name,'Patrick');
   assert.deepEqual(Array.from(legacy.trials.Sitz),[1,.5,0]);
-  const current=schema.normalize({schemaVersion:12,appVersion:'7.4.0',currentLevel:0,dayType:'Solo noche',history:[]},opts);
+  const current=schema.normalize({schemaVersion:13,appVersion:'7.5.0',currentLevel:0,dayType:'Solo noche',history:[]},opts);
   assert.equal(current.dayType,'Solo noche');
   assert.throws(()=>schema.normalize({schemaVersion:7,currentLevel:0,dayType:'Todo el día',trials:{Sitz:['boom']}},opts));
   assert.throws(()=>schema.normalize({schemaVersion:7,currentLevel:0,dayType:'Todo el día',history:[null]},opts));
-  assert.throws(()=>schema.normalize({schemaVersion:13,currentLevel:0,dayType:'Todo el día'},opts));
+  assert.throws(()=>schema.normalize({schemaVersion:14,currentLevel:0,dayType:'Todo el día'},opts));
 });
 
 test('age-aware engine defers Hopp from adaptive sessions for a young puppy',()=>{
@@ -359,6 +359,28 @@ test('v7.4 adds level 11 as safe protection and de-escalation, not attack traini
   assert.doesNotMatch(session,/finishedLevel<10|currentLevel<10/);
   assert.match(backup,/const maxLevel=Math\.max\(10/);
 });
+test('v7.5 separates app language from command language without changing canonical ids',()=>{
+  const ctx=vm.createContext({console});ctx.window=ctx;vm.runInContext(read('i18n.js'),ctx,{filename:'i18n.js'});
+  const i18n=ctx.PatrickI18n;
+  assert.equal(i18n.commandLabel('de','Sitz','Patrick'),'Sitz');
+  assert.equal(i18n.commandLabel('en','Sitz','Patrick'),'Sit');
+  assert.equal(i18n.commandLabel('es','Sitz','Patrick'),'Siéntate');
+  assert.equal(i18n.commandLabel('en','Patrick','Max'),'Max');
+  assert.equal(i18n.commandMeaning('en','Sitz','Siéntate'),'Sit');
+  assert.equal(i18n.levelText('de',11)[0],'Sichere Kontrolle und Schutz');
+  const core=read('app-core.js'),profile=read('profile.js'),index=read('index.html'),backup=read('backup-schema.js'),sw=read('sw.js');
+  assert.match(core,/patrickAppLanguage:'es'/);
+  assert.match(core,/patrickCommandLanguage:'de'/);
+  assert.match(core,/function displayCommand/);
+  assert.match(core,/function selectedCommandVoice/);
+  assert.match(profile,/id="appLanguageSelect"/);
+  assert.match(profile,/id="commandLanguageSelect"/);
+  assert.match(index,/id="setupAppLanguage"/);
+  assert.match(index,/id="setupCommandLanguage"/);
+  assert.match(backup,/appLanguage:normalizeLanguage/);
+  assert.match(backup,/commandLanguage:normalizeLanguage/);
+  assert.match(sw,/i18n\.js\?v750-r1/);
+});
 test('adaptive focus always returns command objects, never score wrappers',async()=>{
   const env=await loadCore(baseContext());
   const result=vm.runInContext("focusForLevel(0)",env.ctx);
@@ -393,9 +415,9 @@ test('all 47 commands map one-to-one to levels and curated videos',()=>{
   assert.deepEqual(new Set(videoCommands),new Set(commands));
 });
 
-test('v7.4 upgrade contract cache-busts every critical browser asset',()=>{
+test('v7.5 upgrade contract cache-busts every critical browser asset',()=>{
   const index=read('index.html'),styles=read('styles.css'),pwa=read('pwa.js'),sw=read('sw.js');
-  const tag='v740-r1';
+  const tag='v750-r1';
   const scriptSrc=[...index.matchAll(/<script src="([^"]+\.js\?[^"]+)"><\/script>/g)].map(m=>m[1]);
   assert.ok(scriptSrc.length>=10,'expected versioned script URLs');
   assert.ok(scriptSrc.every(src=>src.endsWith('?'+tag)));
@@ -407,6 +429,8 @@ test('v7.4 upgrade contract cache-busts every critical browser asset',()=>{
   assert.match(pwa,new RegExp("serviceWorker\\.register\\('\\.\\/sw\\.js\\?"+tag+"'\\)"));
   assert.match(sw,new RegExp("importScripts\\('\\.\\/config\\.js\\?"+tag+"'\\)"));
   assert.match(index,new RegExp('app-insights\\.js\\?'+tag));
+  assert.match(index,new RegExp('i18n\\.js\\?'+tag));
+  assert.match(sw,new RegExp('i18n\\.js\\?'+tag));
   assert.match(styles,new RegExp('styles-insights\\.css\\?'+tag));
   assert.match(sw,new RegExp('app-insights\\.js\\?'+tag));
   assert.match(sw,new RegExp('styles-insights\\.css\\?'+tag));
@@ -433,7 +457,7 @@ test('v6 privacy, CSP, accessibility and PWA regressions stay closed',()=>{
 });
 
 test('production JavaScript parses and CSS override debt stays bounded',()=>{
-  const files=['config.js','training-engine.js','backup-schema.js','db.js','app-core.js','profile.js','progress.js','app-media.js','app-insights.js','app-session.js','pwa.js','sw.js','commands-1.js','commands-2.js','commands-3.js','commands-4.js','levels.js','videos.js','splash.js'];
+  const files=['config.js','i18n.js','training-engine.js','backup-schema.js','db.js','app-core.js','profile.js','progress.js','app-media.js','app-insights.js','app-session.js','pwa.js','sw.js','commands-1.js','commands-2.js','commands-3.js','commands-4.js','levels.js','videos.js','splash.js'];
   for(const file of files)assert.doesNotThrow(()=>new Function(read(file)),file);
   const important=(read('styles-polish.css').match(/!important/g)||[]).length;
   assert.ok(important<=12,'styles-polish.css !important count='+important);
