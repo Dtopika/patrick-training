@@ -2,7 +2,7 @@ importScripts('./config.js?v750-r3');
 const CACHE=globalThis.PATRICK_CONFIG.CACHE_NAME;
 const CORE=["./","./index.html","./styles.css?v750-r3","./styles-base.css?v750-r3","./styles-ui.css?v750-r3","./styles-avatar.css?v750-r3","./styles-media.css?v750-r3","./styles-splash.css?v750-r3","./styles-session.css?v750-r3","./styles-profile.css?v750-r3","./styles-polish.css?v750-r3","./styles-notifications.css?v750-r3","./styles-v56.css?v750-r3","./styles-v6.css?v750-r3","./styles-insights.css?v750-r3","./config.js?v750-r3","./training-engine.js?v750-r3","./backup-schema.js?v750-r3","./splash.js?v750-r3","./commands-1.js?v750-r3","./i18n.js?v750-r3","./commands-2.js?v750-r3","./commands-3.js?v750-r3","./commands-4.js?v750-r3","./levels.js?v750-r3","./videos.js?v750-r3","./db.js?v750-r3","./app-core.js?v750-r3","./profile.js?v750-r3","./progress.js?v750-r3","./app-media.js?v750-r3","./app-insights.js?v750-r3","./app-session.js?v750-r3","./pwa.js?v750-r3","./manifest.webmanifest?v750-r3","./icons/icon-192.webp","./icons/icon-512.webp","./icons/icon-512-maskable.svg","./icons/icon-192.png","./assets/patrick-banner.webp"];
 const REMINDER_TAG='patrick-daily-reminder';
-const DB_NAME='patrick-training-db',DB_VERSION=1,STORE='kv';
+const DB_NAME='patrick-training-db',DB_VERSION=globalThis.PATRICK_CONFIG.DB_VERSION,STORE='kv';
 
 self.addEventListener('install',e=>{e.waitUntil(Promise.all([caches.open(CACHE).then(c=>c.addAll(CORE)),self.skipWaiting()]))});
 self.addEventListener('activate',e=>{e.waitUntil(Promise.all([caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('patrick-training-')&&k!==CACHE).map(k=>caches.delete(k)))),self.clients.claim()]))});
