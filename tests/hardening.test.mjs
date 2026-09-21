@@ -502,3 +502,18 @@ test('production JavaScript parses and CSS override debt stays bounded',()=>{
   const important=(read('styles-polish.css').match(/!important/g)||[]).length;
   assert.ok(important<=12,'styles-polish.css !important count='+important);
 });
+
+
+test('v7.8 keeps management actions reachable and exposes mature PWA controls',()=>{
+  const styles=read('styles-profile.css'),settings=readProfile(),pwa=read('pwa.js'),reminders=read('profile-reminders.js'),sw=read('sw.js');
+  assert.match(styles,/\.managementHeader\{position:sticky/);
+  assert.match(styles,/safe-area-inset-top/);
+  assert.match(settings,/id="pwaRuntimeStatus"/);
+  assert.match(settings,/id="checkPwaUpdateBtn"/);
+  assert.match(settings,/function pwaRuntimeStatusText/);
+  assert.match(pwa,/window\.PatrickPWA=Object\.freeze/);
+  assert.match(pwa,/function checkPwaUpdate/);
+  assert.match(reminders,/function reminderActivitySnapshot/);
+  assert.match(reminders,/daysSinceLast>=2/);
+  assert.match(sw,/function daysSinceLastTraining/);
+});
