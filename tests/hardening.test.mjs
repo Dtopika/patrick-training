@@ -91,7 +91,7 @@ test('v6 bootstraps its dependencies when an older HTML shell loads newer JavaSc
 
 test('navigation and settings click wiring remain collection-safe',()=>{
   const core=read('app-core.js'),session=read('app-session.js'),profile=readProfile();
-  assert.ok(core.includes("function setView(id){$$('.view').forEach"),'setView must iterate all views');
+  assert.match(core,/function setView\([\s\S]*?\$\$\('\.view'\)\.forEach/,'setView must iterate all views');
   assert.ok(core.includes("$$('.bottomNav button').forEach"),'setView must iterate all nav buttons');
   assert.ok(session.includes("$$('.bottomNav button').forEach"),'bottom-nav handlers must bind to all buttons');
   assert.ok(session.includes("$$('[data-start-mode]').forEach"),'start chooser controls must bind as a collection');
@@ -459,7 +459,9 @@ test('v6 privacy, CSP, accessibility and PWA regressions stay closed',()=>{
   assert.match(profile,/role="dialog" aria-modal="true"/);
   assert.match(profile,/handleSettingsKeydown/);
   assert.doesNotMatch(core,/translate\.google\.com/);
-  assert.doesNotMatch(pwa,/location\.replace|location\.reload/);
+  assert.doesNotMatch(pwa,/location\.replace/);
+  assert.equal((pwa.match(/window\.location\.reload\(\)/g)||[]).length,1,'only the explicit apply-update flow may reload');
+  assert.match(pwa,/async function applyPwaUpdate\([\s\S]*?window\.location\.reload\(\)/);
   assert.doesNotMatch(sw,/client\.navigate|location\.replace/);
   assert.match(sw,/startsWith\('patrick-training-'\)/);
   assert.match(sw,/caches\.match\(e\.request\)\.then\(cached=>cached\|\|networkAndCache/);
