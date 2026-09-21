@@ -313,7 +313,19 @@ function commandContextEvidence(cmd){return ENGINE.commandContextEvidence(histor
 function recommendedTrainingContext(c){return ENGINE.recommendedContext(c,{progress,history,stateScore:STATE_SCORE})}
 function focusForLevel(n){return ENGINE.focusForLevel(COMMANDS,n,{dayType,trials,history,progress,stateScore:STATE_SCORE,profile:dogProfile})}
 function microPlan(){const focus=focusForLevel(currentLevel);return ENGINE.microPlan(COMMANDS,currentLevel,{dayType,progress,stateScore:STATE_SCORE,focus,profile:dogProfile})}
-function setView(id){$$('.view').forEach(v=>v.classList.toggle('active',v.id===id));$$('.bottomNav button').forEach(b=>b.classList.toggle('active',b.dataset.view===id));scrollTo({top:0,behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});if(id==='progress')renderProgress();if(id==='commands')renderCommands();if(id==='levels')renderLevels()}
+const APP_VIEW_SESSION_KEY='patrickActiveView';
+function validAppView(id){return['today','levels','commands','progress'].includes(String(id||''))&&!!document.getElementById(id)}
+function rememberedAppView(){try{const id=sessionStorage.getItem(APP_VIEW_SESSION_KEY);return validAppView(id)?id:'today'}catch{return'today'}}
+function rememberAppView(id){try{if(validAppView(id))sessionStorage.setItem(APP_VIEW_SESSION_KEY,id)}catch{}}
+function setView(id,{remember=true,scroll=true}={}){
+  const next=validAppView(id)?id:'today';
+  $('.view').forEach(v=>v.classList.toggle('active',v.id===next));$('.bottomNav button').forEach(b=>b.classList.toggle('active',b.dataset.view===next));
+  if(remember)rememberAppView(next);
+  if(scroll)scrollTo({top:0,behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});
+  if(next==='progress')renderProgress();if(next==='commands')renderCommands();if(next==='levels')renderLevels();
+  return next;
+}
+function restoreRememberedAppView(){return setView(rememberedAppView(),{remember:false,scroll:false})}
 function applyStaticAppLanguage(){
   document.documentElement.lang=appLanguage;
   const set=(selector,key,vars)=>{const el=$(selector);if(el)el.textContent=t(key,vars)};

@@ -41,6 +41,7 @@ async function expectVisibleBounds(page,selector){
 }
 async function onboard(page){
   await page.goto('/');
+  await expect.poll(()=>page.evaluate(()=>document.documentElement.dataset.patrickReady||'')).toBe('true');
   const wizard=page.locator('#setupWizardDialog');
   await expect(wizard).toBeVisible();
   await expect(page.locator('#setupWizardCounter')).toHaveText('1 / 4');
@@ -147,6 +148,24 @@ test('app and command languages are independent from wizard through settings',as
   await expect.poll(()=>page.evaluate(()=>({lang:document.documentElement.lang,app:appLanguage,commands:commandLanguage,canonical:commandBy('Sitz').cmd}))).toEqual({lang:'de',app:'de',commands:'en',canonical:'Sitz'});
 });
 
+
+test('v7.9 prevents browser pull-to-refresh and restores the active section after reload',async({page})=>{
+  await onboard(page);
+  await page.locator('.bottomNav [data-view="commands"]').click();
+  await expect(page.locator('#commands')).toHaveClass(/active/);
+  const shell=await page.evaluate(()=>({
+    htmlOverscroll:getComputedStyle(document.documentElement).overscrollBehaviorY,
+    bodyOverscroll:getComputedStyle(document.body).overscrollBehaviorY,
+    remembered:sessionStorage.getItem('patrickActiveView')
+  }));
+  expect(shell.htmlOverscroll).toBe('none');
+  expect(shell.bodyOverscroll).toBe('none');
+  expect(shell.remembered).toBe('commands');
+  await page.reload();
+  await expect.poll(()=>page.evaluate(()=>document.documentElement.dataset.patrickReady||'')).toBe('true');
+  await expect(page.locator('#commands')).toHaveClass(/active/);
+  await expect(page.locator('.bottomNav [data-view="commands"]')).toHaveClass(/active/);
+});
 
 test('v7.7 weekly coach launches a guided live session',async({page})=>{
   await onboard(page);

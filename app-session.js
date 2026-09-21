@@ -248,7 +248,7 @@ function init(){
   $('#closeSessionBtn').onclick=requestExitSession;$('#sessionDialog').addEventListener('cancel',e=>{e.preventDefault();requestExitSession()});
   $('#startExecutionBtn').onclick=beginExecution;$('#missedBtn').onclick=()=>rateExecution('missed');$('#assistedBtn').onclick=()=>rateExecution('assisted');$('#correctBtn').onclick=()=>rateExecution('achieved');$('#undoExecutionBtn').onclick=undoLastExecution;
   $('#finishBtn').onclick=()=>{$('#finishDialog').close();setView('today')};
-  renderCommands();renderAll();document.dispatchEvent(new Event('patrick:ready'));
+  renderCommands();renderAll();restoreRememberedAppView();document.documentElement.dataset.patrickReady='true';document.dispatchEvent(new Event('patrick:ready'));
 }
 let bootstrapRetrying=false;
 function showBootstrapFailure(error){

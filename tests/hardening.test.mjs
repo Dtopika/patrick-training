@@ -524,3 +524,14 @@ test('v7.8.1 keeps management reachable, locks background and makes update check
   assert.match(reminders,/daysSinceLast>=2/);
   assert.match(sw,/function daysSinceLastTraining/);
 });
+
+
+test('v7.9 app shell suppresses pull-to-refresh and remembers the current section',()=>{
+  const core=read('app-core.js'),session=read('app-session.js'),styles=read('styles-base.css');
+  assert.match(styles,/html\{scroll-behavior:smooth;overscroll-behavior-y:none\}/);
+  assert.match(styles,/body\{margin:0;overscroll-behavior-y:none/);
+  assert.match(core,/APP_VIEW_SESSION_KEY='patrickActiveView'/);
+  assert.match(core,/function restoreRememberedAppView/);
+  assert.match(session,/restoreRememberedAppView\(\)/);
+  assert.match(session,/dataset\.patrickReady='true'/);
+});
