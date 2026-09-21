@@ -535,3 +535,15 @@ test('v7.9 app shell suppresses pull-to-refresh and remembers the current sectio
   assert.match(session,/restoreRememberedAppView\(\)/);
   assert.match(session,/dataset\.patrickReady='true'/);
 });
+
+
+test('v7.9 exposes update application and predictable management-dialog focus',()=>{
+  const pwa=read('pwa.js'),settings=readProfile(),sw=read('sw.js');
+  assert.match(pwa,/async function applyPwaUpdate/);
+  assert.match(pwa,/applyUpdate:applyPwaUpdate/);
+  assert.match(sw,/SKIP_WAITING/);
+  assert.match(settings,/id="applyPwaUpdateBtn"/);
+  assert.match(settings,/function openManagementDialog/);
+  assert.match(settings,/closeSettingsDrawer\(\{restoreFocus:false\}\)/);
+  assert.match(settings,/restoreManagementDialogFocus/);
+});

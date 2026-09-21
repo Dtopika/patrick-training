@@ -6,6 +6,7 @@ const DB_NAME='patrick-training-db',DB_VERSION=globalThis.PATRICK_CONFIG.DB_VERS
 
 self.addEventListener('install',e=>{e.waitUntil(Promise.all([caches.open(CACHE).then(c=>c.addAll(CORE)),self.skipWaiting()]))});
 self.addEventListener('activate',e=>{e.waitUntil(Promise.all([caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('patrick-training-')&&k!==CACHE).map(k=>caches.delete(k)))),self.clients.claim()]))});
+self.addEventListener('message',e=>{if(e.data?.type==='SKIP_WAITING')self.skipWaiting()});
 async function networkAndCache(request){
   const response=await fetch(request);
   if(response.ok){const cache=await caches.open(CACHE);await cache.put(request,response.clone())}

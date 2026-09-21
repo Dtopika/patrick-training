@@ -32,7 +32,22 @@ async function checkPwaUpdate(){
     emitPwaStatus();return pwaRuntimeStatus();
   }catch(e){pwaUpdateState=navigator.onLine?'error':'offline';emitPwaStatus();throw e}
 }
-window.PatrickPWA=Object.freeze({status:pwaRuntimeStatus,checkForUpdate:checkPwaUpdate});
+async function applyPwaUpdate(){
+  let status=pwaRuntimeStatus();
+  if(compareSemver(status.publishedVersion,status.currentVersion)<=0)status=await checkPwaUpdate();
+  if(compareSemver(status.publishedVersion,status.currentVersion)<=0)return status;
+  pwaUpdateState='applying';emitPwaStatus();
+  try{
+    if('serviceWorker'in navigator){
+      const reg=serviceWorkerRegistration||await navigator.serviceWorker.getRegistration?.();
+      if(reg){serviceWorkerRegistration=reg;await reg.update();reg.waiting?.postMessage?.({type:'SKIP_WAITING'})}
+    }
+  }catch(e){console.warn('Service Worker update apply failed',e)}
+  try{sessionStorage.setItem('patrickUpdateReload','1')}catch{}
+  window.location.reload();
+  return{...pwaRuntimeStatus(),reloading:true};
+}
+window.PatrickPWA=Object.freeze({status:pwaRuntimeStatus,checkForUpdate:checkPwaUpdate,applyUpdate:applyPwaUpdate});
 
 function syncInstallUI(){
   const canInstall=!!deferredPrompt&&!standalone();

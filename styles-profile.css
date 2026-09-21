@@ -170,3 +170,6 @@ body.settingsOpen{overflow:hidden}.settingsBackdrop{position:fixed;inset:0;z-ind
 .pwaUpdateCheckStatus[data-state="update-found"],.pwaUpdateCheckStatus[data-state="ready-to-reopen"]{color:var(--accent)}
 .pwaUpdateCheckStatus[data-state="error"],.pwaUpdateCheckStatus[data-state="offline"]{color:var(--muted)}
 #checkPwaUpdateBtn[aria-busy="true"]{opacity:.72;pointer-events:none}
+
+/* v7.9 update application */
+.pwaUpdateApplyAction[hidden]{display:none}.pwaUpdateApplyAction{border-color:color-mix(in srgb,var(--accent) 32%,var(--line));background:color-mix(in srgb,var(--accent) 7%,var(--surface2))}
