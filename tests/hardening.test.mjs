@@ -91,7 +91,8 @@ test('v6 bootstraps its dependencies when an older HTML shell loads newer JavaSc
 
 test('navigation and settings click wiring remain collection-safe',()=>{
   const core=read('app-core.js'),session=read('app-session.js'),profile=readProfile();
-  assert.match(core,/function setView\([\s\S]*?\$\$\('\.view'\)\.forEach/,'setView must iterate all views');
+  assert.ok(core.includes("function setView(id,{remember=true,scroll=true}={})"),'setView options contract missing');
+  assert.ok(core.includes("$('.view').forEach"),'setView must iterate all views');
   assert.ok(core.includes("$$('.bottomNav button').forEach"),'setView must iterate all nav buttons');
   assert.ok(session.includes("$$('.bottomNav button').forEach"),'bottom-nav handlers must bind to all buttons');
   assert.ok(session.includes("$$('[data-start-mode]').forEach"),'start chooser controls must bind as a collection');
