@@ -9,7 +9,7 @@ body.settingsOpen{overflow:hidden}.settingsBackdrop{position:fixed;inset:0;z-ind
 .managementDialog::backdrop{background:rgba(0,0,0,.58);backdrop-filter:blur(3px)}
 .managementDialog[open]{display:grid;place-items:end center;padding:12px 12px max(12px,env(safe-area-inset-bottom))}
 .managementCard{width:min(100%,520px);max-height:min(88dvh,760px);overflow:auto;background:var(--bg);border:1px solid var(--line);border-radius:24px;padding:16px;box-shadow:var(--shadow);display:grid;gap:13px}
-.managementHeader{position:sticky;top:-16px;z-index:6;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:start;margin:-16px -16px 0;padding:18px 18px 11px;background:color-mix(in srgb,var(--bg) 94%,transparent);backdrop-filter:blur(14px);border-bottom:1px solid color-mix(in srgb,var(--line) 82%,transparent)}
+.managementHeader{position:sticky;top:-16px;z-index:6;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:start;margin:-16px 0 0;padding:18px 2px 11px;background:color-mix(in srgb,var(--bg) 94%,transparent);backdrop-filter:blur(14px);border-bottom:1px solid color-mix(in srgb,var(--line) 82%,transparent)}
 .managementHeader h2{margin:2px 0 4px;font-size:25px}.managementHeader p{margin:0}
 .managementSection{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:12px;display:grid;gap:9px}#germanVoiceSection[hidden]{display:none!important}
 .managementSectionTitle{display:flex;align-items:center;gap:10px}.managementSectionTitle>div{display:grid;gap:2px}.managementSectionTitle strong{font-size:13px}.managementSectionTitle small{font-size:10px;color:var(--muted);line-height:1.3}
