@@ -4,7 +4,7 @@ const I18N=window.PatrickI18n;
 let CONFIG=window.PATRICK_CONFIG||null;
 let ENGINE=window.PatrickTrainingEngine||null;
 let BACKUP_SCHEMA=window.PatrickBackupSchema||null;
-const V6_ASSET_TAG='v781-r1';
+const V6_ASSET_TAG='v790-r1';
 
 function loadPatrickDependency(src,isReady){
   if(isReady())return Promise.resolve();
