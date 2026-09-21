@@ -319,7 +319,7 @@ function rememberedAppView(){try{const id=sessionStorage.getItem(APP_VIEW_SESSIO
 function rememberAppView(id){try{if(validAppView(id))sessionStorage.setItem(APP_VIEW_SESSION_KEY,id)}catch{}}
 function setView(id,{remember=true,scroll=true}={}){
   const next=validAppView(id)?id:'today';
-  $('.view').forEach(v=>v.classList.toggle('active',v.id===next));$('.bottomNav button').forEach(b=>b.classList.toggle('active',b.dataset.view===next));
+  $$('.view').forEach(v=>v.classList.toggle('active',v.id===next));$$('.bottomNav button').forEach(b=>b.classList.toggle('active',b.dataset.view===next));
   if(remember)rememberAppView(next);
   if(scroll)scrollTo({top:0,behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});
   if(next==='progress')renderProgress();if(next==='commands')renderCommands();if(next==='levels')renderLevels();
