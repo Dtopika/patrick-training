@@ -286,7 +286,7 @@ test('localized option layouts stay inside the mobile viewport',async({page})=>{
     cardScrollWidth:card.scrollWidth,
     cardClientWidth:card.clientWidth,
     widest:[...card.querySelectorAll('.managementControl,.managementMeta,.managementAction')].reduce((max,el)=>Math.max(max,el.scrollWidth-el.clientWidth),0),
-    escaped:[...card.querySelectorAll('.managementControl,.managementMeta,.managementAction,select')].some(el=>{const r=el.getBoundingClientRect();return r.left<card.getBoundingClientRect().left-1||r.right>card.getBoundingClientRect().right+1})
+    escaped:[...card.querySelectorAll('.managementControl,.managementMeta,.managementAction,select')].filter(el=>!el.hidden&&getComputedStyle(el).display!=='none').some(el=>{const r=el.getBoundingClientRect();return r.left<card.getBoundingClientRect().left-1||r.right>card.getBoundingClientRect().right+1})
   }));
   expect(layout.cardScrollWidth).toBeLessThanOrEqual(layout.cardClientWidth+1);
   expect(layout.widest).toBeLessThanOrEqual(1);
