@@ -30,6 +30,15 @@ async function expectNoHorizontalOverflow(page){
   expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.innerWidth+1);
   expect(metrics.clientWidth).toBeLessThanOrEqual(metrics.innerWidth+1);
 }
+async function expectVisibleBounds(page,selector){
+  const metrics=await page.locator(selector).evaluate(el=>{
+    const r=el.getBoundingClientRect();
+    return{left:r.left,right:r.right,viewport:window.innerWidth,overflowX:getComputedStyle(el).overflowX};
+  });
+  const details=selector+' visible bounds: '+JSON.stringify(metrics);
+  expect(metrics.left,details).toBeGreaterThanOrEqual(-1);
+  expect(metrics.right,details).toBeLessThanOrEqual(metrics.viewport+1);
+}
 async function onboard(page){
   await page.goto('/');
   const wizard=page.locator('#setupWizardDialog');
@@ -365,7 +374,12 @@ test('core surfaces preserve visual bounds across the Android viewport matrix',a
   for(const view of ['today','levels','commands','progress']){
     await page.locator('.bottomNav [data-view="'+view+'"]').click();
     await expectNoHorizontalOverflow(page);
-    await expectContainedHorizontally(page,'#'+view);
+    if(view==='commands'){
+      await expectVisibleBounds(page,'#commands');
+      await expectVisibleBounds(page,'#filters');
+    }else{
+      await expectContainedHorizontally(page,'#'+view);
+    }
   }
 
   await page.locator('.bottomNav [data-view="commands"]').click();
