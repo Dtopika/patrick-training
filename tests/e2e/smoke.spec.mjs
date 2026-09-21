@@ -262,6 +262,19 @@ test('mobile navigation, chooser and undo work end to end',async({page})=>{
   await expect(page.locator('#undoExecutionBtn')).toBeHidden();
 });
 
+test('v7.8 settings expose smart reminders and PWA health',async({page})=>{
+  await onboard(page);
+  await page.locator('#settingsAvatarBtn').click();
+  await expect(page.locator('#notificationToggle strong')).toHaveText('Recordatorio inteligente');
+  await expect(page.locator('#notificationToggle small')).toContainText('actividad reciente');
+  await page.locator('#openAppSettingsBtn').click();
+  await expect(page.locator('#appSettingsDialog')).toBeVisible();
+  await expect(page.locator('#pwaRuntimeStatus')).not.toHaveText('');
+  await expect(page.locator('#checkPwaUpdateBtn')).toBeVisible();
+  await expect.poll(()=>page.evaluate(()=>typeof window.PatrickPWA?.checkForUpdate)).toBe('function');
+  await expectContainedHorizontally(page,'#appSettingsDialog .managementCard');
+});
+
 test('German voice settings and long-term evolution are available on mobile',async({page})=>{
   await onboard(page);
 
