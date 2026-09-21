@@ -1,7 +1,7 @@
 const DEFAULT_EXECUTIONS_PER_COMMAND=5;
 const OUTCOME_SCORE={missed:0,assisted:.5,achieved:1};
 function outcomeLabel(outcome){return outcome==='missed'?t('missed'):outcome==='assisted'?t('assisted'):t('achieved')}
-let executionTimerId=null,sessionAdvanceTimeoutId=null,executionStartedAt=0,executionElapsedMs=0,executionReadyForRating=false,sessionAdvancing=false,lastRatedExecution=null;
+let executionTimerId=null,sessionAdvanceTimeoutId=null,sessionStartedAt=0,sessionClockTimerId=null,sessionElapsedMs=0,executionStartedAt=0,executionElapsedMs=0,executionReadyForRating=false,sessionAdvancing=false,lastRatedExecution=null;
 let pendingStartRequest=null,startChoiceMode='recommended';
 
 function clearSessionAdvanceTimer(){if(sessionAdvanceTimeoutId){clearTimeout(sessionAdvanceTimeoutId);sessionAdvanceTimeoutId=null}}
@@ -30,6 +30,27 @@ function ensureExecutionUI(){
   target.insertAdjacentElement('afterend',box);
 }
 function formatExecutionTime(ms){const total=Math.max(0,ms)/1000,min=Math.floor(total/60),sec=Math.floor(total%60),tenth=Math.floor((total%1)*10);return`${String(min).padStart(2,'0')}:${String(sec).padStart(2,'0')}.${tenth}`}
+function formatSessionTime(ms){const seconds=Math.floor(Math.max(0,ms)/1000),min=Math.floor(seconds/60),sec=seconds%60;return`${String(min).padStart(2,'0')}:${String(sec).padStart(2,'0')}`}
+function updateSessionClock(){if(sessionStartedAt)sessionElapsedMs=performance.now()-sessionStartedAt;const el=$('#sessionElapsed');if(el)el.textContent=formatSessionTime(sessionElapsedMs)}
+function startSessionClock(){if(sessionClockTimerId)clearInterval(sessionClockTimerId);sessionElapsedMs=0;sessionStartedAt=performance.now();updateSessionClock();sessionClockTimerId=setInterval(updateSessionClock,1000)}
+function stopSessionClock(){if(sessionStartedAt)sessionElapsedMs=performance.now()-sessionStartedAt;sessionStartedAt=0;if(sessionClockTimerId){clearInterval(sessionClockTimerId);sessionClockTimerId=null}updateSessionClock()}
+function practicalCoachCopy(c){
+  const family=ENGINE.skillFamily(c).key,state=stateOf(c.cmd),difficulty=ENGINE.difficultyTarget(c,state,{stateScore:STATE_SCORE,context:session?.context}),lang=appLanguage;
+  const errorEs={communication:'Repetir la señal muchas veces hasta que deje de significar algo.',position:'Guiar con comida demasiado tiempo y no retirar la ayuda.',hold:'Subir duración, distancia y distracción al mismo tiempo.',recall:'Llamarlo cuando sabes que la distracción todavía es demasiado fuerte.',heel:'Buscar demasiados pasos antes de premiar una buena posición.',search:'Hacer el escondite difícil antes de que entienda el juego.',object:'Perseguirlo para quitarle el objeto o convertirlo en forcejeo.',control:'Usar la señal tarde, cuando ya está demasiado activado.',direction:'Aumentar distancia antes de tener una trayectoria clara.',household:'Cambiar lugar y criterio a la vez.',alert:'Premiar activación sin practicar la vuelta a calma.',default:'Subir dificultad antes de tener una respuesta clara.'};
+  const errorEn={communication:'Repeating the cue until it loses meaning.',position:'Keeping the food lure too long instead of fading help.',hold:'Increasing duration, distance and distraction at the same time.',recall:'Calling when the distraction is still too strong.',heel:'Asking for too many steps before rewarding good position.',search:'Making the hide difficult before the game is understood.',object:'Chasing for the object or turning it into tug-of-war.',control:'Giving the cue too late, after arousal is already high.',direction:'Adding distance before the path is clear.',household:'Changing location and criterion at the same time.',alert:'Rewarding activation without rehearsing the return to calm.',default:'Increasing difficulty before the response is clear.'};
+  const errorDe={communication:'Das Signal so oft wiederholen, bis es an Bedeutung verliert.',position:'Die Futterhilfe zu lange benutzen, statt sie abzubauen.',hold:'Dauer, Distanz und Ablenkung gleichzeitig erhöhen.',recall:'Rufen, obwohl die Ablenkung noch zu stark ist.',heel:'Zu viele Schritte verlangen, bevor eine gute Position belohnt wird.',search:'Das Versteck zu schwer machen, bevor das Spiel verstanden ist.',object:'Dem Objekt hinterherjagen oder daraus ein Zerrspiel machen.',control:'Das Signal zu spät geben, wenn die Erregung schon hoch ist.',direction:'Distanz erhöhen, bevor die Richtung klar ist.',household:'Ort und Kriterium gleichzeitig verändern.',alert:'Aktivierung belohnen, ohne die Rückkehr zur Ruhe zu üben.',default:'Die Schwierigkeit erhöhen, bevor die Reaktion klar ist.'};
+  const fallback=lang==='en'?`Make it one step easier: reduce distance or distraction, ask once, help if needed and reward the first clear success.`:lang==='de'?`Mach es eine Stufe leichter: weniger Distanz oder Ablenkung, Signal einmal geben, bei Bedarf helfen und den ersten klaren Erfolg belohnen.`:`Hazlo un paso más fácil: baja distancia o distracción, da la señal una vez, ayuda si hace falta y premia el primer éxito claro.`;
+  const rewardBase=displayCommandDetail(c,'reward'),reward=lang==='en'?`${rewardBase} Reward within about one second of the correct response.`:lang==='de'?`${rewardBase} Belohne innerhalb von etwa einer Sekunde nach der richtigen Reaktion.`:`${rewardBase} Premia dentro de aproximadamente un segundo de la respuesta correcta.`;
+  const level=STATE_SCORE[state]||0,criterion=level<2?(lang==='en'?'Build recent evidence close to 8/10 points before adding difficulty.':lang==='de'?'Sammle ungefähr 8/10 aktuelle Punkte, bevor du die Schwierigkeit erhöhst.':'Construye evidencia reciente cercana a 8/10 puntos antes de subir dificultad.'):level<4?(lang==='en'?'Repeat strong results in different safe contexts; change only one difficulty variable at a time.':lang==='de'?'Wiederhole starke Ergebnisse in verschiedenen sicheren Kontexten; ändere nur eine Schwierigkeit gleichzeitig.':'Repite buenos resultados en contextos seguros distintos; cambia una sola variable de dificultad a la vez.'):(lang==='en'?'Keep it with short spaced reviews instead of drilling it every day.':lang==='de'?'Erhalte es mit kurzen verteilten Wiederholungen statt täglichem Drill.':'Mantenlo con repasos breves y espaciados en vez de repetirlo todos los días.');
+  const goal=lang==='en'?`Today: ${displayEngineText(difficulty.target)} · ${displayEngineText(ENGINE.contextLabel(session?.context||trainingContext))}.`:lang==='de'?`Heute: ${displayEngineText(difficulty.target)} · ${displayEngineText(ENGINE.contextLabel(session?.context||trainingContext))}.`:`Hoy: ${displayEngineText(difficulty.target)} · ${displayEngineText(ENGINE.contextLabel(session?.context||trainingContext))}.`;
+  return{goal,error:(lang==='en'?errorEn:lang==='de'?errorDe:errorEs)[family]||(lang==='en'?errorEn.default:lang==='de'?errorDe.default:errorEs.default),fallback,reward,criterion};
+}
+function renderPracticalCoach(c){
+  const copy=practicalCoachCopy(c),labels=appLanguage==='en'?['LIVE COACH','COMMON ERROR','IF STUCK','REWARD','TO PROGRESS']:appLanguage==='de'?['LIVE-COACH','HÄUFIGER FEHLER','WENN ES HAKT','BELOHNUNG','FÜR DEN NÄCHSTEN SCHRITT']:['COACH EN VIVO','ERROR COMÚN','SI SE ATASCA','PREMIO','PARA AVANZAR'];
+  $('#sessionPracticalKicker').textContent=labels[0];$('#sessionErrorLabel').textContent=labels[1];$('#sessionFallbackLabel').textContent=labels[2];$('#sessionRewardLabel').textContent=labels[3];$('#sessionProgressLabel').textContent=labels[4];
+  $('#sessionPracticalGoal').textContent=copy.goal;$('#sessionCommonError').textContent=copy.error;$('#sessionFallback').textContent=copy.fallback;$('#sessionRewardStrategy').textContent=copy.reward;$('#sessionProgressCriterion').textContent=copy.criterion;
+}
+
 function stopExecutionTimer({capture=true}={}){if(executionTimerId){clearInterval(executionTimerId);executionTimerId=null}if(capture&&executionStartedAt)executionElapsedMs=performance.now()-executionStartedAt;executionStartedAt=0}
 function updateExecutionClock(){if(!executionStartedAt)return;executionElapsedMs=performance.now()-executionStartedAt;const el=$('#executionTimer');if(el)el.textContent=formatExecutionTime(executionElapsedMs)}
 function startExecutionTimer(){stopExecutionTimer({capture:false});executionElapsedMs=0;executionStartedAt=performance.now();updateExecutionClock();executionTimerId=setInterval(updateExecutionClock,100)}
@@ -111,7 +132,7 @@ function confirmStartChoice(){
 
 function startSession(cmds=focusForLevel(currentLevel),options={}){
   const safeCommands=(Array.isArray(cmds)?cmds:[]).filter(c=>c&&typeof c.cmd==='string');if(!safeCommands.length)return;
-  clearSessionAdvanceTimer();stopExecutionTimer();sessionAdvancing=false;
+  clearSessionAdvanceTimer();stopExecutionTimer();stopSessionClock();startSessionClock();sessionAdvancing=false;
   const sessionLevel=Number.isInteger(Number(options.sessionLevel))?Number(options.sessionLevel):inferSessionLevel(safeCommands,currentLevel);
   session={commands:safeCommands,level:sessionLevel,index:0,trial:0,results:{},timings:{},targets:{},context:ENGINE.normalizeContext(options.context||trainingContext)};
   safeCommands.forEach(c=>{session.results[c.cmd]=[];session.timings[c.cmd]=[];session.targets[c.cmd]=ENGINE.recommendedAttempts(c,{trials,history,progress,stateScore:STATE_SCORE,profile:dogProfile})});
@@ -123,7 +144,7 @@ function renderSessionStep(){
   $('#sessionCounter').textContent=appLanguage==='en'?`Command ${session.index+1} of ${total}`:appLanguage==='de'?`Kommando ${session.index+1} von ${total}`:`Comando ${session.index+1} de ${total}`;$('#sessionCommandTitle').textContent=displayCommand(c);$('#sessionCategory').textContent=`${t('level')} ${c.level} · ${displayCategory(c.category)}`;$('#sessionPron').textContent=displayPron(c);$('#sessionMeaning').textContent=displayMeaning(c);$('#sessionSignal').textContent=displayCommandDetail(c,'signal');$('#sessionAction').textContent=displayCommandDetail(c,'action');$('#sessionHow').textContent=displayCommandDetail(c,'how');$('#sessionReward').textContent=displayCommandDetail(c,'reward');
   const safety=trainingSafety(c),safetyBox=$('#sessionSafety');if(safetyBox){safetyBox.hidden=!safety;safetyBox.classList.toggle('deferred',!!safety?.deferFromAdaptive);if(safety)safetyBox.innerHTML=`<strong>${escapeHtml(displayEngineText(safety.label))}</strong><span>${escapeHtml(displayEngineText(safety.message))}</span>`}
   const done=completedBeforeCurrent()+session.trial,targetTotal=sessionTargetTotal();$('#sessionProgressBar').style.width=`${Math.round(done/Math.max(1,targetTotal)*100)}%`;
-  lastRatedExecution=null;syncSessionContextUI(c);$('#sessionAudioBtn').onclick=()=>speak(c);updateExecutionUI();prepareExecution();
+  lastRatedExecution=null;syncSessionContextUI(c);renderPracticalCoach(c);$('#sessionAudioBtn').onclick=()=>speak(c);updateExecutionUI();prepareExecution();
 }
 function rateExecution(outcome){
   if(!session||sessionAdvancing||!executionReadyForRating||!(outcome in OUTCOME_SCORE))return;
@@ -185,15 +206,15 @@ function requestExitSession(){
   if(!session){$('#sessionDialog').close();return}
   const attempts=sessionAttemptCount(),message=appLanguage==='en'?(attempts?'Exit session? Executions from this session will not be saved.':'Exit the current session?'):appLanguage==='de'?(attempts?'Einheit verlassen? Die Ausführungen dieser Einheit werden nicht gespeichert.':'Aktuelle Einheit verlassen?'):(attempts?'¿Salir de la sesión? Las ejecuciones de esta sesión no se guardarán.':'¿Salir de la sesión actual?');
   if(!confirm(message))return;
-  clearSessionAdvanceTimer();stopExecutionTimer();executionReadyForRating=false;lastRatedExecution=null;setUndoExecutionVisible(false);setStartExecutionVisible(false);session=null;sessionAdvancing=false;setOutcomeButtonsDisabled(false);$('#sessionDialog').close();
+  clearSessionAdvanceTimer();stopExecutionTimer();stopSessionClock();executionReadyForRating=false;lastRatedExecution=null;setUndoExecutionVisible(false);setStartExecutionVisible(false);session=null;sessionAdvancing=false;setOutcomeButtonsDisabled(false);$('#sessionDialog').close();
 }
 async function finishSession(){
   if(!session)return;
-  clearSessionAdvanceTimer();stopExecutionTimer();sessionAdvancing=true;setOutcomeButtonsDisabled(true);
+  clearSessionAdvanceTimer();stopExecutionTimer();stopSessionClock();sessionAdvancing=true;setOutcomeButtonsDisabled(true);
   const activeSession=session,finishedLevel=Number(activeSession.level);
   const nextTrials=Object.fromEntries(Object.entries(trials).map(([cmd,list])=>[cmd,Array.isArray(list)?[...list]:[]])),nextProgress={...progress};
   for(const [cmd,outcomes] of Object.entries(activeSession.results))for(const outcome of outcomes)applyRollingToState(nextTrials,nextProgress,cmd,OUTCOME_SCORE[outcome]);
-  const stamp={version:CONFIG.SESSION_SCHEMA_VERSION,at:new Date().toISOString(),level:finishedLevel,dogName:dogName(),timingMode:'cue-to-rating',results:{},timings:activeSession.timings,context:ENGINE.normalizeContext(activeSession.context)};
+  const stamp={version:CONFIG.SESSION_SCHEMA_VERSION,at:new Date().toISOString(),level:finishedLevel,dogName:dogName(),timingMode:'cue-to-rating',durationSeconds:Math.max(0,Math.round(sessionElapsedMs/1000)),results:{},timings:activeSession.timings,context:ENGINE.normalizeContext(activeSession.context)};
   Object.entries(activeSession.results).forEach(([cmd,arr])=>{const times=activeSession.timings[cmd]||[],counts={achieved:arr.filter(x=>x==='achieved').length,assisted:arr.filter(x=>x==='assisted').length,missed:arr.filter(x=>x==='missed').length};stamp.results[cmd]={...counts,total:arr.length,score:arr.reduce((a,x)=>a+OUTCOME_SCORE[x],0),avgSeconds:times.length?Math.round(times.reduce((a,b)=>a+b,0)/times.length/100)/10:0,outcomes:[...arr]}});
   const compacted=compactHistory([stamp,...history],historyArchive),nextHistory=compacted.history,nextArchive=compacted.archive;
   for(const cmd of Object.keys(activeSession.results))nextProgress[cmd]=ENGINE.nextProgressState(cmd,nextProgress[cmd],{trials:nextTrials,history:nextHistory,stateScore:STATE_SCORE});

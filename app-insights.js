@@ -1,4 +1,4 @@
-let activeInsightCommand=null,currentDailyMissionPlan=null;
+let activeInsightCommand=null,currentDailyMissionPlan=null,currentWeeklyPlan=null;
 
 function pctText(value){return value===null||value===undefined?'—':Math.round(Number(value)*100)+'%'}
 function signedPct(value){if(value===null||value===undefined)return copyText('Sin comparación');const n=Math.round(Number(value)*100);return(n>0?'+':'')+n+' pts'}
@@ -27,6 +27,44 @@ function startDailyMission(){
   openStartChoice(commands,{level:currentLevel,label:t('missionToday')});
 }
 
+function weeklyThemeText(key){
+  const labels={
+    focus:['Foco principal','Main focus','Hauptfokus'],
+    generalize:['Generalizar','Generalize','Generalisieren'],
+    review:['Repaso inteligente','Smart review','Intelligente Wiederholung'],
+    light:['Día ligero','Light day','Leichter Tag'],
+    rest:['Sin carga','No load','Keine Belastung']
+  },row=labels[key]||labels.focus,index=appLanguage==='en'?1:appLanguage==='de'?2:0;return row[index];
+}
+function weeklyObjectiveText(key){
+  const labels={
+    build:['Construir respuesta','Build the response','Reaktion aufbauen'],
+    generalize:['Generalizar con control','Generalize with control','Kontrolliert generalisieren'],
+    maintain:['Mantener sólido','Keep it solid','Stabil halten']
+  },row=labels[key]||labels.build,index=appLanguage==='en'?1:appLanguage==='de'?2:0;return row[index];
+}
+function renderWeeklyCoach(){
+  const root=$('#weeklyCoach');if(!root||typeof ENGINE.weeklyPlan!=='function')return;
+  const plan=ENGINE.weeklyPlan(COMMANDS,currentLevel,{dayType,trials,history,progress,stateScore:STATE_SCORE,profile:dogProfile});
+  currentWeeklyPlan=plan;
+  const days=plan.days||[];root.hidden=!days.length;if(!days.length){root.innerHTML='';return}
+  const locale=I18N?.locale?.(appLanguage)||'es-CO',fmt=new Intl.DateTimeFormat(locale,{weekday:'short',day:'numeric'});
+  const title=appLanguage==='en'?'Adaptive week':appLanguage==='de'?'Adaptive Woche':'Semana adaptativa';
+  const note=appLanguage==='en'?'It recalculates after every completed session.':appLanguage==='de'?'Sie wird nach jeder abgeschlossenen Einheit neu berechnet.':'Se recalcula después de cada sesión terminada.';
+  const start=appLanguage==='en'?'Train':appLanguage==='de'?'Trainieren':'Entrenar';
+  root.innerHTML=`<div class="weeklyCoachHead"><div><p class="kicker">${escapeHtml(appLanguage==='en'?'WEEKLY COACH':appLanguage==='de'?'WOCHEN-COACH':'COACH SEMANAL')}</p><h2>${escapeHtml(title)}</h2><p>${escapeHtml(note)}</p></div><span>${escapeHtml(displayEngineText(plan.stage))}</span></div>
+    <div class="weeklyCoachRail" role="list">${days.map(day=>`<article class="weeklyDay ${day.isToday?'today':''} ${day.load==='light'?'light':''}" role="listitem">
+      <div class="weeklyDayTop"><strong>${escapeHtml(day.isToday?(appLanguage==='en'?'Today':appLanguage==='de'?'Heute':'Hoy'):fmt.format(new Date(day.date+'T12:00:00')))}</strong><small>${escapeHtml(weeklyThemeText(day.theme))}</small></div>
+      <div class="weeklyDayCommands">${day.items.map(item=>`<span><b>${escapeHtml(displayCommand(item.command))}</b><small>${escapeHtml(weeklyObjectiveText(item.objective))}</small></span>`).join('')||`<span><small>${escapeHtml(weeklyThemeText('rest'))}</small></span>`}</div>
+      <footer><span>${day.totalMinutes} min</span><button type="button" data-week-start="${day.dayOffset}" ${day.items.length?'':'disabled'}>${escapeHtml(start)}</button></footer>
+    </article>`).join('')}</div>`;
+}
+function startWeeklyDay(offset){
+  const day=currentWeeklyPlan?.days?.find(item=>Number(item.dayOffset)===Number(offset));if(!day?.items?.length)return;
+  const commands=day.items.map(item=>item.command).filter(Boolean),locale=I18N?.locale?.(appLanguage)||'es-CO',label=new Intl.DateTimeFormat(locale,{weekday:'long'}).format(new Date(day.date+'T12:00:00'));
+  openStartChoice(commands,{level:currentLevel,label});
+}
+
 function renderSmartDailyPlan(){
   const root=$('#smartDailyPlan');if(!root)return;
   const plan=ENGINE.dailyPlan(COMMANDS,currentLevel,{dayType,trials,history,progress,stateScore:STATE_SCORE,profile:dogProfile});
@@ -40,6 +78,7 @@ function renderSmartDailyPlan(){
       <div class="smartPlanContext"><span>${escapeHtml(displayEngineText(item.context.label))}</span><span>${escapeHtml(displayEngineText(item.difficulty.target))}</span><span>${item.attempts} ${appLanguage==='en'?'executions':appLanguage==='de'?'Ausführungen':'ejecuciones'} · ${item.minutes} min</span></div></div>
       <button class="smartPlanStart" type="button" data-smart-practice="${escapeHtml(item.command.cmd)}">${escapeHtml(copyText('Practicar'))}</button>
     </article>`).join('')}</div>`;
+  renderWeeklyCoach();
 }
 
 function renderEvolutionDashboard(){
@@ -106,6 +145,7 @@ function decorateInsightButtons(){
 function renderInsights(){renderSmartDailyPlan();renderEvolutionDashboard();decorateInsightButtons()}
 
 document.addEventListener('click',e=>{
+  const weekly=e.target.closest('[data-week-start]');if(weekly){startWeeklyDay(weekly.dataset.weekStart);return}
   const detail=e.target.closest('[data-command-insight]');if(detail){openCommandInsight(detail.dataset.commandInsight);return}
   const practice=e.target.closest('[data-smart-practice]');if(practice){
     const command=commandBy(practice.dataset.smartPractice);if(!command)return;
