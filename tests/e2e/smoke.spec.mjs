@@ -3,11 +3,27 @@ import {test,expect} from '@playwright/test';
 async function expectContainedHorizontally(page,selector){
   const metrics=await page.locator(selector).evaluate(el=>{
     const r=el.getBoundingClientRect();
-    return{left:r.left,right:r.right,scrollWidth:el.scrollWidth,clientWidth:el.clientWidth,viewport:window.innerWidth};
+    const offenders=[...el.querySelectorAll('*')].map(node=>{
+      const box=node.getBoundingClientRect();
+      return{
+        tag:node.tagName.toLowerCase(),
+        id:node.id||'',
+        className:typeof node.className==='string'?node.className:'',
+        left:Math.round(box.left),
+        right:Math.round(box.right),
+        width:Math.round(box.width),
+        scrollWidth:node.scrollWidth,
+        clientWidth:node.clientWidth
+      };
+    }).filter(item=>item.right>window.innerWidth+1||item.left<-1||item.scrollWidth>item.clientWidth+1)
+      .sort((a,b)=>Math.max(b.right-window.innerWidth,b.scrollWidth-b.clientWidth)-Math.max(a.right-window.innerWidth,a.scrollWidth-a.clientWidth))
+      .slice(0,8);
+    return{left:r.left,right:r.right,scrollWidth:el.scrollWidth,clientWidth:el.clientWidth,viewport:window.innerWidth,offenders};
   });
-  expect(metrics.left).toBeGreaterThanOrEqual(-1);
-  expect(metrics.right).toBeLessThanOrEqual(metrics.viewport+1);
-  expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.clientWidth+1);
+  const details=selector+' overflow diagnostics: '+JSON.stringify(metrics.offenders);
+  expect(metrics.left,details).toBeGreaterThanOrEqual(-1);
+  expect(metrics.right,details).toBeLessThanOrEqual(metrics.viewport+1);
+  expect(metrics.scrollWidth,details).toBeLessThanOrEqual(metrics.clientWidth+1);
 }
 async function expectNoHorizontalOverflow(page){
   const metrics=await page.evaluate(()=>({scrollWidth:document.documentElement.scrollWidth,clientWidth:document.documentElement.clientWidth,innerWidth:window.innerWidth}));
