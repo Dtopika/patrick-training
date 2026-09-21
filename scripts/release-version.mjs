@@ -25,6 +25,7 @@ cfg=cfg.replace(/CACHE_NAME:'patrick-training-v[^']+'/,`CACHE_NAME:'patrick-trai
 write('config.js',cfg);
 
 const pkg=JSON.parse(read('package.json'));pkg.version=version;write('package.json',JSON.stringify(pkg,null,2)+'\n');
+const lock=JSON.parse(read('package-lock.json'));lock.version=version;if(lock.packages?.[''])lock.packages[''].version=version;write('package-lock.json',JSON.stringify(lock,null,2)+'\n');
 
 let readme=read('README.md');
 readme=readme.replace(/Release estable publicada: v[^.]+\.[^.]+\.[^.]+\./,`Release estable publicada: v${version}.`);
