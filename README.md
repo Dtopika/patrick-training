@@ -3,7 +3,7 @@
 PWA móvil, local-first, para entrenar a Patrick con comandos en alemán, sesiones guiadas y progresión adaptativa.
 
 ## Estado
-- Release estable publicada: v7.5.0.
+- Release estable publicada: v7.6.0.
 - Línea actual: First-run Experience con wizard de tema, perfil, tutorial y arranque guiado de Nivel 0.
 - Sin backend ni cuentas: los datos permanecen en el dispositivo salvo exportación manual.
 
