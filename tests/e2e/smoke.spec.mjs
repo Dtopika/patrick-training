@@ -167,6 +167,27 @@ test('v7.7 weekly coach launches a guided live session',async({page})=>{
   await expectContainedHorizontally(page,'#sessionPracticalCoach');
 });
 
+test('long management dialogs keep the close action visible while scrolling',async({page})=>{
+  await onboard(page);
+  await page.locator('#settingsAvatarBtn').click();
+  await page.locator('#openAppSettingsBtn').click();
+  const dialog=page.locator('#appSettingsDialog'),card=dialog.locator('.managementCard'),close=page.locator('#closeAppSettingsBtn');
+  await expect(dialog).toBeVisible();
+  await card.evaluate(el=>{el.scrollTop=el.scrollHeight});
+  await expect(close).toBeVisible();
+  const bounds=await page.evaluate(()=>{
+    const card=document.querySelector('#appSettingsDialog .managementCard').getBoundingClientRect();
+    const button=document.querySelector('#closeAppSettingsBtn').getBoundingClientRect();
+    const header=document.querySelector('#appSettingsDialog .managementHeader');
+    return{cardTop:card.top,cardBottom:card.bottom,buttonTop:button.top,buttonBottom:button.bottom,position:getComputedStyle(header).position};
+  });
+  expect(bounds.position).toBe('sticky');
+  expect(bounds.buttonTop).toBeGreaterThanOrEqual(bounds.cardTop-1);
+  expect(bounds.buttonBottom).toBeLessThanOrEqual(bounds.cardBottom+1);
+  await close.click();
+  await expect(dialog).not.toBeVisible();
+});
+
 test('localized option layouts stay inside the mobile viewport',async({page})=>{
   await page.goto('/');
   await page.locator('#setupAppLanguage').selectOption('de');
