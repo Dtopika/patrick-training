@@ -1,0 +1,22 @@
+name: Patrick Video Health
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 10 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  video-health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          package-manager-cache: false
+      - name: Check 47 curated training videos
+        run: node scripts/check-video-links.mjs

@@ -547,3 +547,15 @@ test('v7.9 exposes update application and predictable management-dialog focus',(
   assert.match(settings,/closeSettingsDrawer\(\{restoreFocus:false\}\)/);
   assert.match(settings,/restoreManagementDialogFocus/);
 });
+
+
+test('v7.9 quality automation separates deterministic gate from external video health',()=>{
+  const quality=read('.github/workflows/quality.yml'),videoHealth=read('.github/workflows/video-health.yml'),checker=read('scripts/check-video-links.mjs'),readme=read('README.md');
+  assert.doesNotMatch(quality,/check-video-links/);
+  assert.match(videoHealth,/schedule:/);
+  assert.match(videoHealth,/node scripts\/check-video-links\.mjs/);
+  assert.match(checker,/attempt<=3/);
+  assert.match(readme,/Adaptive Engine v3/);
+  assert.match(readme,/Backup schema 13/);
+  assert.doesNotMatch(readme,/Motor adaptativo v2/);
+});

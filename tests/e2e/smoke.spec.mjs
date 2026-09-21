@@ -212,6 +212,56 @@ test('long management dialogs keep close visible and lock background scrolling',
   await expect.poll(()=>page.evaluate(()=>document.body.classList.contains('dialogScrollLocked'))).toBe(false);
 });
 
+test('v7.9 core accessibility and management-focus contracts hold on mobile',async({page})=>{
+  await onboard(page);
+  const audit=await page.evaluate(()=>{
+    const ids=[...document.querySelectorAll('[id]')].map(el=>el.id),counts=ids.reduce((map,id)=>(map[id]=(map[id]||0)+1,map),{});
+    const duplicateIds=Object.entries(counts).filter(([,count])=>count>1).map(([id])=>id);
+    const visible=el=>{const s=getComputedStyle(el),r=el.getBoundingClientRect();return s.display!=='none'&&s.visibility!=='hidden'&&r.width>0&&r.height>0};
+    const unlabeledButtons=[...document.querySelectorAll('button')].filter(visible).filter(button=>!(button.getAttribute('aria-label')||button.getAttribute('title')||button.textContent.trim())).map(button=>button.id||button.outerHTML.slice(0,80));
+    const unnamedDialogs=[...document.querySelectorAll('dialog')].filter(dialog=>{
+      const label=dialog.getAttribute('aria-label'),labelledBy=dialog.getAttribute('aria-labelledby');
+      return !label&&!(labelledBy&&document.getElementById(labelledBy));
+    }).map(dialog=>dialog.id);
+    return{duplicateIds,unlabeledButtons,unnamedDialogs};
+  });
+  expect(audit.duplicateIds).toEqual([]);
+  expect(audit.unlabeledButtons).toEqual([]);
+  expect(audit.unnamedDialogs).toEqual([]);
+
+  await page.locator('#settingsAvatarBtn').click();
+  await expect(page.locator('#settingsDrawer')).toHaveClass(/open/);
+  await expect(page.locator('#settingsCloseBtn')).toBeFocused();
+  await page.locator('#openAppSettingsBtn').click();
+  await expect(page.locator('#appSettingsDialog')).toBeVisible();
+  await expect(page.locator('#closeAppSettingsBtn')).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#appSettingsDialog')).not.toBeVisible();
+  await expect(page.locator('#settingsAvatarBtn')).toBeFocused();
+});
+
+test('v7.9 update action becomes available when a newer published version is reported',async({page})=>{
+  await onboard(page);
+  await page.locator('#settingsAvatarBtn').click();
+  await page.locator('#openAppSettingsBtn').click();
+  await expect(page.locator('#appSettingsDialog')).toBeVisible();
+  await page.evaluate(()=>{
+    const current=window.PATRICK_CONFIG.APP_VERSION;
+    window.__patrickApplyCalled=false;
+    window.PatrickPWA={
+      status:()=>({online:true,standalone:true,serviceWorker:true,updateState:'update-found',lastChecked:new Date().toISOString(),currentVersion:current,publishedVersion:'99.0.0'}),
+      checkForUpdate:async()=>window.PatrickPWA.status(),
+      applyUpdate:async()=>{window.__patrickApplyCalled=true;return window.PatrickPWA.status()}
+    };
+    window.dispatchEvent(new CustomEvent('patrick:pwa-status'));
+  });
+  const apply=page.locator('#applyPwaUpdateBtn');
+  await expect(apply).toBeVisible();
+  await expect(apply).toContainText('Actualizar ahora');
+  await apply.click();
+  await expect.poll(()=>page.evaluate(()=>window.__patrickApplyCalled)).toBe(true);
+});
+
 test('localized option layouts stay inside the mobile viewport',async({page})=>{
   await page.goto('/');
   await page.locator('#setupAppLanguage').selectOption('de');

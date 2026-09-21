@@ -7,6 +7,7 @@ const catalog=ctx.window.PATRICK_VIDEOS||{};
 const entries=Object.entries(catalog);
 if(entries.length!==47)throw new Error('Expected 47 curated videos, got '+entries.length);
 
+const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function check([command,meta]){
   const endpoint=meta.youtubeId
     ? 'https://www.youtube.com/oembed?format=json&url='+encodeURIComponent('https://www.youtube.com/watch?v='+meta.youtubeId)
@@ -14,10 +15,16 @@ async function check([command,meta]){
       ? 'https://vimeo.com/api/oembed.json?url='+encodeURIComponent('https://vimeo.com/'+meta.vimeoId)
       : null;
   if(!endpoint)return{command,ok:false,status:0,reason:'missing provider id'};
-  try{
-    const response=await fetch(endpoint,{headers:{'user-agent':'Patrick-Training-Link-Health/1.0'},signal:AbortSignal.timeout(12000)});
-    return{command,ok:response.ok,status:response.status,reason:response.ok?'ok':'HTTP '+response.status};
-  }catch(error){return{command,ok:false,status:0,reason:error?.message||String(error)}}
+  let last={command,ok:false,status:0,reason:'unknown'};
+  for(let attempt=1;attempt<=3;attempt++){
+    try{
+      const response=await fetch(endpoint,{headers:{'user-agent':'Patrick-Training-Link-Health/1.0'},signal:AbortSignal.timeout(12000)});
+      last={command,ok:response.ok,status:response.status,reason:response.ok?'ok':'HTTP '+response.status};
+      if(response.ok||(response.status<500&&response.status!==429))return last;
+    }catch(error){last={command,ok:false,status:0,reason:error?.message||String(error)}}
+    if(attempt<3)await sleep(750*attempt);
+  }
+  return last;
 }
 
 const results=[];

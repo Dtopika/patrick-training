@@ -1,80 +1,75 @@
 # Patrick Training 🐺🇩🇪
 
-PWA móvil, local-first, para entrenar a Patrick con comandos en alemán, sesiones guiadas y progresión adaptativa.
+PWA móvil, local-first, para acompañar el entrenamiento diario de Patrick con sesiones guiadas, comandos multilingües y progresión adaptativa.
 
 ## Estado
-- Release estable publicada: v7.8.1.
-- Línea actual: First-run Experience con wizard de tema, perfil, tutorial y arranque guiado de Nivel 0.
-- Sin backend ni cuentas: los datos permanecen en el dispositivo salvo exportación manual.
 
-## Funciones
-- 47 comandos organizados en niveles 0 → 11.
-- Sesiones guiadas de 3–5 ejecuciones adaptativas por comando.
-- Motor adaptativo v2 por nivel, rendimiento, antigüedad, contexto y etapa/edad del perro.
-- Plan diario inteligente con objetivo, contexto recomendado y acceso directo a práctica.
-- Dashboard de evolución de 7/30 días con tendencias y señales de mejora/atención.
-- Ficha inteligente por comando con evidencia, tendencia, motivos y siguiente paso.
-- Progreso centrado en evolución, prioridades e historial, sin duplicar el catálogo de comandos.
-- Configuración unificada con tema, almacenamiento y respaldos, más sección Acerca de.
-- Progresión automática: consistencia → generalización → dominio basada en evidencia.
-- Contexto de sesión por entorno y nivel de distracción.
-- Ruta de niveles bloqueada: no se puede activar un nivel futuro sin completar los anteriores.
-- Niveles compactos y flujo guiado para iniciar sesiones desde Niveles o Comandos.
-- Navegación principal con estados activos más claros.
-- Nivel de sesión separado del nivel activo: repasar no altera la ruta ni el autoavance.
-- Deshacer inmediato del último resultado antes del autoavance.
-- Corrección o eliminación segura de sesiones con recálculo de evidencia.
-- Backups schema 8 con outcomes individuales y tema.
+- Release estable publicada: v7.8.1.
+- Arquitectura local-first: sin backend ni cuentas.
+- Los datos permanecen en el dispositivo salvo exportación manual de respaldo o diagnóstico.
+- 47 comandos distribuidos en niveles 0 → 11.
+- Nivel 11 orientado a control y protección segura; no enseña mordida ni ataque operativo.
+
+## Experiencia de entrenamiento
+
+- Misión de hoy y plan semanal adaptativo.
+- Sesiones guiadas con 3–5 ejecuciones por comando.
+- Cronómetro de sesión y medición cue-to-rating por ejecución.
+- Coach práctico en vivo: objetivo, error frecuente, cómo bajar dificultad, premio y criterio para avanzar.
+- Contexto de entrenamiento por entorno y nivel de distracción.
+- Progresión automática: En práctica → Consistente → Generalizando → Dominado.
+- Ruta de niveles bloqueada hasta completar los requisitos previos.
+- Planes y dificultad ajustados por edad/etapa de desarrollo cuando aplica.
+
+## Inteligencia y progreso
+
+- Adaptive Engine v3 basado en rendimiento, ayuda, contexto, antigüedad, confianza y timing.
+- Ficha inteligente por comando con evidencia, tendencia, confianza y siguiente paso.
+- Dashboard de 7/30 días con días entrenados, sesiones, minutos medidos, ejecuciones, precisión y contextos.
+- Historial editable con recálculo seguro de evidencia.
+- Archivo histórico mensual para conservar evolución sin cargar indefinidamente el historial reciente.
+- Recordatorios inteligentes cuando el navegador/sistema lo permite.
+
+## Idiomas y contenido
+
+- Interfaz independiente en Español / English / Deutsch.
+- Idioma de comandos independiente en Español / English / Deutsch.
+- Pronunciación mediante voces instaladas en el dispositivo.
+- 47 videos curados con revisión automática semanal de disponibilidad.
+- Cambio de nombre del perro integrado en la experiencia y los comandos correspondientes.
+
+## PWA, datos y recuperación
+
+- PWA instalable y funcional offline con cache versionado.
+- Comprobación de versión publicada desde Configuración.
+- IndexedDB como almacenamiento principal con espejo local de recuperación.
+- Backup schema 13 con perfil, progreso, sesiones, historial, preferencias, idiomas y onboarding.
+- Exportación/restauración validada.
 - Exportación de diagnóstico técnico sin historial detallado.
-- Quality Gate con Playwright móvil además de tests unitarios.
-- Script único de preparación de releases para versión, cache y asset tags.
-- Adaptive Engine v3: combina precisión, ayuda, contexto, antigüedad, confianza y tiempo preciso.
-- Perfiles de habilidad: posición, duración, llamada, paseo, búsqueda, objetos, control, movimiento y hogar.
-- Dificultad objetivo distinta por familia de comando.
-- Repeticiones adaptativas de 3 a 5 según rendimiento, estado y etapa del perro.
-- Cronometraje cue-to-rating: el tiempo empieza cuando el guía inicia realmente la ejecución; tiempos antiguos no se usan como latencia.
-- Ficha inteligente y plan diario muestran confianza, objetivo específico y timing cuando ya hay evidencia v7.
-- Misión de hoy como único CTA principal; el detalle adaptativo y micro-sesiones quedan plegables.
-- Guía “Cómo funciona” con estados, confianza, repeticiones adaptativas y medición precisa.
-- Archivo histórico mensual: las sesiones antiguas dejan de descartarse al superar 200.
-- Backups schema 10 incluyen archivo histórico y estado del onboarding.
-- Tutorial visual 1→2→3→4: señal, respuesta, Ja! y premio.
-- Voz alemana seleccionable entre las voces instaladas en el dispositivo, con fallback automático.
-- Evolución mensual combina sesiones recientes y archivo sin duplicar datos.
-- Cobertura multimedia contractual: 47 comandos y 47 videos curados.
-- Backups schema 11 preservan la preferencia de voz alemana.
-- Primer arranque unificado en un wizard de 4 pasos.
-- Tema se elige antes de entrar a la app y se previsualiza al instante.
-- Nombre y edad se configuran antes del Nivel 0; el nombre personaliza el comando de atención y su audio.
-- El wizard explica misión, medición y progreso antes de comenzar.
-- Usuarios existentes con perfil completo migran silenciosamente y no reciben el wizard retroactivamente.
-- Backups schema 12 preservan el estado de configuración inicial.
-- Reinicio completo desde Configuración con doble confirmación obligatoria y regreso inmediato al wizard.
-- Footer del wizard corregido: CTA compacto, Atrás secundario, validación en línea y layout estable con teclado.
-- Nivel 11 · Control y protección segura: retorno al guía, silencio, desenganche, salida, llamada y creación de distancia; sin mordida ni ataque operativo.
-- El techo de la ruta ahora es dinámico y backups/historial aceptan el último nivel real.
-- Wizard y Configuración separan idioma de la app e idioma de comandos: Español, English y Deutsch.
-- Los IDs internos de comandos no cambian al cambiar idioma, por lo que progreso, historial y estadísticas se conservan.
-- El audio de comandos usa es-CO, en-US o de-DE según el idioma elegido; la voz alemana personalizada se conserva cuando aplica.
-- Backups schema 13 preservan ambos idiomas.
-- Historial, racha y evidencia reciente por comando.
-- Perfil del perro con edad y recomendaciones de seguridad.
-- Videos curados y pronunciación mediante la voz alemana del dispositivo.
-- IndexedDB con espejo local reconciliado por timestamp.
-- Exportación/restauración de backup validado.
-- Recordatorios cuando el navegador/sistema lo permite.
-- PWA offline con cache versionado.
+- Reinicio completo con doble confirmación propia de la app.
+- Recuperación de arranque si falla una dependencia crítica.
 
 ## Seguridad
-La app no enseña mordida ni ataque a personas. Los comandos defensivos se limitan a observación, reorientación y posiciones seguras. El trabajo de protección deportiva/IGP requiere club, entrenador y figurante cualificados.
+
+Patrick Training no enseña mordida ni ataque a personas. Los ejercicios defensivos se limitan a observación, retorno al guía, desenganche, silencio, salida y creación de distancia. El trabajo de protección deportiva/IGP debe hacerse con club, entrenador y figurante cualificados.
 
 ## Desarrollo
 
-```bash
-npm test
-```
+    npm ci
+    npm test
+    npm run test:e2e
+    node scripts/check-video-links.mjs
 
-El Quality Gate valida persistencia, backups, sesiones, motor adaptativo, PWA y regresiones de seguridad antes de promover cambios a `master`.
+El **Patrick Quality Gate** ejecuta tests unitarios y Playwright en viewports Android antes de promover cambios a `master`.
 
-## GitHub Pages
-Producción: https://dtopika.github.io/patrick-training/
+La salud de los 47 videos se revisa en un workflow semanal separado para que fallos temporales de proveedores externos no vuelvan inestable el Quality Gate principal.
+
+## Release
+
+    npm run release:prepare -- <semver> <asset-tag>
+
+Ejemplo de formato de asset tag: `v790-r1`.
+
+## Producción
+
+https://dtopika.github.io/patrick-training/
