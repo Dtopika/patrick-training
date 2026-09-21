@@ -178,10 +178,10 @@ test('long management dialogs keep close visible and lock background scrolling',
   await card.evaluate(el=>{el.scrollTop=el.scrollHeight});
   await expect(close).toBeVisible();
   const bounds=await page.evaluate(()=>{
-    const card=document.querySelector('#appSettingsDialog .managementCard').getBoundingClientRect();
+    const cardEl=document.querySelector('#appSettingsDialog .managementCard'),card=cardEl.getBoundingClientRect();
     const button=document.querySelector('#closeAppSettingsBtn').getBoundingClientRect();
     const header=document.querySelector('#appSettingsDialog .managementHeader');
-    return{cardTop:card.top,cardBottom:card.bottom,buttonTop:button.top,buttonBottom:button.bottom,position:getComputedStyle(header).position,bodyPosition:getComputedStyle(document.body).position,overscroll:getComputedStyle(card).overscrollBehavior};
+    return{cardTop:card.top,cardBottom:card.bottom,buttonTop:button.top,buttonBottom:button.bottom,position:getComputedStyle(header).position,bodyPosition:getComputedStyle(document.body).position,overscroll:getComputedStyle(cardEl).overscrollBehavior};
   });
   expect(bounds.position).toBe('sticky');
   expect(bounds.bodyPosition).toBe('fixed');
