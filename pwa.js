@@ -77,7 +77,7 @@ if('serviceWorker' in navigator){
     hadController=true;emitPwaStatus();
   });
   window.addEventListener('load',async()=>{
-    try{serviceWorkerRegistration=await navigator.serviceWorker.register('./sw.js?v780-r1');serviceWorkerRegistration.addEventListener?.('updatefound',()=>{pwaUpdateState='update-found';emitPwaStatus()});syncInstallUI();emitPwaStatus()}
+    try{serviceWorkerRegistration=await navigator.serviceWorker.register('./sw.js?v781-r1');serviceWorkerRegistration.addEventListener?.('updatefound',()=>{pwaUpdateState='update-found';emitPwaStatus()});syncInstallUI();emitPwaStatus()}
     catch(e){console.warn('Service Worker registration failed',e)}
   });
 }
