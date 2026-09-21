@@ -147,6 +147,26 @@ test('app and command languages are independent from wizard through settings',as
   await expect.poll(()=>page.evaluate(()=>({lang:document.documentElement.lang,app:appLanguage,commands:commandLanguage,canonical:commandBy('Sitz').cmd}))).toEqual({lang:'de',app:'de',commands:'en',canonical:'Sitz'});
 });
 
+
+test('v7.7 weekly coach launches a guided live session',async({page})=>{
+  await onboard(page);
+  await expect(page.locator('#weeklyCoach')).toBeVisible();
+  await expect(page.locator('#weeklyCoach .weeklyDay')).toHaveCount(7);
+  const start=page.locator('#weeklyCoach [data-week-start]:not([disabled])').first();
+  await expect(start).toBeVisible();
+  await start.click();
+  await expect(page.locator('#startChoiceDialog')).toBeVisible();
+  await page.locator('#confirmStartChoiceBtn').click();
+  await expect(page.locator('#sessionDialog')).toBeVisible();
+  await expect(page.locator('#sessionElapsed')).toBeVisible();
+  await expect(page.locator('#sessionPracticalCoach')).toBeVisible();
+  await expect(page.locator('#sessionPracticalGoal')).not.toHaveText('');
+  await expect(page.locator('#sessionCommonError')).not.toHaveText('');
+  await expect(page.locator('#sessionFallback')).not.toHaveText('');
+  await expect(page.locator('#sessionProgressCriterion')).not.toHaveText('');
+  await expectContainedHorizontally(page,'#sessionPracticalCoach');
+});
+
 test('localized option layouts stay inside the mobile viewport',async({page})=>{
   await page.goto('/');
   await page.locator('#setupAppLanguage').selectOption('de');

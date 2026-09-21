@@ -36,6 +36,30 @@ test('v6.2 daily plan uses adaptive focus and puppy-safe short sessions',()=>{
   assert.ok(plan.items.every(x=>x.context&&x.reason&&x.objective));
 });
 
+
+test('v7.7 weekly plan spans seven adaptive days and respects puppy safety',()=>{
+  const e=engine(),stateScore={'No iniciado':0,'En práctica':1,'Consistente':2,'Generalizando':3,'Dominado':4};
+  const commands=[
+    {level:9,cmd:'Hinter',category:'Control defensivo'},
+    {level:9,cmd:'Stopp',category:'Control'},
+    {level:10,cmd:'Hopp',category:'Avanzado'}
+  ];
+  const now=Date.parse('2026-09-21T12:00:00Z');
+  const plan=e.weeklyPlan(commands,10,{
+    dayType:'Todo el día',trials:{Hinter:[1,.5],Stopp:[1,1]},history:[],
+    progress:{Hinter:'En práctica',Stopp:'Consistente'},stateScore,
+    profile:{ageMonths:4,ageUpdatedAt:'2026-09-21T00:00:00Z'},now
+  });
+  assert.equal(plan.days.length,7);
+  assert.equal(plan.days[0].isToday,true);
+  assert.equal(new Set(plan.days.map(day=>day.date)).size,7);
+  assert.equal(plan.days[2].load,'light');
+  assert.equal(plan.days[5].load,'light');
+  assert.ok(plan.days.every(day=>day.items.length<=2));
+  assert.equal(plan.days.flatMap(day=>day.items).some(item=>item.command.cmd==='Hopp'),false);
+  assert.ok(plan.days.flatMap(day=>day.items).some(item=>item.command.cmd==='Hinter'));
+});
+
 test('adaptive v3 differentiates response timing, duration and evidence confidence',()=>{
   const e=engine(),stateScore={'No iniciado':0,'En práctica':1,'Consistente':2,'Generalizando':3,'Dominado':4};
   assert.equal(e.skillFamily({cmd:'Sitz',category:'Posiciones'}).key,'position');
@@ -119,4 +143,21 @@ test('v6.4 UI exposes smart plan, evolution dashboard and command insight dialog
   assert.match(insights,/commandSeriesRail/);
   assert.match(insights,/Más antiguo ← desliza → más reciente/);
   assert.match(styles,/commandSeriesRail\{[^}]*overflow-x:auto/);
+});
+
+
+test('v7.7 UI exposes adaptive week and live practical coaching',()=>{
+  const index=read('index.html'),engineSource=read('training-engine.js'),insightsSource=read('app-insights.js'),sessionSource=read('app-session.js'),sessionStyles=read('styles-session.css'),insightStyles=read('styles-insights.css');
+  assert.match(index,/id="weeklyCoach"/);
+  assert.match(index,/id="sessionElapsed"/);
+  assert.match(index,/id="sessionPracticalCoach"/);
+  assert.match(engineSource,/function weeklyPlan/);
+  assert.match(engineSource,/weeklyPlan,microPlan/);
+  assert.match(insightsSource,/ENGINE\.weeklyPlan/);
+  assert.match(insightsSource,/data-week-start/);
+  assert.match(sessionSource,/function startSessionClock/);
+  assert.match(sessionSource,/function renderPracticalCoach/);
+  assert.match(sessionSource,/durationSeconds/);
+  assert.match(sessionStyles,/sessionPracticalCoach/);
+  assert.match(insightStyles,/weeklyCoachRail/);
 });
