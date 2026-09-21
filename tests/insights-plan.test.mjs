@@ -97,6 +97,9 @@ test('evolution summary compares recent performance and finds signals',()=>{
   const summary=e.evolutionSummary(commands,{history,progress:{Sitz:'Consistente',Nein:'En práctica'},stateScore,now});
   assert.equal(summary.sessions7,6);
   assert.equal(summary.sessions30,8);
+  assert.equal(summary.trainingDays7,6);
+  assert.equal(summary.executions7,30);
+  assert.equal(summary.minutes7,null);
   assert.equal(summary.activeCommands30,2);
   assert.ok(summary.contexts30>=3);
   assert.ok(summary.accuracy7>summary.previousAccuracy7);
@@ -160,4 +163,20 @@ test('v7.7 UI exposes adaptive week and live practical coaching',()=>{
   assert.match(sessionSource,/durationSeconds/);
   assert.match(sessionStyles,/sessionPracticalCoach/);
   assert.match(insightStyles,/weeklyCoachRail/);
+});
+
+
+test('v7.8 evolution metrics use real session duration and execution evidence',()=>{
+  const e=engine(),now=Date.parse('2026-09-21T12:00:00Z');
+  const history=[
+    {...session('2026-09-21T10:00:00Z','Sitz',4,5),durationSeconds:185},
+    {...session('2026-09-20T10:00:00Z','Sitz',5,5),durationSeconds:245},
+    {...session('2026-09-20T18:00:00Z','Nein',3,5),durationSeconds:90}
+  ];
+  const summary=e.evolutionSummary([{cmd:'Sitz'},{cmd:'Nein'}],{history,stateScore:{},progress:{},now});
+  assert.equal(summary.sessions7,3);
+  assert.equal(summary.trainingDays7,2);
+  assert.equal(summary.executions7,15);
+  assert.equal(summary.measuredSessions7,3);
+  assert.equal(summary.minutes7,9);
 });

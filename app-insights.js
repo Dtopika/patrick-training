@@ -89,10 +89,12 @@ function renderEvolutionDashboard(){
   const stateTotal=Math.max(1,COMMANDS.length);
   root.innerHTML=`<div class="evolutionHead"><div><p class="kicker">${escapeHtml(copyText('EVOLUCIÓN'))}</p><h2>${escapeHtml(copyText('Últimos 30 días'))}</h2></div><span class="evolutionDelta ${delta!==null&&delta<0?'down':''}">${signedPct(delta)}</span></div>
     <div class="evolutionMetrics">
+      <article><strong>${summary.trainingDays7}</strong><span>${appLanguage==='en'?'training days · 7 days':appLanguage==='de'?'Trainingstage · 7 Tage':'días entrenados · 7 días'}</span></article>
       <article><strong>${summary.sessions7}</strong><span>${appLanguage==='en'?'sessions · 7 days':appLanguage==='de'?'Einheiten · 7 Tage':'sesiones · 7 días'}</span></article>
+      <article><strong>${summary.minutes7??'—'}</strong><span>${appLanguage==='en'?'measured min · 7 days':appLanguage==='de'?'gemessene Min. · 7 Tage':'min medidos · 7 días'}</span></article>
+      <article><strong>${summary.executions7}</strong><span>${appLanguage==='en'?'executions · 7 days':appLanguage==='de'?'Ausführungen · 7 Tage':'ejecuciones · 7 días'}</span></article>
       <article><strong>${pctText(summary.accuracy7)}</strong><span>${appLanguage==='en'?'accuracy · 7 days':appLanguage==='de'?'Genauigkeit · 7 Tage':'precisión · 7 días'}</span></article>
-      <article><strong>${summary.activeCommands30}</strong><span>${appLanguage==='en'?'active commands':appLanguage==='de'?'aktive Kommandos':'comandos activos'}</span></article>
-      <article><strong>${summary.contexts30}</strong><span>${appLanguage==='en'?'contexts used':appLanguage==='de'?'verwendete Kontexte':'contextos usados'}</span></article>
+      <article><strong>${summary.contexts30}</strong><span>${appLanguage==='en'?'contexts · 30 days':appLanguage==='de'?'Kontexte · 30 Tage':'contextos · 30 días'}</span></article>
     </div>
     <div class="evolutionSignals">
       <article><small>${escapeHtml(copyText('MEJORANDO'))}</small><strong>${improving?escapeHtml(displayCommand(improving)):escapeHtml(copyText('Aún sin tendencia'))}</strong><span>${summary.improving?signedPct(summary.improving.trend.delta):escapeHtml(copyText('Necesitamos más sesiones comparables.'))}</span></article>

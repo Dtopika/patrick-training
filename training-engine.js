@@ -396,8 +396,12 @@
     const states={};
     for(const state of Object.keys(stateScore||{}))states[state]=0;
     for(const command of commands||[]){const state=progress[command.cmd]||'No iniciado';states[state]=(states[state]||0)+1}
+    const executions7=last7.reduce((sum,item)=>sum+Object.values(item?.results||{}).reduce((inner,result)=>inner+(Number(result?.total)||0),0),0);
+    const measured7=last7.filter(item=>Number(item?.durationSeconds)>0),durationSeconds7=measured7.reduce((sum,item)=>sum+(Number(item.durationSeconds)||0),0);
+    const trainingDays7=new Set(last7.map(item=>String(item?.at||'').slice(0,10)).filter(Boolean)).size;
     return{
       sessions7:last7.length,sessions30:last30.length,accuracy7:accuracy(last7),previousAccuracy7:accuracy(prev7),
+      trainingDays7,executions7,minutes7:measured7.length?Math.max(1,Math.round(durationSeconds7/60)):null,measuredSessions7:measured7.length,
       activeCommands30:active.size,contexts30:contexts.size,improving,attention,states
     };
   }
