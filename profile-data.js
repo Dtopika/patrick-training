@@ -30,9 +30,19 @@ function freshStorageValues(){
   return values;
 }
 async function resetAllTrainingData(){
-  const first=confirm(appLanguage==='en'?'Reset all Patrick Training data on this device?\n\nProfile, progress, sessions, history archive, preferences and reminders will be deleted.':appLanguage==='de'?'Alle Patrick-Training-Daten auf diesem Gerät zurücksetzen?\n\nProfil, Fortschritt, Einheiten, Verlaufsarchiv, Einstellungen und Erinnerungen werden gelöscht.':'¿Reiniciar todos los datos de Patrick Training en este dispositivo?\n\nSe borrarán perfil, progreso, sesiones, archivo histórico, preferencias y recordatorios.');
+  const first=await appConfirm({
+    eyebrow:appLanguage==='en'?'DATA RESET':appLanguage==='de'?'DATEN ZURÜCKSETZEN':'REINICIAR DATOS',
+    title:appLanguage==='en'?'Reset Patrick Training?':appLanguage==='de'?'Patrick Training zurücksetzen?':'¿Reiniciar Patrick Training?',
+    message:appLanguage==='en'?'Profile, progress, sessions, history archive, preferences and reminders on this device will be deleted.':appLanguage==='de'?'Profil, Fortschritt, Einheiten, Verlaufsarchiv, Einstellungen und Erinnerungen auf diesem Gerät werden gelöscht.':'Se borrarán el perfil, progreso, sesiones, archivo histórico, preferencias y recordatorios de este dispositivo.',
+    confirmLabel:appLanguage==='en'?'Continue':appLanguage==='de'?'Weiter':'Continuar',danger:true
+  });
   if(!first)return false;
-  const second=confirm(appLanguage==='en'?'FINAL CONFIRMATION\n\nThis cannot be undone. Delete everything and return to initial setup?':appLanguage==='de'?'LETZTE BESTÄTIGUNG\n\nDies kann nicht rückgängig gemacht werden. Alles löschen und zur Ersteinrichtung zurückkehren?':'ÚLTIMA CONFIRMACIÓN\n\nEsto no se puede deshacer. ¿Borrar todo y volver a la configuración inicial?');
+  const second=await appConfirm({
+    eyebrow:appLanguage==='en'?'FINAL CONFIRMATION':appLanguage==='de'?'LETZTE BESTÄTIGUNG':'ÚLTIMA CONFIRMACIÓN',
+    title:appLanguage==='en'?'Delete everything?':appLanguage==='de'?'Alles löschen?':'¿Borrar todo?',
+    message:appLanguage==='en'?'This cannot be undone. Patrick Training will return to the initial setup wizard.':appLanguage==='de'?'Dies kann nicht rückgängig gemacht werden. Patrick Training kehrt zum Einrichtungsassistenten zurück.':'Esto no se puede deshacer. Patrick Training volverá al asistente de configuración inicial.',
+    confirmLabel:appLanguage==='en'?'Delete all data':appLanguage==='de'?'Alle Daten löschen':'Borrar todos los datos',danger:true
+  });
   if(!second)return false;
 
   clearTimeout(reminderTimer);reminderTimer=null;
@@ -63,7 +73,12 @@ async function importProgressFile(file){
   let data,normalized;
   try{data=JSON.parse(await file.text());normalized=BACKUP_SCHEMA.normalize(data,{commands:COMMANDS,states:STATES,currentProfile:dogProfile,currentTrainingContext:trainingContext,currentTheme:themePreference,currentAppLanguage:appLanguage,currentCommandLanguage:commandLanguage,currentGermanVoice:germanVoicePreference,maxSchemaVersion:CONFIG.BACKUP_SCHEMA_VERSION})}
   catch(e){console.warn('Respaldo rechazado',e);toast(appLanguage==='en'?'The backup format is not compatible':appLanguage==='de'?'Das Backup-Format ist nicht kompatibel':'El respaldo no tiene un formato compatible');return}
-  if(!confirm(appLanguage==='en'?'Restore this validated backup? It will replace the current Patrick Training progress.':appLanguage==='de'?'Dieses geprüfte Backup wiederherstellen? Es ersetzt den aktuellen Patrick-Training-Fortschritt.':'¿Restaurar este respaldo validado? Reemplazará el progreso actual de Patrick Training.'))return;
+  if(!await appConfirm({
+    eyebrow:appLanguage==='en'?'RESTORE BACKUP':appLanguage==='de'?'BACKUP WIEDERHERSTELLEN':'RESTAURAR RESPALDO',
+    title:appLanguage==='en'?'Replace current progress?':appLanguage==='de'?'Aktuellen Fortschritt ersetzen?':'¿Reemplazar el progreso actual?',
+    message:appLanguage==='en'?'The backup is valid. Restoring it will replace the current Patrick Training progress and preferences on this device.':appLanguage==='de'?'Das Backup ist gültig. Beim Wiederherstellen werden aktueller Fortschritt und Einstellungen auf diesem Gerät ersetzt.':'El respaldo es válido. Al restaurarlo se reemplazarán el progreso y las preferencias actuales de Patrick Training en este dispositivo.',
+    confirmLabel:appLanguage==='en'?'Restore backup':appLanguage==='de'?'Backup wiederherstellen':'Restaurar respaldo'
+  }))return;
   const coreValues={
     patrickProgress:normalized.progress,patrickTrials:normalized.trials,patrickHistory:normalized.history,
     patrickCurrentLevel:normalized.currentLevel,patrickDayType:normalized.dayType,patrickDogProfile:normalized.profile,patrickTrainingContext:normalized.trainingContext,patrickTheme:normalized.theme,patrickAppLanguage:normalized.appLanguage,patrickCommandLanguage:normalized.commandLanguage,patrickGermanVoice:normalized.germanVoice,patrickHistoryArchive:normalized.historyArchive,patrickTeachingOnboardingVersion:normalized.teachingGuideVersion,patrickSetupWizardVersion:normalized.setupWizardVersion

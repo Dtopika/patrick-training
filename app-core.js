@@ -205,6 +205,54 @@ function commandBy(name){return COMMANDS.find(c=>c.cmd===name)||(name===dogName(
 function levelBy(n){return LEVELS.find(l=>l.n===n)}
 function escapeHtml(s=''){return String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]))}
 function toast(msg){const el=$('#toast');if(!el)return;el.textContent=msg;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),1800)}
+let appConfirmResolve=null,appConfirmReturnFocus=null,dialogScrollY=0,dialogScrollLocked=false;
+function ensureAppConfirmDialog(){
+  let dialog=$('#appConfirmDialog');if(dialog)return dialog;
+  document.body.insertAdjacentHTML('beforeend',`<dialog id="appConfirmDialog" class="appConfirmDialog" aria-labelledby="appConfirmTitle" aria-describedby="appConfirmMessage">
+    <section class="appConfirmCard">
+      <div id="appConfirmIcon" class="appConfirmIcon">${icon('info')}</div>
+      <p id="appConfirmEyebrow" class="kicker">CONFIRMAR</p>
+      <h2 id="appConfirmTitle">Confirmar acción</h2>
+      <p id="appConfirmMessage" class="appConfirmMessage"></p>
+      <footer class="appConfirmActions"><button id="appConfirmCancelBtn" class="secondaryBtn" type="button">Cancelar</button><button id="appConfirmAcceptBtn" class="primaryBtn" type="button">Confirmar</button></footer>
+    </section>
+  </dialog>`);
+  dialog=$('#appConfirmDialog');
+  const settle=value=>{if(!dialog.open)return;dialog.close();const resolve=appConfirmResolve;appConfirmResolve=null;resolve?.(value);const target=appConfirmReturnFocus;appConfirmReturnFocus=null;setTimeout(()=>target?.focus?.(),0)};
+  $('#appConfirmCancelBtn').onclick=()=>settle(false);$('#appConfirmAcceptBtn').onclick=()=>settle(true);
+  dialog.addEventListener('cancel',e=>{e.preventDefault();settle(false)});
+  dialog.addEventListener('click',e=>{if(e.target===dialog)settle(false)});
+  return dialog;
+}
+function appConfirm({eyebrow,title,message,confirmLabel,cancelLabel,danger=false}={}){
+  const dialog=ensureAppConfirmDialog();if(dialog.open){dialog.close();appConfirmResolve?.(false);appConfirmResolve=null}
+  appConfirmReturnFocus=document.activeElement;
+  $('#appConfirmEyebrow').textContent=eyebrow||copyText('CONFIRMAR');
+  $('#appConfirmTitle').textContent=title||copyText('Confirmar acción');
+  $('#appConfirmMessage').textContent=message||'';
+  $('#appConfirmAcceptBtn').textContent=confirmLabel||copyText('Confirmar');
+  $('#appConfirmCancelBtn').textContent=cancelLabel||copyText('Cancelar');
+  dialog.classList.toggle('danger',!!danger);$('#appConfirmIcon').innerHTML=icon(danger?'x':'info');
+  dialog.showModal();setTimeout(()=>$('#appConfirmCancelBtn')?.focus(),0);
+  return new Promise(resolve=>{appConfirmResolve=resolve});
+}
+function syncDialogScrollLock(){
+  if(typeof document==='undefined'||!document.body)return;
+  const shouldLock=!!document.querySelector?.('dialog[open]');
+  if(shouldLock&&!dialogScrollLocked){
+    dialogScrollLocked=true;dialogScrollY=Number(window.scrollY)||0;
+    document.documentElement?.classList?.add('dialogScrollLocked');document.body.classList?.add('dialogScrollLocked');
+    document.body.style.top=`-${dialogScrollY}px`;
+  }else if(!shouldLock&&dialogScrollLocked){
+    dialogScrollLocked=false;document.documentElement?.classList?.remove('dialogScrollLocked');document.body.classList?.remove('dialogScrollLocked');document.body.style.top='';
+    window.scrollTo?.(0,dialogScrollY);
+  }
+}
+if(typeof MutationObserver!=='undefined'&&document?.body){
+  const dialogObserver=new MutationObserver(syncDialogScrollLock);
+  dialogObserver.observe(document.body,{subtree:true,attributes:true,attributeFilter:['open']});
+}
+
 function voicesForLanguage(language=commandLanguage){
   if(!('speechSynthesis'in window))return[];
   const locale=I18N?.locale?.(language)||'de-DE',prefix=locale.slice(0,2).toLowerCase();

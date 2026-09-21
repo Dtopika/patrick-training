@@ -78,3 +78,19 @@
 .dailyMission .primaryBtn{width:100%;min-height:48px}
 .dailyPlanDetails{margin:0 0 14px;border:1px solid var(--line);border-radius:16px;background:var(--surface);overflow:hidden}.dailyPlanDetails>summary{list-style:none;cursor:pointer;padding:12px 13px;display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:11px;font-weight:900}.dailyPlanDetails>summary::-webkit-details-marker{display:none}.dailyPlanDetails>summary small{font-size:9px;color:var(--muted);font-weight:700}.dailyPlanDetails[open]>summary{border-bottom:1px solid var(--line)}.dailyPlanDetails .smartDailyPlan{margin:10px;border-radius:14px}.dailyPlanDetails .missionPlanBlock{margin:10px}
 @media(max-width:420px){.dailyMissionTop{display:grid}.missionConfidence{justify-self:start}.dailyMissionTop h2{font-size:20px}.dailyPlanDetails>summary{align-items:flex-start;flex-direction:column;gap:2px}}
+
+/* v7.8.1 app-native confirmations and modal scroll containment */
+html.dialogScrollLocked,body.dialogScrollLocked{overflow:hidden;overscroll-behavior:none}
+body.dialogScrollLocked{position:fixed;left:0;right:0;width:100%;touch-action:none}
+dialog[open]{overscroll-behavior:contain}
+dialog[open]>*,.managementCard,.sessionBody,.settingsDrawerBody{overscroll-behavior:contain;touch-action:pan-y}
+.appConfirmDialog{border:0;padding:0;background:transparent;color:var(--text);width:100%;max-width:none;height:100%;max-height:none;margin:0}
+.appConfirmDialog::backdrop{background:rgba(4,8,18,.66);backdrop-filter:blur(6px)}
+.appConfirmDialog[open]{display:grid;place-items:end center;padding:12px 12px max(12px,env(safe-area-inset-bottom))}
+.appConfirmCard{width:min(100%,430px);background:var(--bg);border:1px solid var(--line);border-radius:24px;padding:20px;box-shadow:var(--shadow);display:grid;gap:10px;text-align:left}
+.appConfirmIcon{width:46px;height:46px;border-radius:15px;background:var(--accentSoft);color:var(--accent);display:grid;place-items:center}.appConfirmIcon .uiIcon{width:22px;height:22px}
+.appConfirmDialog.danger .appConfirmIcon{background:color-mix(in srgb,var(--danger) 12%,var(--surface));color:var(--danger)}
+.appConfirmCard h2{margin:0;font-size:24px;line-height:1.1}.appConfirmMessage{margin:0;color:var(--muted);font-size:12px;line-height:1.55;white-space:pre-line}
+.appConfirmActions{display:grid;grid-template-columns:1fr 1.25fr;gap:8px;margin-top:6px}.appConfirmActions button{min-height:48px}
+.appConfirmDialog.danger #appConfirmAcceptBtn{background:var(--danger);color:#fff;border-color:transparent}
+@media(min-width:620px){.appConfirmDialog[open]{place-items:center}}

@@ -123,7 +123,12 @@ async function saveHistoryCorrection(){
 }
 async function deleteHistorySession(){
   if(historyEditIndex===null||!history[historyEditIndex])return;
-  if(!confirm(copyText('¿Eliminar esta sesión? Se recalculará la evidencia de sus comandos.')))return;
+  if(!await appConfirm({
+    eyebrow:appLanguage==='en'?'HISTORY':appLanguage==='de'?'VERLAUF':'HISTORIAL',
+    title:appLanguage==='en'?'Delete this session?':appLanguage==='de'?'Diese Einheit löschen?':'¿Eliminar esta sesión?',
+    message:appLanguage==='en'?'The session will be removed and the evidence for its commands will be recalculated.':appLanguage==='de'?'Die Einheit wird entfernt und die Evidenz ihrer Kommandos neu berechnet.':'La sesión se eliminará y se recalculará la evidencia de sus comandos.',
+    confirmLabel:appLanguage==='en'?'Delete session':appLanguage==='de'?'Einheit löschen':'Eliminar sesión',danger:true
+  }))return;
   const item=history[historyEditIndex],affected=Object.keys(item.results||{}),nextHistory=history.filter((_,index)=>index!==historyEditIndex);
   await replaceHistoryAndRebuild(nextHistory,affected);closeHistoryEditor();toast(copyText('Sesión eliminada y evidencia recalculada'));
 }

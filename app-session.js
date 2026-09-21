@@ -202,10 +202,15 @@ async function replaceHistoryAndRebuild(nextHistory,affectedCommands){
   await store.setMany({patrickHistory:cleanHistory,patrickHistoryArchive:nextArchive,patrickTrials:nextTrials,patrickProgress:nextProgress,patrickCurrentLevel:nextLevel});
   history=cleanHistory;historyArchive=nextArchive;trials=nextTrials;progress=nextProgress;currentLevel=nextLevel;renderAll();
 }
-function requestExitSession(){
+async function requestExitSession(){
   if(!session){$('#sessionDialog').close();return}
   const attempts=sessionAttemptCount(),message=appLanguage==='en'?(attempts?'Exit session? Executions from this session will not be saved.':'Exit the current session?'):appLanguage==='de'?(attempts?'Einheit verlassen? Die Ausführungen dieser Einheit werden nicht gespeichert.':'Aktuelle Einheit verlassen?'):(attempts?'¿Salir de la sesión? Las ejecuciones de esta sesión no se guardarán.':'¿Salir de la sesión actual?');
-  if(!confirm(message))return;
+  if(!await appConfirm({
+    eyebrow:appLanguage==='en'?'SESSION':appLanguage==='de'?'EINHEIT':'SESIÓN',
+    title:appLanguage==='en'?'Exit training session?':appLanguage==='de'?'Trainingseinheit verlassen?':'¿Salir de la sesión?',
+    message,
+    confirmLabel:appLanguage==='en'?'Exit session':appLanguage==='de'?'Einheit verlassen':'Salir de la sesión',danger:attempts>0
+  }))return;
   clearSessionAdvanceTimer();stopExecutionTimer();stopSessionClock();executionReadyForRating=false;lastRatedExecution=null;setUndoExecutionVisible(false);setStartExecutionVisible(false);session=null;sessionAdvancing=false;setOutcomeButtonsDisabled(false);$('#sessionDialog').close();
 }
 async function finishSession(){
