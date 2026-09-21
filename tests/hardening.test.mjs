@@ -324,16 +324,18 @@ test('v7.3 first-run wizard configures theme profile tutorial and level zero bef
   assert.match(backup,/setupWizardVersion/);
 });
 
-test('v7.3.2 full reset requires two confirmations and resets only managed data',()=>{
-  const profile=readProfile();
-  const fn=profile.match(/async function resetAllTrainingData\(\)\{[\s\S]*?\n\}/)?.[0]||'';
+test('v7.8.1 destructive actions use app-native confirmations and reset stays double-gated',()=>{
+  const profile=readProfile(),core=read('app-core.js'),session=read('app-session.js'),progressSource=read('progress.js'),profileData=read('profile-data.js');
   assert.match(profile,/id="resetAllDataBtn"/);
-  assert.equal((fn.match(/confirm\(/g)||[]).length,2);
-  assert.match(fn,/store\.setMany\(fresh\)/);
-  assert.match(fn,/PatrickDB\?\.del\?\.\(REMINDER_KEY\)/);
-  assert.match(fn,/setTimeout\(openSetupWizard,180\)/);
-  assert.doesNotMatch(fn,/clearAll\(|deleteDatabase\(/);
-  assert.match(profile,/ÚLTIMA CONFIRMACIÓN/);
+  assert.match(core,/function appConfirm/);
+  assert.match(core,/function syncDialogScrollLock/);
+  assert.ok((profileData.match(/await appConfirm\(/g)||[]).length>=3);
+  assert.match(profileData,/ÚLTIMA CONFIRMACIÓN/);
+  assert.match(profileData,/store\.setMany\(fresh\)/);
+  assert.match(profileData,/PatrickDB\?\.del\?\.\(REMINDER_KEY\)/);
+  assert.match(profileData,/setTimeout\(openSetupWizard,180\)/);
+  assert.doesNotMatch(profileData,/clearAll\(|deleteDatabase\(/);
+  for(const [name,source] of [['profile-data.js',profileData],['app-session.js',session],['progress.js',progressSource]])assert.doesNotMatch(source,/\bconfirm\s*\(/,name+' still uses browser confirm()');
 });
 
 test('v7.3.2 wizard actions stay compact, prioritized and validation-aware',()=>{
@@ -504,15 +506,20 @@ test('production JavaScript parses and CSS override debt stays bounded',()=>{
 });
 
 
-test('v7.8 keeps management actions reachable and exposes mature PWA controls',()=>{
-  const styles=read('styles-profile.css'),settings=readProfile(),pwa=read('pwa.js'),reminders=read('profile-reminders.js'),sw=read('sw.js');
+test('v7.8.1 keeps management reachable, locks background and makes update checks observable',()=>{
+  const styles=read('styles-profile.css'),ui=read('styles-ui.css'),settings=readProfile(),pwa=read('pwa.js'),reminders=read('profile-reminders.js'),sw=read('sw.js');
   assert.match(styles,/\.managementHeader\{position:sticky/);
   assert.match(styles,/safe-area-inset-top/);
+  assert.match(ui,/body\.dialogScrollLocked\{position:fixed/);
+  assert.match(ui,/\.appConfirmDialog/);
   assert.match(settings,/id="pwaRuntimeStatus"/);
   assert.match(settings,/id="checkPwaUpdateBtn"/);
-  assert.match(settings,/function pwaRuntimeStatusText/);
+  assert.match(settings,/id="pwaUpdateCheckStatus"/);
+  assert.match(settings,/function pwaUpdateCheckMessage/);
   assert.match(pwa,/window\.PatrickPWA=Object\.freeze/);
-  assert.match(pwa,/function checkPwaUpdate/);
+  assert.match(pwa,/function fetchPublishedVersion/);
+  assert.match(pwa,/patrick-update-check/);
+  assert.match(sw,/searchParams\.has\('patrick-update-check'\)/);
   assert.match(reminders,/function reminderActivitySnapshot/);
   assert.match(reminders,/daysSinceLast>=2/);
   assert.match(sw,/function daysSinceLastTraining/);

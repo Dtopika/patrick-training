@@ -81,7 +81,7 @@
 
 /* v7.8.1 app-native confirmations and modal scroll containment */
 html.dialogScrollLocked,body.dialogScrollLocked{overflow:hidden;overscroll-behavior:none}
-body.dialogScrollLocked{position:fixed;left:0;right:0;width:100%;touch-action:none}
+body.dialogScrollLocked{position:fixed;left:0;right:0;width:100%}
 dialog[open]{overscroll-behavior:contain}
 dialog[open]>*,.managementCard,.sessionBody,.settingsDrawerBody{overscroll-behavior:contain;touch-action:pan-y}
 .appConfirmDialog{border:0;padding:0;background:transparent;color:var(--text);width:100%;max-width:none;height:100%;max-height:none;margin:0}

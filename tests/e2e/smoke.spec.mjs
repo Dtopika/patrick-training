@@ -167,25 +167,30 @@ test('v7.7 weekly coach launches a guided live session',async({page})=>{
   await expectContainedHorizontally(page,'#sessionPracticalCoach');
 });
 
-test('long management dialogs keep the close action visible while scrolling',async({page})=>{
+test('long management dialogs keep close visible and lock background scrolling',async({page})=>{
   await onboard(page);
+  await page.evaluate(()=>window.scrollTo(0,Math.max(0,document.documentElement.scrollHeight-window.innerHeight)));
   await page.locator('#settingsAvatarBtn').click();
   await page.locator('#openAppSettingsBtn').click();
   const dialog=page.locator('#appSettingsDialog'),card=dialog.locator('.managementCard'),close=page.locator('#closeAppSettingsBtn');
   await expect(dialog).toBeVisible();
+  await expect.poll(()=>page.evaluate(()=>document.body.classList.contains('dialogScrollLocked'))).toBe(true);
   await card.evaluate(el=>{el.scrollTop=el.scrollHeight});
   await expect(close).toBeVisible();
   const bounds=await page.evaluate(()=>{
     const card=document.querySelector('#appSettingsDialog .managementCard').getBoundingClientRect();
     const button=document.querySelector('#closeAppSettingsBtn').getBoundingClientRect();
     const header=document.querySelector('#appSettingsDialog .managementHeader');
-    return{cardTop:card.top,cardBottom:card.bottom,buttonTop:button.top,buttonBottom:button.bottom,position:getComputedStyle(header).position};
+    return{cardTop:card.top,cardBottom:card.bottom,buttonTop:button.top,buttonBottom:button.bottom,position:getComputedStyle(header).position,bodyPosition:getComputedStyle(document.body).position,overscroll:getComputedStyle(card).overscrollBehavior};
   });
   expect(bounds.position).toBe('sticky');
+  expect(bounds.bodyPosition).toBe('fixed');
+  expect(bounds.overscroll).toContain('contain');
   expect(bounds.buttonTop).toBeGreaterThanOrEqual(bounds.cardTop-1);
   expect(bounds.buttonBottom).toBeLessThanOrEqual(bounds.cardBottom+1);
   await close.click();
   await expect(dialog).not.toBeVisible();
+  await expect.poll(()=>page.evaluate(()=>document.body.classList.contains('dialogScrollLocked'))).toBe(false);
 });
 
 test('localized option layouts stay inside the mobile viewport',async({page})=>{
@@ -262,7 +267,7 @@ test('mobile navigation, chooser and undo work end to end',async({page})=>{
   await expect(page.locator('#undoExecutionBtn')).toBeHidden();
 });
 
-test('v7.8 settings expose smart reminders and PWA health',async({page})=>{
+test('v7.8.1 update check reports the published version inside settings',async({page})=>{
   await onboard(page);
   await page.locator('#settingsAvatarBtn').click();
   await expect(page.locator('#notificationToggle strong')).toHaveText('Recordatorio inteligente');
@@ -270,8 +275,14 @@ test('v7.8 settings expose smart reminders and PWA health',async({page})=>{
   await page.locator('#openAppSettingsBtn').click();
   await expect(page.locator('#appSettingsDialog')).toBeVisible();
   await expect(page.locator('#pwaRuntimeStatus')).not.toHaveText('');
-  await expect(page.locator('#checkPwaUpdateBtn')).toBeVisible();
+  const updateButton=page.locator('#checkPwaUpdateBtn'),status=page.locator('#pwaUpdateCheckStatus');
+  await expect(updateButton).toBeVisible();
   await expect.poll(()=>page.evaluate(()=>typeof window.PatrickPWA?.checkForUpdate)).toBe('function');
+  const version=await page.evaluate(()=>window.PATRICK_CONFIG.APP_VERSION);
+  await updateButton.click();
+  await expect(status).toContainText('Al día',{timeout:10000});
+  await expect(status).toContainText('v'+version);
+  await expect(updateButton).toBeEnabled();
   await expectContainedHorizontally(page,'#appSettingsDialog .managementCard');
 });
 
@@ -298,7 +309,7 @@ test('German voice settings and long-term evolution are available on mobile',asy
   await expect(page.locator('#longTermEvolution .longTermMonth')).toHaveCount(2);
 });
 
-test('full reset requires two confirmations and only then returns to first-run wizard',async({page})=>{
+test('full reset uses two app-native confirmations before returning to first-run wizard',async({page})=>{
   await onboard(page);
   await expect.poll(()=>page.evaluate(()=>dogName())).toBe('Patrick');
 
@@ -307,39 +318,31 @@ test('full reset requires two confirmations and only then returns to first-run w
   await expect(page.locator('#appSettingsDialog')).toBeVisible();
   await expect(page.locator('#resetAllDataBtn')).toBeVisible();
 
-  const firstMessages=[];
-  page.once('dialog',async dialog=>{firstMessages.push(dialog.message());await dialog.dismiss()});
   await page.locator('#resetAllDataBtn').click();
-  await expect.poll(()=>firstMessages.length).toBe(1);
+  await expect(page.locator('#appConfirmDialog')).toBeVisible();
+  await expect(page.locator('#appConfirmTitle')).toContainText('Reiniciar Patrick Training');
+  await page.locator('#appConfirmCancelBtn').click();
+  await expect(page.locator('#appConfirmDialog')).not.toBeVisible();
+  await expect.poll(()=>page.evaluate(()=>dogName())).toBe('Patrick');
+
+  await page.locator('#resetAllDataBtn').click();
+  await page.locator('#appConfirmAcceptBtn').click();
+  await expect(page.locator('#appConfirmDialog')).toBeVisible();
+  await expect(page.locator('#appConfirmEyebrow')).toHaveText('ÚLTIMA CONFIRMACIÓN');
+  await page.locator('#appConfirmCancelBtn').click();
   await expect.poll(()=>page.evaluate(()=>dogName())).toBe('Patrick');
   await expect(page.locator('#setupWizardDialog')).not.toBeVisible();
 
-  const secondMessages=[];
-  const cancelSecond=async dialog=>{
-    secondMessages.push(dialog.message());
-    if(secondMessages.length===1)await dialog.accept();else await dialog.dismiss();
-  };
-  page.on('dialog',cancelSecond);
   await page.locator('#resetAllDataBtn').click();
-  await expect.poll(()=>secondMessages.length).toBe(2);
-  page.off('dialog',cancelSecond);
-  await expect.poll(()=>page.evaluate(()=>dogName())).toBe('Patrick');
-  await expect(page.locator('#setupWizardDialog')).not.toBeVisible();
-
-  const finalMessages=[];
-  const acceptBoth=async dialog=>{finalMessages.push(dialog.message());await dialog.accept()};
-  page.on('dialog',acceptBoth);
-  await page.locator('#resetAllDataBtn').click();
-  await expect.poll(()=>finalMessages.length).toBe(2);
-  page.off('dialog',acceptBoth);
+  await page.locator('#appConfirmAcceptBtn').click();
+  await expect(page.locator('#appConfirmEyebrow')).toHaveText('ÚLTIMA CONFIRMACIÓN');
+  await page.locator('#appConfirmAcceptBtn').click();
 
   await expect(page.locator('#appSettingsDialog')).not.toBeVisible();
   await expect(page.locator('#setupWizardDialog')).toBeVisible();
   await expect(page.locator('#setupWizardCounter')).toHaveText('1 / 4');
   await expect(page.locator('#setupDogName')).toHaveValue('');
   await expect.poll(()=>page.evaluate(()=>({name:dogProfile.name||'',level:currentLevel,sessions:history.length,archived:archivedSessionCount(),wizard:setupWizardVersion}))).toEqual({name:'',level:0,sessions:0,archived:0,wizard:0});
-  expect(finalMessages[0]).toContain('Reiniciar todos los datos');
-  expect(finalMessages[1]).toContain('ÚLTIMA CONFIRMACIÓN');
 });
 
 test('level 11 safe protection route is visible but locked until previous levels are complete',async({page})=>{
