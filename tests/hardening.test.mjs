@@ -102,13 +102,17 @@ test('navigation and settings click wiring remain collection-safe',()=>{
   }
 });
 
-test('v7.5 configuration centralizes public and schema versions',()=>{
+test('configuration centralizes public schema and cache versions',()=>{
   const env=baseContext();loadArchitecture(env.ctx);
+  const assetTag=read('app-core.js').match(/V6_ASSET_TAG='([^']+)'/)?.[1];
+  const revision=assetTag?.match(/-(r\d+)$/)?.[1];
   assert.equal(env.ctx.PATRICK_CONFIG.APP_VERSION,'7.6.0');
   assert.equal(env.ctx.PATRICK_CONFIG.BACKUP_SCHEMA_VERSION,13);
   assert.equal(env.ctx.PATRICK_CONFIG.SESSION_SCHEMA_VERSION,9);
-  assert.equal(env.ctx.PATRICK_CONFIG.CACHE_NAME,'patrick-training-v7.6.0-r3');
+  assert.ok(revision,'asset tag must expose a cache revision');
+  assert.equal(env.ctx.PATRICK_CONFIG.CACHE_NAME,`patrick-training-v${env.ctx.PATRICK_CONFIG.APP_VERSION}-${revision}`);
   assert.equal(JSON.parse(read('package.json')).version,'7.6.0');
+  assert.equal(JSON.parse(read('package-lock.json')).version,'7.6.0');
 });
 
 test('storage reconciliation prefers newer local mirror and repairs IndexedDB',async()=>{
