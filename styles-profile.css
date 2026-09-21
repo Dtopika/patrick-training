@@ -163,3 +163,10 @@ body.settingsOpen{overflow:hidden}.settingsBackdrop{position:fixed;inset:0;z-ind
 
 .managementHeader .roundBtn{position:relative;z-index:1;flex:0 0 auto}
 @supports(padding:max(0px)){.managementDialog[open]{padding-top:max(12px,env(safe-area-inset-top));padding-bottom:max(12px,env(safe-area-inset-bottom))}}
+
+/* v7.8.1 visible update-check feedback */
+.pwaUpdateCheckStatus{display:block;margin:-2px 3px 2px;padding:8px 9px;border-radius:10px;background:var(--surface2);line-height:1.4}
+.pwaUpdateCheckStatus[data-state="current"]{color:var(--success)}
+.pwaUpdateCheckStatus[data-state="update-found"],.pwaUpdateCheckStatus[data-state="ready-to-reopen"]{color:var(--accent)}
+.pwaUpdateCheckStatus[data-state="error"],.pwaUpdateCheckStatus[data-state="offline"]{color:var(--muted)}
+#checkPwaUpdateBtn[aria-busy="true"]{opacity:.72;pointer-events:none}

@@ -1,19 +1,36 @@
-let deferredPrompt=null,serviceWorkerRegistration=null,pwaUpdateState='idle',pwaLastUpdateCheck=null;
+let deferredPrompt=null,serviceWorkerRegistration=null,pwaUpdateState='idle',pwaLastUpdateCheck=null,pwaPublishedVersion=null;
 const installBtn=document.getElementById('installBtn');
 const networkStatus=document.getElementById('networkStatus');
 const displayModeStandalone=()=>['standalone','fullscreen','minimal-ui'].some(mode=>window.matchMedia('(display-mode: '+mode+')').matches);
 const launchedFromAndroidApp=()=>document.referrer?.startsWith('android-app://');
 const standalone=()=>displayModeStandalone()||window.navigator.standalone===true||launchedFromAndroidApp();
 const isIos=()=>/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
-function pwaRuntimeStatus(){return{online:navigator.onLine,standalone:standalone(),serviceWorker:!!serviceWorkerRegistration,updateState:pwaUpdateState,lastChecked:pwaLastUpdateCheck}}
+function compareSemver(a,b){
+  const parse=value=>String(value||'0').split('.').map(part=>Number(part)||0),aa=parse(a),bb=parse(b),length=Math.max(aa.length,bb.length);
+  for(let i=0;i<length;i++){const delta=(aa[i]||0)-(bb[i]||0);if(delta)return delta>0?1:-1}return 0;
+}
+function pwaRuntimeStatus(){return{online:navigator.onLine,standalone:standalone(),serviceWorker:!!serviceWorkerRegistration,updateState:pwaUpdateState,lastChecked:pwaLastUpdateCheck,currentVersion:CONFIG?.APP_VERSION||null,publishedVersion:pwaPublishedVersion}}
+async function fetchPublishedVersion(){
+  const response=await fetch('./config.js?patrick-update-check='+Date.now(),{cache:'no-store'});
+  if(!response.ok)throw new Error('Version check failed: '+response.status);
+  const source=await response.text(),version=source.match(/APP_VERSION:'([^']+)'/)?.[1];
+  if(!version)throw new Error('Published version not found');
+  return version;
+}
 function emitPwaStatus(){window.dispatchEvent(new CustomEvent('patrick:pwa-status',{detail:pwaRuntimeStatus()}))}
 async function checkPwaUpdate(){
-  if(!('serviceWorker'in navigator)){pwaUpdateState='unsupported';emitPwaStatus();return pwaRuntimeStatus()}
   pwaUpdateState='checking';emitPwaStatus();
+  if(!navigator.onLine){pwaUpdateState='offline';emitPwaStatus();throw new Error('Offline')}
   try{
-    const reg=serviceWorkerRegistration||await navigator.serviceWorker.ready;serviceWorkerRegistration=reg;await reg.update();pwaLastUpdateCheck=new Date().toISOString();
-    pwaUpdateState=reg.waiting||reg.installing?'update-found':'current';emitPwaStatus();return pwaRuntimeStatus();
-  }catch(e){pwaUpdateState='error';emitPwaStatus();throw e}
+    pwaPublishedVersion=await fetchPublishedVersion();
+    if('serviceWorker'in navigator){
+      const reg=serviceWorkerRegistration||await navigator.serviceWorker.getRegistration?.();
+      if(reg){serviceWorkerRegistration=reg;await reg.update()}
+    }
+    pwaLastUpdateCheck=new Date().toISOString();
+    pwaUpdateState=compareSemver(pwaPublishedVersion,CONFIG?.APP_VERSION)>0?'update-found':'current';
+    emitPwaStatus();return pwaRuntimeStatus();
+  }catch(e){pwaUpdateState=navigator.onLine?'error':'offline';emitPwaStatus();throw e}
 }
 window.PatrickPWA=Object.freeze({status:pwaRuntimeStatus,checkForUpdate:checkPwaUpdate});
 
@@ -55,8 +72,9 @@ function maybeShowIosInstallHint(){
 if('serviceWorker' in navigator){
   let hadController=!!navigator.serviceWorker.controller;
   navigator.serviceWorker.addEventListener('controllerchange',()=>{
-    if(hadController)toast(copyText('Actualización instalada. Se aplicará al volver a abrir.'));
-    hadController=true;pwaUpdateState='current';emitPwaStatus();
+    if(hadController){pwaUpdateState='ready-to-reopen';toast(copyText('Actualización instalada. Se aplicará al volver a abrir.'))}
+    else pwaUpdateState='current';
+    hadController=true;emitPwaStatus();
   });
   window.addEventListener('load',async()=>{
     try{serviceWorkerRegistration=await navigator.serviceWorker.register('./sw.js?v780-r1');serviceWorkerRegistration.addEventListener?.('updatefound',()=>{pwaUpdateState='update-found';emitPwaStatus()});syncInstallUI();emitPwaStatus()}

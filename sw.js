@@ -14,6 +14,7 @@ async function networkAndCache(request){
 self.addEventListener('fetch',e=>{
   if(e.request.method!=='GET')return;
   const url=new URL(e.request.url);if(url.origin!==self.location.origin)return;
+  if(url.searchParams.has('patrick-update-check')){e.respondWith(fetch(e.request,{cache:'no-store'}));return}
   const navigation=e.request.mode==='navigate'||e.request.destination==='document';
   if(navigation){
     e.respondWith(networkAndCache(e.request).catch(async()=>await caches.match(e.request)||await caches.match('./index.html')));
