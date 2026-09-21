@@ -419,6 +419,32 @@
     };
   }
 
+
+  function weeklyPlan(commands,currentLevel,{dayType='Todo el día',trials={},history=[],progress={},stateScore={},profile=null,now=Date.now()}={}){
+    const available=(commands||[]).filter(c=>c&&c.level<=currentLevel&&!safetyForCommand(c,profile,now)?.deferFromAdaptive);
+    const stage=ageStage(profile,now),days=[];
+    const dateKey=value=>{const d=new Date(value);return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-')};
+    for(let offset=0;offset<7;offset++){
+      const dayNow=now+offset*DAY_MS,light=offset===2||offset===5;
+      const ranked=available.map(command=>({command,...priorityDetails(command,currentLevel,{trials,history,progress,stateScore,profile,now:dayNow})})).sort((a,b)=>b.score-a.score||b.command.level-a.command.level);
+      if(!ranked.length){days.push({date:dateKey(dayNow),dayOffset:offset,isToday:offset===0,load:'empty',theme:'rest',totalMinutes:0,items:[]});continue}
+      const shift=offset%ranked.length,rotated=[...ranked.slice(shift),...ranked.slice(0,shift)],count=light||dayType==='Solo noche'?1:2,chosen=[];
+      const current=rotated.find(item=>item.command.level===currentLevel);if(current)chosen.push(current);
+      for(const item of rotated){if(chosen.length>=count)break;if(!chosen.some(x=>x.command.cmd===item.command.cmd))chosen.push(item)}
+      const theme=light?'light':offset%3===1?'generalize':offset%3===2?'review':'focus';
+      const baseMinutes=stage.key==='young-puppy'?(light?3:6):(light?4:8),totalMinutes=dayType==='Solo noche'?Math.max(3,Math.round(baseMinutes*.7)):baseMinutes;
+      days.push({
+        date:dateKey(dayNow),dayOffset:offset,isToday:offset===0,load:light?'light':'focus',theme,totalMinutes,
+        items:chosen.map(item=>({
+          command:item.command,state:progress[item.command.cmd]||'No iniciado',attempts:item.attempts,reason:item.reasons[0],
+          context:item.recommendation,difficulty:item.difficulty,confidence:item.confidence,
+          objective:(Number(stateScore[progress[item.command.cmd]||'No iniciado']||0)<2?'build':Number(stateScore[progress[item.command.cmd]||'No iniciado']||0)<4?'generalize':'maintain')
+        }))
+      });
+    }
+    return{generatedAt:new Date(now).toISOString(),stage:stage.label,days};
+  }
+
   function microPlan(commands,currentLevel,{dayType='Todo el día',progress={},stateScore={},focus=[]}={}){
     const known=commands.filter(c=>c.level<currentLevel&&(stateScore[progress[c.cmd]||'No iniciado']||0)>=2).slice(-2);
     if(dayType==='Solo noche')return[
@@ -447,6 +473,6 @@
     POLICY:ADAPTIVE_POLICY,CONTEXT_ENVIRONMENTS,CONTEXT_DISTRACTIONS,normalizeContext,contextSignature,contextDifficulty,contextLabel,
     effectiveAgeMonths,ageStage,safetyForCommand,skillFamily,difficultyTarget,timingTarget,commandTimingEvidence,evidenceConfidence,recommendedAttempts,
     lastPracticeMs,recentAverage,commandContextEvidence,nextProgressState,recommendedContext,priorityDetails,adaptivePriority,focusForLevel,
-    commandHistorySeries,commandTrend,evolutionSummary,dailyPlan,microPlan,ageGuidance
+    commandHistorySeries,commandTrend,evolutionSummary,dailyPlan,weeklyPlan,microPlan,ageGuidance
   });
 })();
