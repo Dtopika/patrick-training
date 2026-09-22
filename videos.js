@@ -52,5 +52,15 @@ window.PATRICK_VIDEOS={
   "Weg":{youtubeId:"EdraNF2hcgA",title:"Look At That — calm observation and reorientation",source:"Donna Hill"},
   "Kehr um":{youtubeId:"NUG_J7mIHvc",title:"Loose Leash Walking — complete tutorial",source:"Kikopup"},
   "Zu mir":{youtubeId:"rjd99MlmqqI",title:"Puppy recall: come when called",source:"Kikopup"},
-  "Abstand":{youtubeId:"nBAz0kqeJYg",title:"Train BACK UP with positive reinforcement",source:"Kikopup"}
+  "Abstand":{youtubeId:"nBAz0kqeJYg",title:"Train BACK UP with positive reinforcement",source:"Kikopup"},
+  "Friss":{youtubeId:"n1wUoUrWXdg",title:"Release cue foundation for meal permission",source:"Kikopup"},
+  "Trink":{youtubeId:"RWSJVwZybwo",title:"Target training foundation for directing to water",source:"Kikopup"},
+  "Schluss":{youtubeId:"n1wUoUrWXdg",title:"Train a clear release / end cue",source:"Kikopup"},
+  "Hand":{youtubeId:"RWSJVwZybwo",title:"Touch — hand target training",source:"Kikopup"},
+  "Sanft":{youtubeId:"K2lnaerPR5o",title:"Calm handling and taking rewards gently",source:"Kikopup"},
+  "Pfote":{youtubeId:"K2lnaerPR5o",title:"Cooperative handling foundation",source:"Kikopup"},
+  "Kinn":{youtubeId:"K2lnaerPR5o",title:"EASY Chin Rest — cooperative care",source:"Kikopup"},
+  "Seite":{youtubeId:"ccdNhAwQZvg",title:"Position changes and body control foundation",source:"Kikopup"},
+  "Kopf":{youtubeId:"k7edMjwEY1c",title:"Get your dog comfortable putting on a harness",source:"Kikopup"}
+
 };
