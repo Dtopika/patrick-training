@@ -336,6 +336,45 @@ test('mobile navigation, chooser and undo work end to end',async({page})=>{
   await expect(page.locator('#undoExecutionBtn')).toBeHidden();
 });
 
+test('v7.10.1 active session keeps coach content scrollable above the result bar',async({page})=>{
+  await onboard(page);
+  await page.locator('.bottomNav [data-view="commands"]').click();
+  const card=page.locator('.commandCard[data-command="Patrick"]');
+  await card.locator('.practiceBtn').click();
+  await page.locator('#confirmStartChoiceBtn').click();
+  await expect(page.locator('#sessionDialog')).toBeVisible();
+  await page.locator('#startExecutionBtn').click();
+  await expect(page.locator('#correctBtn')).toBeEnabled();
+
+  const layout=await page.evaluate(()=>{
+    const shell=document.querySelector('#sessionDialog .sessionShell');
+    const body=document.querySelector('#sessionDialog .sessionBody');
+    const actions=document.querySelector('#sessionDialog .sessionActions');
+    const last=body?.querySelector('.coachCard:last-of-type');
+    if(!shell||!body||!actions||!last)return null;
+    body.scrollTop=body.scrollHeight;
+    const shellRect=shell.getBoundingClientRect(),bodyRect=body.getBoundingClientRect(),actionsRect=actions.getBoundingClientRect(),lastRect=last.getBoundingClientRect();
+    return{
+      shellHeight:shellRect.height,viewport:window.innerHeight,
+      bodyScrollable:body.scrollHeight>body.clientHeight,
+      bodyScrollTop:body.scrollTop,
+      actionPosition:getComputedStyle(actions).position,
+      bodyOverflow:getComputedStyle(body).overflowY,
+      lastBottom:lastRect.bottom,
+      bodyBottom:bodyRect.bottom,
+      actionsTop:actionsRect.top
+    };
+  });
+  expect(layout).not.toBeNull();
+  expect(layout.shellHeight).toBeLessThanOrEqual(layout.viewport+1);
+  expect(layout.bodyScrollable).toBe(true);
+  expect(layout.bodyScrollTop).toBeGreaterThan(0);
+  expect(layout.actionPosition).toBe('static');
+  expect(layout.bodyOverflow).toBe('auto');
+  expect(layout.lastBottom).toBeLessThanOrEqual(layout.bodyBottom+1);
+  expect(layout.actionsTop).toBeGreaterThanOrEqual(layout.bodyBottom-1);
+});
+
 test('v7.8.1 update check reports the published version inside settings',async({page})=>{
   await onboard(page);
   await page.locator('#settingsAvatarBtn').click();

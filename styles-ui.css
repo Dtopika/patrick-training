@@ -94,3 +94,12 @@ dialog[open]>*,.managementCard,.sessionBody,.settingsDrawerBody{overscroll-behav
 .appConfirmActions{display:grid;grid-template-columns:1fr 1.25fr;gap:8px;margin-top:6px}.appConfirmActions button{min-height:48px}
 .appConfirmDialog.danger #appConfirmAcceptBtn{background:var(--danger);color:#fff;border-color:transparent}
 @media(min-width:620px){.appConfirmDialog[open]{place-items:center}}
+
+
+/* v7.10.1 session viewport containment */
+.sessionDialog[open]{overflow:hidden}
+.sessionShell{height:100dvh;min-height:0;max-height:100dvh;overflow:hidden}
+.sessionHeader,.sessionProgress,.sessionActions{flex:0 0 auto}
+.sessionBody{min-height:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;padding-bottom:max(20px,env(safe-area-inset-bottom))}
+.sessionActions{position:static;inset:auto;width:auto!important;margin:0!important;z-index:2}
+@media(min-width:760px){.sessionActions{width:auto;margin:0}}
