@@ -125,7 +125,7 @@ test('command history series and trend use completed session evidence',()=>{
 test('level zero is clearly named Bases de comunicación',()=>{
   const levels=read('levels.js');
   assert.match(levels,/"title": "Bases de comunicación"/);
-  assert.match(levels,/"goal": "Atención → marcador → liberación"/);
+  assert.match(levels,/"goal": "Atención → marcador → liberación y rutina básica"/);
   assert.doesNotMatch(levels,/Idioma común/);
 });
 
