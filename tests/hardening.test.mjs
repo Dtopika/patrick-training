@@ -83,10 +83,10 @@ test('v6 bootstraps its dependencies when an older HTML shell loads newer JavaSc
   const env=baseContext();
   vm.runInContext(read('app-core.js'),env.ctx,{filename:'app-core.js'});
   await env.ctx.PATRICK_READY;
-  assert.equal(vm.runInContext("CONFIG.APP_VERSION",env.ctx),'7.9.0');
+  assert.equal(vm.runInContext("CONFIG.APP_VERSION",env.ctx),'7.10.0');
   assert.equal(vm.runInContext("typeof ENGINE.focusForLevel",env.ctx),'function');
   assert.equal(vm.runInContext("typeof BACKUP_SCHEMA.normalize",env.ctx),'function');
-  assert.deepEqual(env.scripts.map(s=>s.src),['config.js?v790-r1','training-engine.js?v790-r1','backup-schema.js?v790-r1']);
+  assert.deepEqual(env.scripts.map(s=>s.src),['config.js?v710-r1','training-engine.js?v710-r1','backup-schema.js?v710-r1']);
 });
 
 test('navigation and settings click wiring remain collection-safe',()=>{
@@ -107,13 +107,13 @@ test('configuration centralizes public schema and cache versions',()=>{
   const env=baseContext();loadArchitecture(env.ctx);
   const assetTag=read('app-core.js').match(/V6_ASSET_TAG='([^']+)'/)?.[1];
   const revision=assetTag?.match(/-(r\d+)$/)?.[1];
-  assert.equal(env.ctx.PATRICK_CONFIG.APP_VERSION,'7.9.0');
+  assert.equal(env.ctx.PATRICK_CONFIG.APP_VERSION,'7.10.0');
   assert.equal(env.ctx.PATRICK_CONFIG.BACKUP_SCHEMA_VERSION,13);
   assert.equal(env.ctx.PATRICK_CONFIG.SESSION_SCHEMA_VERSION,9);
   assert.ok(revision,'asset tag must expose a cache revision');
   assert.equal(env.ctx.PATRICK_CONFIG.CACHE_NAME,`patrick-training-v${env.ctx.PATRICK_CONFIG.APP_VERSION}-${revision}`);
-  assert.equal(JSON.parse(read('package.json')).version,'7.9.0');
-  assert.equal(JSON.parse(read('package-lock.json')).version,'7.9.0');
+  assert.equal(JSON.parse(read('package.json')).version,'7.10.0');
+  assert.equal(JSON.parse(read('package-lock.json')).version,'7.10.0');
 });
 
 test('storage reconciliation prefers newer local mirror and repairs IndexedDB',async()=>{
@@ -148,7 +148,7 @@ test('backup schema accepts 5.x backups, v6 schema, and rejects malformed nested
   const legacy=schema.normalize({version:5.1,currentLevel:1,dayType:'Todo el día',progress:{Sitz:'En práctica'},trials:{Sitz:[1,.5,0]},history:[],profile:{name:'Patrick',ageMonths:4},notifications:{enabled:false,time:'19:00'}},opts);
   assert.equal(legacy.profile.name,'Patrick');
   assert.deepEqual(Array.from(legacy.trials.Sitz),[1,.5,0]);
-  const current=schema.normalize({schemaVersion:13,appVersion:'7.9.0',currentLevel:0,dayType:'Solo noche',history:[]},opts);
+  const current=schema.normalize({schemaVersion:13,appVersion:'7.10.0',currentLevel:0,dayType:'Solo noche',history:[]},opts);
   assert.equal(current.dayType,'Solo noche');
   assert.throws(()=>schema.normalize({schemaVersion:7,currentLevel:0,dayType:'Todo el día',trials:{Sitz:['boom']}},opts));
   assert.throws(()=>schema.normalize({schemaVersion:7,currentLevel:0,dayType:'Todo el día',history:[null]},opts));
@@ -325,7 +325,7 @@ test('v7.3 first-run wizard configures theme profile tutorial and level zero bef
   assert.match(backup,/setupWizardVersion/);
 });
 
-test('v7.9.0 destructive actions use app-native confirmations and reset stays double-gated',()=>{
+test('v7.10.0 destructive actions use app-native confirmations and reset stays double-gated',()=>{
   const profile=readProfile(),core=read('app-core.js'),session=read('app-session.js'),progressSource=read('progress.js'),profileData=read('profile-data.js');
   assert.match(profile,/id="resetAllDataBtn"/);
   assert.match(core,/function appConfirm/);
@@ -388,7 +388,7 @@ test('v7.5 separates app language from command language without changing canonic
   assert.match(index,/id="setupCommandLanguage"/);
   assert.match(backup,/appLanguage:normalizeLanguage/);
   assert.match(backup,/commandLanguage:normalizeLanguage/);
-  assert.match(sw,/i18n\.js\?v790-r1/);
+  assert.match(sw,/i18n\.js\?v710-r1/);
 });
 test('adaptive focus always returns command objects, never score wrappers',async()=>{
   const env=await loadCore(baseContext());
@@ -437,7 +437,7 @@ test('daily-life and cooperative-care cues are present, translated and routed ea
 
 test('v7.5 upgrade contract cache-busts every critical browser asset',()=>{
   const index=read('index.html'),styles=read('styles.css'),pwa=read('pwa.js'),sw=read('sw.js');
-  const tag='v790-r1';
+  const tag='v710-r1';
   const scriptSrc=[...index.matchAll(/<script src="([^"]+\.js\?[^"]+)"><\/script>/g)].map(m=>m[1]);
   assert.ok(scriptSrc.length>=10,'expected versioned script URLs');
   assert.ok(scriptSrc.every(src=>src.endsWith('?'+tag)));
@@ -520,7 +520,7 @@ test('production JavaScript parses and CSS override debt stays bounded',()=>{
 });
 
 
-test('v7.9.0 keeps management reachable, locks background and makes update checks observable',()=>{
+test('v7.10.0 keeps management reachable, locks background and makes update checks observable',()=>{
   const styles=read('styles-profile.css'),ui=read('styles-ui.css'),settings=readProfile(),pwa=read('pwa.js'),reminders=read('profile-reminders.js'),sw=read('sw.js');
   assert.match(styles,/\.managementHeader\{position:sticky/);
   assert.match(styles,/safe-area-inset-top/);
