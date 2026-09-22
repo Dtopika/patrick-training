@@ -303,8 +303,8 @@ test('video catalog still covers every training command exactly once',()=>{
   const commandFiles=['commands-1.js','commands-2.js','commands-3.js','commands-4.js'];
   const commands=commandFiles.flatMap(path=>[...read(path).matchAll(/"cmd":\s*"([^"]+)"/g)].map(x=>x[1]));
   const videos=[...read('videos.js').matchAll(/"([^"]+)":\s*\{/g)].map(x=>x[1]);
-  assert.equal(commands.length,47);
-  assert.equal(videos.length,47);
+  assert.equal(commands.length,56);
+  assert.equal(videos.length,56);
   assert.deepEqual(new Set(videos),new Set(commands));
 });
 
@@ -412,16 +412,27 @@ test('session evidence is committed only at session completion',async()=>{
   assert.match(sessionLogic,/addEventListener\('cancel'/);
 });
 
-test('all 47 commands map one-to-one to levels and curated videos',()=>{
+test('all 56 commands map one-to-one to levels and curated videos',()=>{
   const commandText=['commands-1.js','commands-2.js','commands-3.js','commands-4.js'].map(read).join('\n');
   const commands=[...commandText.matchAll(/"cmd":\s*"([^"]+)"/g)].map(m=>m[1]);
   const levels=read('levels.js');
   const levelCommands=[...levels.matchAll(/"commands":\s*\[([^\]]*)\]/g)].flatMap(m=>[...m[1].matchAll(/"([^"]+)"/g)].map(x=>x[1]));
   const videos=read('videos.js'),videoCommands=[...videos.matchAll(/^\s*"([^"]+)":\{/gm)].map(m=>m[1]);
-  assert.equal(commands.length,47);
-  assert.equal(new Set(commands).size,47);
+  assert.equal(commands.length,56);
+  assert.equal(new Set(commands).size,56);
   assert.deepEqual(new Set(levelCommands),new Set(commands));
   assert.deepEqual(new Set(videoCommands),new Set(commands));
+});
+
+test('daily-life and cooperative-care cues are present, translated and routed early',()=>{
+  const levels=read('levels.js'),commands=read('commands-1.js');
+  for(const cmd of ['Friss','Trink','Schluss','Hand','Sanft','Pfote','Kinn','Seite','Kopf'])assert.ok(commands.includes('"cmd":"'+cmd+'"')||commands.includes('"cmd": "'+cmd+'"'));
+  for(const cmd of ['Friss','Trink'])assert.ok(levels.match(new RegExp('"n":0[^}]*"'+cmd+'"'))||levels.includes('"'+cmd+'"'));
+  const ctx=vm.createContext({console});ctx.window=ctx;vm.runInContext(read('i18n-data.js'),ctx,{filename:'i18n-data.js'});vm.runInContext(read('i18n.js'),ctx,{filename:'i18n.js'});
+  assert.equal(ctx.PatrickI18n.commandLabel('es','Friss','Patrick'),'Come');
+  assert.equal(ctx.PatrickI18n.commandLabel('en','Trink','Patrick'),'Drink');
+  assert.equal(ctx.PatrickI18n.category('de','Cuidados'),'Pflege');
+  assert.match(ctx.PatrickI18n.commandMeaning('de','Kinn',''),/Kinn/);
 });
 
 test('v7.5 upgrade contract cache-busts every critical browser asset',()=>{
