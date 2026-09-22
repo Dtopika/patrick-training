@@ -1,1 +1,142 @@
-window.PATRICK_LEVELS=[{"n":0,"title":"Bases de comunicación","goal":"Atención → marcador → liberación y rutina básica","commands":["Patrick","Ja!","Frei","Friss","Trink"]},{"n":1,"title":"Cachorro funcional","goal":"Llamada casual, posiciones, control y convivencia diaria","commands":["Komm","Sitz","Platz","Aus","Lass es","Nein","Warte","Decke","Box","Rein","Raus","Schluss","Hand","Sanft"]},{"n":2,"title":"Autocontrol","goal":"Atención, permanencia, calma y manejo cooperativo","commands":["Schau","Bleib","Steh","Ruhe","Lös dich","Pfote","Kinn","Seite","Kopf"]},{"n":3,"title":"Paseo y obediencia","goal":"Caminar normal y trabajo junto","commands":["Los!","Fuß","Weiter","Langsam","Zurück"]},{"n":4,"title":"Dirección y objetos","goal":"Giros, recoger, traer y entregar","commands":["Links","Rechts","Nimm","Hol","Bring","Gib"]},{"n":5,"title":"Olfato","goal":"Búsqueda y juegos de nariz","commands":["Such"]},{"n":6,"title":"Seguridad","goal":"Parada y llamada formal","commands":["Stopp","Hier"]},{"n":7,"title":"Distancia y posiciones","goal":"Envíos y posiciones remotas","commands":["Voraus","Mitte","Hoch","Runter"]},{"n":8,"title":"Alerta controlada","goal":"Ladrido bajo señal y vuelta a calma","commands":["Laut"]},{"n":9,"title":"Control defensivo seguro","goal":"Observar y ponerse detrás de ti; nunca atacar","commands":["Pass auf","Hinter"]},{"n":10,"title":"Avanzado","goal":"Generalización y habilidad física apropiada","commands":["Hopp"]},{"n":11,"title":"Control y protección segura","goal":"Volver al guía, crear distancia, cortar alerta y salir de situaciones tensas sin confrontación","commands":["Bei mir","Leise","Weg","Kehr um","Zu mir","Abstand"]}];
+window.PATRICK_LEVELS=[
+  {
+    "n": 0,
+    "title": "Bases de comunicación",
+    "goal": "Atención → marcador → liberación y rutina básica",
+    "commands": [
+      "Patrick",
+      "Ja!",
+      "Frei",
+      "Friss",
+      "Trink"
+    ]
+  },
+  {
+    "n": 1,
+    "title": "Cachorro funcional",
+    "goal": "Llamada casual, posiciones, control y convivencia diaria",
+    "commands": [
+      "Komm",
+      "Sitz",
+      "Platz",
+      "Aus",
+      "Lass es",
+      "Nein",
+      "Warte",
+      "Decke",
+      "Box",
+      "Rein",
+      "Raus",
+      "Schluss",
+      "Hand",
+      "Sanft"
+    ]
+  },
+  {
+    "n": 2,
+    "title": "Autocontrol",
+    "goal": "Atención, permanencia, calma y manejo cooperativo",
+    "commands": [
+      "Schau",
+      "Bleib",
+      "Steh",
+      "Ruhe",
+      "Lös dich",
+      "Pfote",
+      "Kinn",
+      "Seite",
+      "Kopf"
+    ]
+  },
+  {
+    "n": 3,
+    "title": "Paseo y obediencia",
+    "goal": "Caminar normal y trabajo junto",
+    "commands": [
+      "Los!",
+      "Fuß",
+      "Weiter",
+      "Langsam",
+      "Zurück"
+    ]
+  },
+  {
+    "n": 4,
+    "title": "Dirección y objetos",
+    "goal": "Giros, recoger, traer y entregar",
+    "commands": [
+      "Links",
+      "Rechts",
+      "Nimm",
+      "Hol",
+      "Bring",
+      "Gib"
+    ]
+  },
+  {
+    "n": 5,
+    "title": "Olfato",
+    "goal": "Búsqueda y juegos de nariz",
+    "commands": [
+      "Such"
+    ]
+  },
+  {
+    "n": 6,
+    "title": "Seguridad",
+    "goal": "Parada y llamada formal",
+    "commands": [
+      "Stopp",
+      "Hier"
+    ]
+  },
+  {
+    "n": 7,
+    "title": "Distancia y posiciones",
+    "goal": "Envíos y posiciones remotas",
+    "commands": [
+      "Voraus",
+      "Mitte",
+      "Hoch",
+      "Runter"
+    ]
+  },
+  {
+    "n": 8,
+    "title": "Alerta controlada",
+    "goal": "Ladrido bajo señal y vuelta a calma",
+    "commands": [
+      "Laut"
+    ]
+  },
+  {
+    "n": 9,
+    "title": "Control defensivo seguro",
+    "goal": "Observar y ponerse detrás de ti; nunca atacar",
+    "commands": [
+      "Pass auf",
+      "Hinter"
+    ]
+  },
+  {
+    "n": 10,
+    "title": "Avanzado",
+    "goal": "Generalización y habilidad física apropiada",
+    "commands": [
+      "Hopp"
+    ]
+  },
+  {
+    "n": 11,
+    "title": "Control y protección segura",
+    "goal": "Volver al guía, crear distancia, cortar alerta y salir de situaciones tensas sin confrontación",
+    "commands": [
+      "Bei mir",
+      "Leise",
+      "Weg",
+      "Kehr um",
+      "Zu mir",
+      "Abstand"
+    ]
+  }
+];
