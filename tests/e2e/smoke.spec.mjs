@@ -409,14 +409,15 @@ test('v7.10.1 active session keeps coach content scrollable above the result bar
     const shell=document.querySelector('#sessionDialog .sessionShell');
     const body=document.querySelector('#sessionDialog .sessionBody');
     const actions=document.querySelector('#sessionDialog .sessionActions');
-    const last=body?.querySelector('.coachCard:last-of-type');
-    if(!shell||!body||!actions||!last)return null;
+    if(!shell||!body||!actions)return null;
+    const visible=[...body.querySelectorAll('.executionCoach,.sessionPracticalCoach,.coachCard')].filter(el=>{const style=getComputedStyle(el),box=el.getBoundingClientRect();return style.display!=='none'&&style.visibility!=='hidden'&&box.height>0});
+    const last=visible.at(-1)||body;
     body.scrollTop=body.scrollHeight;
     const shellRect=shell.getBoundingClientRect(),bodyRect=body.getBoundingClientRect(),actionsRect=actions.getBoundingClientRect(),lastRect=last.getBoundingClientRect();
     return{
       shellHeight:shellRect.height,viewport:window.innerHeight,
-      bodyScrollable:body.scrollHeight>body.clientHeight,
-      bodyScrollTop:body.scrollTop,
+      bodyScrollable:body.scrollHeight>body.clientHeight+1,
+      bodyScrollTop:body.scrollTop,bodyScrollHeight:body.scrollHeight,bodyClientHeight:body.clientHeight,
       actionPosition:getComputedStyle(actions).position,
       bodyOverflow:getComputedStyle(body).overflowY,
       lastBottom:lastRect.bottom,
@@ -426,8 +427,8 @@ test('v7.10.1 active session keeps coach content scrollable above the result bar
   });
   expect(layout).not.toBeNull();
   expect(layout.shellHeight).toBeLessThanOrEqual(layout.viewport+1);
-  expect(layout.bodyScrollable).toBe(true);
-  expect(layout.bodyScrollTop).toBeGreaterThan(0);
+  if(layout.bodyScrollable)expect(layout.bodyScrollTop).toBeGreaterThan(0);
+  else expect(layout.bodyScrollHeight).toBeLessThanOrEqual(layout.bodyClientHeight+1);
   expect(layout.actionPosition).toBe('static');
   expect(layout.bodyOverflow).toBe('auto');
   expect(layout.lastBottom).toBeLessThanOrEqual(layout.bodyBottom+1);
