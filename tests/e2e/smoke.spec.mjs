@@ -336,6 +336,65 @@ test('mobile navigation, chooser and undo work end to end',async({page})=>{
   await expect(page.locator('#undoExecutionBtn')).toBeHidden();
 });
 
+test('v7.11 focus mode keeps training controls simple with on-demand help and haptics',async({page})=>{
+  await onboard(page);
+  await page.evaluate(()=>{
+    window.__wakeRequests=0;window.__haptic=null;
+    Object.defineProperty(navigator,'wakeLock',{configurable:true,value:{request:async()=>{window.__wakeRequests++;return{released:false,addEventListener(){},async release(){this.released=true}}}}});
+    Object.defineProperty(navigator,'vibrate',{configurable:true,value:pattern=>{window.__haptic=pattern;return true}});
+  });
+  await page.locator('.bottomNav [data-view="commands"]').click();
+  const card=page.locator('.commandCard[data-command="Patrick"]');
+  await card.locator('.practiceBtn').click();
+  await page.locator('#confirmStartChoiceBtn').click();
+  const dialog=page.locator('#sessionDialog');
+  await expect(dialog).toBeVisible();
+  await expect(page.locator('#sessionPracticalCoach')).toBeVisible();
+  await expect(page.locator('.sessionBody>.coachCard').first()).toBeVisible();
+  await expect.poll(()=>page.evaluate(()=>window.__wakeRequests)).toBeGreaterThan(0);
+
+  await page.locator('#startExecutionBtn').click();
+  await expect(dialog).toHaveClass(/focusMode/);
+  await expect(page.locator('#sessionPracticalCoach')).toBeHidden();
+  await expect(page.locator('.sessionBody>.coachCard').first()).toBeHidden();
+  const help=page.locator('#sessionFocusHelpBtn');
+  await expect(help).toBeVisible();
+  await expect(help).toHaveText('Ver ayuda');
+  await help.click();
+  await expect(dialog).toHaveClass(/focusHelpOpen/);
+  await expect(page.locator('#sessionPracticalCoach')).toBeVisible();
+
+  await page.locator('#correctBtn').click();
+  await expect.poll(()=>page.evaluate(()=>window.__haptic)).not.toBeNull();
+  await expect(page.locator('#startExecutionBtn')).toBeVisible({timeout:4000});
+  await expect(dialog).toHaveClass(/focusMode/);
+  await expect(page.locator('#sessionPracticalCoach')).toBeHidden();
+});
+
+test('v7.11 reload recovers active-session progress and restarts an interrupted execution safely',async({page})=>{
+  await onboard(page);
+  await page.locator('.bottomNav [data-view="commands"]').click();
+  const card=page.locator('.commandCard[data-command="Patrick"]');
+  await card.locator('.practiceBtn').click();
+  await page.locator('#confirmStartChoiceBtn').click();
+  await page.locator('#startExecutionBtn').click();
+  await page.locator('#assistedBtn').click();
+  await expect(page.locator('#startExecutionBtn')).toBeVisible({timeout:4000});
+  await page.locator('#startExecutionBtn').click();
+  await expect(page.locator('#correctBtn')).toBeEnabled();
+  await expect.poll(()=>page.evaluate(()=>store.get('patrickActiveSession',null)?.results?.Patrick?.length||0)).toBe(1);
+
+  await page.reload();
+  await expect.poll(()=>page.evaluate(()=>document.documentElement.dataset.patrickReady||'')).toBe('true');
+  await expect(page.locator('#setupWizardDialog')).not.toBeVisible();
+  await expect(page.locator('#sessionDialog')).toBeVisible();
+  await expect(page.locator('#sessionDialog')).toHaveClass(/focusMode/);
+  await expect(page.locator('#executionLabel')).toContainText('EJECUCIÓN 2 DE');
+  await expect(page.locator('#startExecutionBtn')).toBeVisible();
+  await expect(page.locator('#correctBtn')).toBeDisabled();
+  await expect.poll(()=>page.evaluate(()=>store.get('patrickActiveSession',null)?.results?.Patrick?.length||0)).toBe(1);
+});
+
 test('v7.10.1 active session keeps coach content scrollable above the result bar',async({page})=>{
   await onboard(page);
   await page.locator('.bottomNav [data-view="commands"]').click();

@@ -573,3 +573,22 @@ test('v7.9 quality automation separates deterministic gate from external video h
   assert.match(readme,/Backup schema 13/);
   assert.doesNotMatch(readme,/Motor adaptativo v2/);
 });
+
+test('v7.11 live training recovers ephemeral sessions and keeps focus utilities local to the device',()=>{
+  const core=read('app-core.js'),session=read('app-session.js'),styles=read('styles-session.css'),checker=read('scripts/check-video-links.mjs'),workflow=read('.github/workflows/video-health.yml'),readme=read('README.md');
+  assert.match(core,/patrickActiveSession:null/);
+  assert.match(session,/ACTIVE_SESSION_SNAPSHOT_VERSION=1/);
+  assert.match(session,/function persistActiveSession/);
+  assert.match(session,/function restoreActiveSession/);
+  assert.match(session,/navigator\.wakeLock\.request\('screen'\)/);
+  assert.match(session,/navigator\.vibrate/);
+  assert.match(session,/patrickActiveSession:null/);
+  assert.match(session,/function setSessionFocusMode/);
+  assert.match(session,/setSessionFocusMode\(true\)/);
+  assert.match(styles,/\.sessionDialog\.focusMode/);
+  assert.match(styles,/\.sessionFocusHelpBtn/);
+  assert.match(checker,/entries\.length!==56/);
+  assert.match(workflow,/Check 56 curated training videos/);
+  assert.match(readme,/56 comandos/);
+  assert.match(readme,/56 videos/);
+});
