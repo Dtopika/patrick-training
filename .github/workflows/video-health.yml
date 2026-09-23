@@ -18,5 +18,5 @@ jobs:
         with:
           node-version: 22
           package-manager-cache: false
-      - name: Check 47 curated training videos
+      - name: Check 56 curated training videos
         run: node scripts/check-video-links.mjs

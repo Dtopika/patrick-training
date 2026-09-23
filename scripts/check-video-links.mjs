@@ -5,7 +5,7 @@ const source=fs.readFileSync(new URL('../videos.js',import.meta.url),'utf8');
 const ctx={window:{}};vm.runInNewContext(source,ctx,{filename:'videos.js'});
 const catalog=ctx.window.PATRICK_VIDEOS||{};
 const entries=Object.entries(catalog);
-if(entries.length!==47)throw new Error('Expected 47 curated videos, got '+entries.length);
+if(entries.length!==56)throw new Error('Expected 56 curated videos, got '+entries.length);
 
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function check([command,meta]){

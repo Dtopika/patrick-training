@@ -7,7 +7,7 @@ PWA móvil, local-first, para acompañar el entrenamiento diario de Patrick con 
 - Release estable publicada: v7.10.1.
 - Arquitectura local-first: sin backend ni cuentas.
 - Los datos permanecen en el dispositivo salvo exportación manual de respaldo o diagnóstico.
-- 47 comandos distribuidos en niveles 0 → 11.
+- 56 comandos distribuidos en niveles 0 → 11.
 - Nivel 11 orientado a control y protección segura; no enseña mordida ni ataque operativo.
 
 ## Experiencia de entrenamiento
@@ -35,7 +35,7 @@ PWA móvil, local-first, para acompañar el entrenamiento diario de Patrick con 
 - Interfaz independiente en Español / English / Deutsch.
 - Idioma de comandos independiente en Español / English / Deutsch.
 - Pronunciación mediante voces instaladas en el dispositivo.
-- 47 videos curados con revisión automática semanal de disponibilidad.
+- 56 videos curados con revisión automática semanal de disponibilidad.
 - Cambio de nombre del perro integrado en la experiencia y los comandos correspondientes.
 
 ## PWA, datos y recuperación
@@ -62,7 +62,7 @@ Patrick Training no enseña mordida ni ataque a personas. Los ejercicios defensi
 
 El **Patrick Quality Gate** ejecuta tests unitarios y Playwright en viewports Android antes de promover cambios a `master`.
 
-La salud de los 47 videos se revisa en un workflow semanal separado para que fallos temporales de proveedores externos no vuelvan inestable el Quality Gate principal.
+La salud de los 56 videos se revisa en un workflow semanal separado para que fallos temporales de proveedores externos no vuelvan inestable el Quality Gate principal.
 
 ## Release
 

@@ -3,6 +3,8 @@ const OUTCOME_SCORE={missed:0,assisted:.5,achieved:1};
 function outcomeLabel(outcome){return outcome==='missed'?t('missed'):outcome==='assisted'?t('assisted'):t('achieved')}
 let executionTimerId=null,sessionAdvanceTimeoutId=null,sessionStartedAt=0,sessionClockTimerId=null,sessionElapsedMs=0,executionStartedAt=0,executionElapsedMs=0,executionReadyForRating=false,sessionAdvancing=false,lastRatedExecution=null;
 let pendingStartRequest=null,startChoiceMode='recommended';
+const ACTIVE_SESSION_SNAPSHOT_VERSION=1,ACTIVE_SESSION_TTL_MS=12*60*60*1000;
+let sessionWakeLock=null;
 
 function clearSessionAdvanceTimer(){if(sessionAdvanceTimeoutId){clearTimeout(sessionAdvanceTimeoutId);sessionAdvanceTimeoutId=null}}
 function applyRollingToState(nextTrials,nextProgress,cmd,score){
@@ -32,7 +34,45 @@ function ensureExecutionUI(){
 function formatExecutionTime(ms){const total=Math.max(0,ms)/1000,min=Math.floor(total/60),sec=Math.floor(total%60),tenth=Math.floor((total%1)*10);return`${String(min).padStart(2,'0')}:${String(sec).padStart(2,'0')}.${tenth}`}
 function formatSessionTime(ms){const seconds=Math.floor(Math.max(0,ms)/1000),min=Math.floor(seconds/60),sec=seconds%60;return`${String(min).padStart(2,'0')}:${String(sec).padStart(2,'0')}`}
 function updateSessionClock(){if(sessionStartedAt)sessionElapsedMs=performance.now()-sessionStartedAt;const el=$('#sessionElapsed');if(el)el.textContent=formatSessionTime(sessionElapsedMs)}
-function startSessionClock(){if(sessionClockTimerId)clearInterval(sessionClockTimerId);sessionElapsedMs=0;sessionStartedAt=performance.now();updateSessionClock();sessionClockTimerId=setInterval(updateSessionClock,1000)}
+function currentSessionElapsedMs(){return sessionStartedAt?Math.max(0,performance.now()-sessionStartedAt):Math.max(0,sessionElapsedMs)}
+function startSessionClock(initialMs=0){if(sessionClockTimerId)clearInterval(sessionClockTimerId);sessionElapsedMs=Math.max(0,Number(initialMs)||0);sessionStartedAt=performance.now()-sessionElapsedMs;updateSessionClock();sessionClockTimerId=setInterval(updateSessionClock,1000)}
+function activeSessionSnapshot(options={}){
+  if(!session)return null;
+  const wasRunning=options.wasRunning===undefined?executionReadyForRating:!!options.wasRunning;
+  return{version:ACTIVE_SESSION_SNAPSHOT_VERSION,savedAt:new Date().toISOString(),commands:session.commands.map(c=>c.cmd),level:session.level,index:session.index,trial:session.trial,results:JSON.parse(JSON.stringify(session.results||{})),timings:JSON.parse(JSON.stringify(session.timings||{})),targets:{...(session.targets||{})},context:ENGINE.normalizeContext(session.context),elapsedMs:Math.round(currentSessionElapsedMs()),wasRunning};
+}
+function persistActiveSession(options){const snapshot=activeSessionSnapshot(options);if(snapshot)store.set('patrickActiveSession',snapshot)}
+function clearActiveSessionSnapshot(){return store.set('patrickActiveSession',null)}
+async function requestSessionWakeLock(){
+  if(!session||document.visibilityState!=='visible'||!('wakeLock'in navigator))return false;
+  try{if(sessionWakeLock&&!sessionWakeLock.released)return true;sessionWakeLock=await navigator.wakeLock.request('screen');sessionWakeLock.addEventListener?.('release',()=>{sessionWakeLock=null});return true}
+  catch(e){sessionWakeLock=null;console.warn('Screen Wake Lock unavailable',e);return false}
+}
+async function releaseSessionWakeLock(){const lock=sessionWakeLock;sessionWakeLock=null;try{await lock?.release?.()}catch{}}
+function hapticSessionResult(outcome){if(typeof navigator.vibrate!=='function')return;const pattern=outcome==='achieved'?18:outcome==='assisted'?[12,28,12]:[16,36,16];try{navigator.vibrate(pattern)}catch{}}
+function normalizeRecoveredSession(snapshot){
+  if(!snapshot||snapshot.version!==ACTIVE_SESSION_SNAPSHOT_VERSION)return null;
+  const saved=Date.parse(snapshot.savedAt||'');if(!Number.isFinite(saved)||Date.now()-saved>ACTIVE_SESSION_TTL_MS)return null;
+  const names=Array.isArray(snapshot.commands)?snapshot.commands:[],commands=names.map(commandBy).filter(Boolean);if(!commands.length||commands.length!==names.length)return null;
+  const results={},timings={},targets={};
+  for(const command of commands){
+    const outcomes=Array.isArray(snapshot.results?.[command.cmd])?snapshot.results[command.cmd].filter(x=>x in OUTCOME_SCORE):[];
+    const rawTimes=Array.isArray(snapshot.timings?.[command.cmd])?snapshot.timings[command.cmd]:[];
+    results[command.cmd]=outcomes;timings[command.cmd]=rawTimes.slice(0,outcomes.length).map(x=>Math.max(0,Number(x)||0));
+    targets[command.cmd]=Math.max(1,Number(snapshot.targets?.[command.cmd])||ENGINE.recommendedAttempts(command,{trials,history,progress,stateScore:STATE_SCORE,profile:dogProfile}));
+  }
+  let index=Math.max(0,Math.min(commands.length,Number(snapshot.index)||0));while(index<commands.length&&results[commands[index].cmd].length>=targets[commands[index].cmd])index++;
+  const complete=index>=commands.length,activeIndex=complete?commands.length-1:index,trial=results[commands[activeIndex].cmd].length;
+  return{commands,level:Number.isInteger(Number(snapshot.level))?Number(snapshot.level):inferSessionLevel(commands,currentLevel),index:activeIndex,trial,results,timings,targets,context:ENGINE.normalizeContext(snapshot.context||trainingContext),elapsedMs:Math.max(0,Number(snapshot.elapsedMs)||0),wasRunning:!!snapshot.wasRunning,complete};
+}
+function restoreActiveSession(){
+  const raw=store.get('patrickActiveSession',null),recovered=normalizeRecoveredSession(raw);if(!recovered){if(raw)clearActiveSessionSnapshot();return false}
+  session={commands:recovered.commands,level:recovered.level,index:recovered.index,trial:recovered.trial,results:recovered.results,timings:recovered.timings,targets:recovered.targets,context:recovered.context};
+  executionReadyForRating=false;sessionAdvancing=false;lastRatedExecution=null;startSessionClock(recovered.elapsedMs);$('#sessionDialog').showModal();renderSessionStep();requestSessionWakeLock();persistActiveSession({wasRunning:false});
+  if(recovered.complete){finishSession();return true}
+  const copy=recovered.wasRunning?(appLanguage==='en'?'Session recovered. Restart the interrupted execution when ready.':appLanguage==='de'?'Einheit wiederhergestellt. Starte die unterbrochene Ausführung neu, wenn du bereit bist.':'Sesión recuperada. Reinicia la ejecución interrumpida cuando estés listo.'):(appLanguage==='en'?'Session recovered. Continue where you left off.':appLanguage==='de'?'Einheit wiederhergestellt. Fahre dort fort, wo du aufgehört hast.':'Sesión recuperada. Continúa donde ibas.');
+  toast(copy);return true;
+}
 function stopSessionClock(){if(sessionStartedAt)sessionElapsedMs=performance.now()-sessionStartedAt;sessionStartedAt=0;if(sessionClockTimerId){clearInterval(sessionClockTimerId);sessionClockTimerId=null}updateSessionClock()}
 function practicalCoachCopy(c){
   const family=ENGINE.skillFamily(c).key,state=stateOf(c.cmd),difficulty=ENGINE.difficultyTarget(c,state,{stateScore:STATE_SCORE,context:session?.context}),lang=appLanguage;
@@ -73,12 +113,12 @@ function beginExecution(){
   if(!session||sessionAdvancing||executionReadyForRating)return;
   executionReadyForRating=true;setStartExecutionVisible(false);setOutcomeButtonsDisabled(false);
   const state=$('#executionState');if(state){state.textContent=appLanguage==='en'?'In progress':appLanguage==='de'?'Läuft':'En curso';state.className='executionState'}
-  startExecutionTimer();
+  startExecutionTimer();persistActiveSession({wasRunning:true});requestSessionWakeLock();
 }
 function setSessionContextLocked(locked){['#sessionEnvironment','#sessionDistraction'].forEach(id=>{const el=$(id);if(el)el.disabled=!!locked})}
 function updateSessionContextFromUI(){
   if(!session||sessionAttemptCount()>0)return;
-  session.context=ENGINE.normalizeContext({environment:$('#sessionEnvironment')?.value,distraction:$('#sessionDistraction')?.value});
+  session.context=ENGINE.normalizeContext({environment:$('#sessionEnvironment')?.value,distraction:$('#sessionDistraction')?.value});persistActiveSession();
 }
 function syncSessionContextUI(command){
   ensureSessionContextUI();if(!session)return;
@@ -136,7 +176,7 @@ function startSession(cmds=focusForLevel(currentLevel),options={}){
   const sessionLevel=Number.isInteger(Number(options.sessionLevel))?Number(options.sessionLevel):inferSessionLevel(safeCommands,currentLevel);
   session={commands:safeCommands,level:sessionLevel,index:0,trial:0,results:{},timings:{},targets:{},context:ENGINE.normalizeContext(options.context||trainingContext)};
   safeCommands.forEach(c=>{session.results[c.cmd]=[];session.timings[c.cmd]=[];session.targets[c.cmd]=ENGINE.recommendedAttempts(c,{trials,history,progress,stateScore:STATE_SCORE,profile:dogProfile})});
-  $('#sessionDialog').showModal();renderSessionStep();
+  persistActiveSession();$('#sessionDialog').showModal();renderSessionStep();requestSessionWakeLock();
 }
 function renderSessionStep(){
   if(!session)return;
@@ -151,15 +191,15 @@ function rateExecution(outcome){
   sessionAdvancing=true;executionReadyForRating=false;setOutcomeButtonsDisabled(true);stopExecutionTimer();
   const c=session.commands[session.index],ratedMs=executionElapsedMs;
   lastRatedExecution={commandIndex:session.index,cmd:c.cmd,trialBefore:session.trial,outcome,elapsedMs:ratedMs};
-  session.results[c.cmd].push(outcome);session.timings[c.cmd].push(ratedMs);session.trial++;setSessionContextLocked(true);
+  session.results[c.cmd].push(outcome);session.timings[c.cmd].push(ratedMs);session.trial++;setSessionContextLocked(true);hapticSessionResult(outcome);persistActiveSession({wasRunning:false});
   $('#executionTimer').textContent=formatExecutionTime(ratedMs);const state=$('#executionState');state.textContent=outcomeLabel(outcome);state.className=`executionState ${outcome}`;updateExecutionDots();setUndoExecutionVisible(true);
   const done=completedBeforeCurrent()+session.trial;$('#sessionProgressBar').style.width=`${Math.round(done/Math.max(1,sessionTargetTotal())*100)}%`;
   clearSessionAdvanceTimer();
   sessionAdvanceTimeoutId=setTimeout(()=>{
     sessionAdvanceTimeoutId=null;lastRatedExecution=null;setUndoExecutionVisible(false);if(!session)return;
     const target=executionTarget(c);if(session.trial>=target){toast(appLanguage==='en'?`${displayCommand(c)} · ${target} executions recorded`:appLanguage==='de'?`${displayCommand(c)} · ${target} Ausführungen erfasst`:`${displayCommand(c)} · ${target} ejecuciones registradas`);session.index++;session.trial=0;if(session.index>=session.commands.length){finishSession();return}}
-    renderSessionStep();
-  },1600);
+    renderSessionStep();persistActiveSession();
+  },1200);
 }
 function undoLastExecution(){
   if(!session||!lastRatedExecution)return;
@@ -171,7 +211,7 @@ function undoLastExecution(){
   session.trial=Math.max(0,last.trialBefore);executionElapsedMs=last.elapsedMs;lastRatedExecution=null;sessionAdvancing=false;executionReadyForRating=true;setOutcomeButtonsDisabled(false);setUndoExecutionVisible(false);setStartExecutionVisible(false);
   setSessionContextLocked(sessionAttemptCount()>0);
   const done=completedBeforeCurrent()+session.trial;$('#sessionProgressBar').style.width=`${Math.round(done/Math.max(1,sessionTargetTotal())*100)}%`;
-  updateExecutionUI();const state=$('#executionState');state.textContent=appLanguage==='en'?'Correct result':appLanguage==='de'?'Ergebnis korrigieren':'Corrige resultado';state.className='executionState';$('#executionTimer').textContent=formatExecutionTime(executionElapsedMs);toast(appLanguage==='en'?'Result undone; rate it again':appLanguage==='de'?'Ergebnis rückgängig; bitte erneut bewerten':'Resultado deshecho; vuelve a calificarlo');
+  updateExecutionUI();const state=$('#executionState');state.textContent=appLanguage==='en'?'Correct result':appLanguage==='de'?'Ergebnis korrigieren':'Corrige resultado';state.className='executionState';$('#executionTimer').textContent=formatExecutionTime(executionElapsedMs);toast(appLanguage==='en'?'Result undone; rate it again':appLanguage==='de'?'Ergebnis rückgängig; bitte erneut bewerten':'Resultado deshecho; vuelve a calificarlo');persistActiveSession({wasRunning:false});
 }
 function sessionAttemptCount(){return session?Object.values(session.results).reduce((sum,list)=>sum+(Array.isArray(list)?list.length:0),0):0}
 function resultOutcomeScores(result){
@@ -211,7 +251,7 @@ async function requestExitSession(){
     message,
     confirmLabel:appLanguage==='en'?'Exit session':appLanguage==='de'?'Einheit verlassen':'Salir de la sesión',danger:attempts>0
   }))return;
-  clearSessionAdvanceTimer();stopExecutionTimer();stopSessionClock();executionReadyForRating=false;lastRatedExecution=null;setUndoExecutionVisible(false);setStartExecutionVisible(false);session=null;sessionAdvancing=false;setOutcomeButtonsDisabled(false);$('#sessionDialog').close();
+  clearSessionAdvanceTimer();stopExecutionTimer();stopSessionClock();executionReadyForRating=false;lastRatedExecution=null;setUndoExecutionVisible(false);setStartExecutionVisible(false);session=null;sessionAdvancing=false;setOutcomeButtonsDisabled(false);await clearActiveSessionSnapshot();await releaseSessionWakeLock();$('#sessionDialog').close();
 }
 async function finishSession(){
   if(!session)return;
@@ -226,8 +266,8 @@ async function finishSession(){
   const routeFrontierBefore=maxUnlockedLevelFrom(progress);
   const advanced=finishedLevel===currentLevel&&finishedLevel===routeFrontierBefore&&levelReadyWithProgress(finishedLevel,nextProgress)&&finishedLevel<maxRouteLevel(),nextLevel=advanced?finishedLevel+1:currentLevel;
   const nextTrainingContext=stamp.context;
-  await store.setMany({patrickTrials:nextTrials,patrickProgress:nextProgress,patrickHistory:nextHistory,patrickHistoryArchive:nextArchive,patrickCurrentLevel:nextLevel,patrickTrainingContext:nextTrainingContext});
-  trials=nextTrials;progress=nextProgress;history=nextHistory;historyArchive=nextArchive;currentLevel=nextLevel;trainingContext=nextTrainingContext;session=null;$('#sessionDialog').close();
+  await store.setMany({patrickTrials:nextTrials,patrickProgress:nextProgress,patrickHistory:nextHistory,patrickHistoryArchive:nextArchive,patrickCurrentLevel:nextLevel,patrickTrainingContext:nextTrainingContext,patrickActiveSession:null});
+  trials=nextTrials;progress=nextProgress;history=nextHistory;historyArchive=nextArchive;currentLevel=nextLevel;trainingContext=nextTrainingContext;session=null;await releaseSessionWakeLock();$('#sessionDialog').close();
   $('#finishSummary').textContent=advanced?(appLanguage==='en'?`Level ${finishedLevel} completed. Level ${currentLevel} unlocked automatically.`:appLanguage==='de'?`Stufe ${finishedLevel} abgeschlossen. Stufe ${currentLevel} wurde automatisch freigeschaltet.`:`Nivel ${finishedLevel} completado. Nivel ${currentLevel} desbloqueado automáticamente.`):(appLanguage==='en'?`Session saved. A short, clear practice already counts toward ${dogName()}'s streak.`:appLanguage==='de'?`Einheit gespeichert. Eine kurze, klare Übung zählt bereits für ${dogName()}s Serie.`:`Sesión guardada. Una práctica corta y clara ya cuenta para la racha de ${dogName()}.`);
   $('#finishResults').innerHTML=Object.entries(stamp.results).map(([cmd,r])=>{const c=commandBy(cmd),labels=appLanguage==='en'?['achieved','assisted','missed']:appLanguage==='de'?['geschafft','mit Hilfe','nicht geschafft']:['logradas','con ayuda','no logradas'];return `<div class="finishResult"><strong>${escapeHtml(displayCommand(c||cmd))}</strong><span>${r.achieved} ${labels[0]} · ${r.assisted} ${labels[1]} · ${r.missed} ${labels[2]}${r.avgSeconds?` · ${r.avgSeconds} s`:''}</span></div>`}).join('');
   $('#finishBtn').textContent=advanced?`${t('continue')} · ${t('level')} ${currentLevel}`:(appLanguage==='en'?'Back to Today':appLanguage==='de'?'Zurück zu Heute':'Volver a Hoy');$('#finishDialog').showModal();renderAll();sessionAdvancing=false;
@@ -248,7 +288,9 @@ function init(){
   $('#closeSessionBtn').onclick=requestExitSession;$('#sessionDialog').addEventListener('cancel',e=>{e.preventDefault();requestExitSession()});
   $('#startExecutionBtn').onclick=beginExecution;$('#missedBtn').onclick=()=>rateExecution('missed');$('#assistedBtn').onclick=()=>rateExecution('assisted');$('#correctBtn').onclick=()=>rateExecution('achieved');$('#undoExecutionBtn').onclick=undoLastExecution;
   $('#finishBtn').onclick=()=>{$('#finishDialog').close();setView('today')};
-  renderCommands();renderAll();restoreRememberedAppView();document.documentElement.dataset.patrickReady='true';document.dispatchEvent(new Event('patrick:ready'));
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&session)requestSessionWakeLock();else if(session)persistActiveSession({wasRunning:executionReadyForRating})});
+  window.addEventListener('pagehide',()=>{if(session)persistActiveSession({wasRunning:executionReadyForRating})});
+  renderCommands();renderAll();restoreRememberedAppView();restoreActiveSession();document.documentElement.dataset.patrickReady='true';document.dispatchEvent(new Event('patrick:ready'));
 }
 let bootstrapRetrying=false;
 function showBootstrapFailure(error){

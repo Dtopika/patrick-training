@@ -80,7 +80,8 @@ const STORAGE_DEFAULTS={
   patrickTeachingOnboardingVersion:0,
   patrickSetupWizardVersion:0,
   patrickGermanVoice:'auto',
-  patrickLastBackupAt:null
+  patrickLastBackupAt:null,
+  patrickActiveSession:null
 };
 const STORAGE_META_KEY='patrickStorageMetaV2';
 const memoryStore={};
