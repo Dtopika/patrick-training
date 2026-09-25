@@ -52,11 +52,12 @@ function renderWeeklyCoach(){
   const title=appLanguage==='en'?'Adaptive week':appLanguage==='de'?'Adaptive Woche':'Semana adaptativa';
   const note=appLanguage==='en'?'It recalculates after every completed session.':appLanguage==='de'?'Sie wird nach jeder abgeschlossenen Einheit neu berechnet.':'Se recalcula después de cada sesión terminada.';
   const start=appLanguage==='en'?'Train':appLanguage==='de'?'Trainieren':'Entrenar';
+  const rest=appLanguage==='en'?'Rest':appLanguage==='de'?'Pause':'Descanso';
   root.innerHTML=`<div class="weeklyCoachHead"><div><p class="kicker">${escapeHtml(appLanguage==='en'?'WEEKLY COACH':appLanguage==='de'?'WOCHEN-COACH':'COACH SEMANAL')}</p><h2>${escapeHtml(title)}</h2><p>${escapeHtml(note)}</p></div><span>${escapeHtml(displayEngineText(plan.stage))}</span></div>
     <div class="weeklyCoachRail" role="list">${days.map(day=>`<article class="weeklyDay ${day.isToday?'today':''} ${day.load==='light'?'light':''}" role="listitem">
       <div class="weeklyDayTop"><strong>${escapeHtml(day.isToday?(appLanguage==='en'?'Today':appLanguage==='de'?'Heute':'Hoy'):fmt.format(new Date(day.date+'T12:00:00')))}</strong><small>${escapeHtml(weeklyThemeText(day.theme))}</small></div>
       <div class="weeklyDayCommands">${day.items.map(item=>`<span><b>${escapeHtml(displayCommand(item.command))}</b><small>${escapeHtml(weeklyObjectiveText(item.objective))}</small></span>`).join('')||`<span><small>${escapeHtml(weeklyThemeText('rest'))}</small></span>`}</div>
-      <footer><span>${day.totalMinutes} min</span><button type="button" data-week-start="${day.dayOffset}" ${day.items.length?'':'disabled'}>${escapeHtml(start)}</button></footer>
+      <footer><span>${day.totalMinutes} min</span><button type="button" data-week-start="${day.dayOffset}" ${day.items.length?'':'disabled'}>${escapeHtml(day.items.length?start:rest)}</button></footer>
     </article>`).join('')}</div>`;
 }
 function startWeeklyDay(offset){

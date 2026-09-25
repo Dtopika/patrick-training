@@ -167,6 +167,36 @@ test('v7.9 prevents browser pull-to-refresh and restores the active section afte
   await expect(page.locator('.bottomNav [data-view="commands"]')).toHaveClass(/active/);
 });
 
+test('v7.11.1 weekly coach uses one readable mobile card and visible CTA in dark mode',async({page})=>{
+  await onboard(page);
+  await page.evaluate(()=>{document.body.classList.add('dark')});
+  const rail=page.locator('#weeklyCoach .weeklyCoachRail');
+  const today=page.locator('#weeklyCoach .weeklyDay').first();
+  const cta=today.locator('[data-week-start]');
+  await expect(rail).toBeVisible();
+  await expect(today).toBeVisible();
+  await expect(cta).toBeVisible();
+  const layout=await page.evaluate(()=>{
+    const rail=document.querySelector('#weeklyCoach .weeklyCoachRail');
+    const card=rail?.querySelector('.weeklyDay');
+    const button=card?.querySelector('[data-week-start]');
+    if(!rail||!card||!button)return null;
+    const rr=rail.getBoundingClientRect(),cr=card.getBoundingClientRect(),style=getComputedStyle(button);
+    const rgb=value=>{const m=String(value).match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);return m?m.slice(1).map(Number):null};
+    const bg=rgb(style.backgroundColor),fg=rgb(style.color);
+    const lum=x=>{x/=255;return x<=.03928?x/12.92:Math.pow((x+.055)/1.055,2.4)};
+    const L=v=>v?(.2126*lum(v[0])+.7152*lum(v[1])+.0722*lum(v[2])):0;
+    const contrast=(Math.max(L(bg),L(fg))+.05)/(Math.min(L(bg),L(fg))+.05);
+    return{railWidth:rr.width,cardWidth:cr.width,gap:Math.abs(rr.width-cr.width),contrast,buttonText:button.textContent.trim(),buttonBg:style.backgroundColor,buttonColor:style.color};
+  });
+  expect(layout).not.toBeNull();
+  expect(layout.gap).toBeLessThanOrEqual(2);
+  expect(layout.contrast).toBeGreaterThanOrEqual(4.5);
+  expect(layout.buttonText).toBe('Entrenar');
+  await rail.evaluate(el=>{el.scrollLeft=el.clientWidth});
+  await expect(page.locator('#weeklyCoach .weeklyDay').nth(1)).toBeVisible();
+});
+
 test('v7.7 weekly coach launches a guided live session',async({page})=>{
   await onboard(page);
   await expect(page.locator('#weeklyCoach')).toBeVisible();
