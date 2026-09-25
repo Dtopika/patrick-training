@@ -4,7 +4,7 @@ PWA móvil, local-first, para acompañar el entrenamiento diario de Patrick con 
 
 ## Estado
 
-- Release estable publicada: v7.11.0.
+- Release estable publicada: v7.11.1.
 - Arquitectura local-first: sin backend ni cuentas.
 - Los datos permanecen en el dispositivo salvo exportación manual de respaldo o diagnóstico.
 - 56 comandos distribuidos en niveles 0 → 11.
